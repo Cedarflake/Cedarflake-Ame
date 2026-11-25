@@ -57,8 +57,11 @@ try {
     $probe = Start-Process -FilePath (Join-Path $guest.InputRoot 'parent.exe') -ArgumentList '--inspect-token 0' `
         -Credential $guest.Credential -LoadUserProfile -WorkingDirectory $guest.InputRoot -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $guest.OutputRoot 'admin-token.json') -PassThru
+    [void]$probe.Handle
     try {
-        if (-not $probe.WaitForExit(15000) -or $probe.ExitCode -ne 0) { throw 'Fresh guest admin token inspection failed' }
+        $probeWaited = $probe.WaitForExit(15000)
+        Copy-Item -LiteralPath (Join-Path $guest.OutputRoot 'admin-token.json') -Destination (Join-Path $outputRoot 'admin-token.json')
+        if (-not $probeWaited -or $probe.ExitCode -ne 0) { throw "Fresh guest admin token inspection failed: waited=$probeWaited, exit=$($probe.ExitCode)" }
     } finally { $probe.Dispose() }
     $token = Get-Content -LiteralPath (Join-Path $guest.OutputRoot 'admin-token.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     $policy = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' |

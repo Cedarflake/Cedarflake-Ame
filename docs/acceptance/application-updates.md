@@ -9,8 +9,9 @@ Scope: the [application updates plan](../plans/application-updates.md), under
 ## Client and native boundaries
 
 Local verification used the `codex/app-updates` worktree based on
-`22816d57fb17dd0008d503788e05f3f837cd2577`. These observations cover the uncommitted feature;
-hosted results must identify its eventual submitted commit.
+`22816d57fb17dd0008d503788e05f3f837cd2577`. The product implementation was submitted as
+`adf2540708e482f2b051a24e4b2eb9251c552659`; local package receipts retain their pre-commit source
+provenance. Hosted results must identify their checked commit separately.
 
 - Focused Flutter checks cover three-language enlarged-text dialogs, download dismissal and retry,
   channel changes, stale completions, preference persistence/failure and joined window retirement.
@@ -91,6 +92,20 @@ stopped during the old version's VC runtime prerequisite: a new 180-second fixtu
 after the minimum-runtime MSI succeeded, while the additional-runtime MSI was still active. No Ame
 installer or update helper had started. The fixture now uses the existing baseline owner's
 600-second prerequisite bound and retains an explicit user-authentication handoff when needed.
+
+The next guest installed Alpha 3 successfully. Its token-only preflight then exposed a PowerShell
+process-observation issue: both ordinary and administrator probes exited successfully and emitted
+valid JSON, but `ExitCode` was null without an early retained process handle. Retaining `.Handle`
+produced exit code 0 for both probes, in 107 ms and 96 ms respectively. The fixture now retains that
+handle and copies its JSON before reporting a failure; the product helper did not require a change.
+
+The default Sandbox policy has `EnableLUA=0`. A separate ordinary-user probe used the shipping
+helper's `ShellExecuteEx` flags and `runas` verb with the system `whoami.exe`. Windows accepted the
+launch, but the child remained unelevated and no permission prompt appeared. This environment cannot
+establish the installed handoff's elevation behavior. That check remains pending on a Windows test
+environment with normal UAC. All owned guests retired; no host product or service was installed.
+The ignored `application-update-token-probe/diagnostic.json` and
+`application-update-runas-probe/result.json` retain the observed tokens and actual API result.
 
 ## Review boundaries
 
