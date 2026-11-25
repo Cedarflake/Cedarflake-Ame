@@ -43,13 +43,28 @@ std::wstring CurrentUserSid() {
 
 SingleInstanceLock::SingleInstanceLock() = default;
 
-SingleInstanceLock::~SingleInstanceLock() {
+SingleInstanceLock::~SingleInstanceLock() { Release(); }
+
+void SingleInstanceLock::Release() {
   if (owns_mutex_) {
     ::ReleaseMutex(mutex_);
   }
   if (mutex_ != nullptr) {
     ::CloseHandle(mutex_);
   }
+  mutex_ = nullptr;
+  owns_mutex_ = false;
+}
+
+bool SingleInstanceLock::RetainForHandoff() {
+  if (mutex_ != nullptr) return false;
+  const auto user_sid = CurrentUserSid();
+  if (user_sid.empty()) return false;
+  const auto name = L"Global\\Cedarflake.Ame.SingleInstance." + user_sid;
+  // Keeping the named object alive makes ordinary startup reject competitors
+  // after the original process exits, without acquiring or abandoning ownership.
+  mutex_ = ::OpenMutexW(SYNCHRONIZE, FALSE, name.c_str());
+  return mutex_ != nullptr;
 }
 
 SingleInstanceLockResult SingleInstanceLock::Acquire() {

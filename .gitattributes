@@ -11,3 +11,6 @@
 # Keep the admitted third-party license and README byte-for-byte with the published crate.
 rust/vendor/notify/LICENSE-CC0 whitespace=-trailing-space
 rust/vendor/notify/README.md whitespace=-trailing-space
+
+# Unified diffs retain a context marker on empty context lines.
+tool/patches/velopack-1.2.161-directory-rollback.patch whitespace=-blank-at-eol

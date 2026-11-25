@@ -3,13 +3,9 @@ import "package:material_ui/material_ui.dart";
 import "../../../../app/presentation/ame_typography.dart";
 
 class SettingsSection extends StatelessWidget {
-  const SettingsSection({
-    required this.title,
-    required this.children,
-    super.key,
-  });
+  const SettingsSection({this.title, required this.children, super.key});
 
-  final String title;
+  final String? title;
   final List<Widget> children;
 
   @override
@@ -19,15 +15,16 @@ class SettingsSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 10),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: ameFontWeightSemibold,
+        if (title case final title?)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Text(
+              title,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: ameFontWeightSemibold,
+              ),
             ),
           ),
-        ),
         for (var index = 0; index < children.length; index++) ...[
           if (index > 0) const SizedBox(height: 2),
           Card(
@@ -55,7 +52,7 @@ class SettingsRow extends StatelessWidget {
   const SettingsRow({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     this.trailing,
     this.onTap,
     this.enabled = true,
@@ -64,13 +61,14 @@ class SettingsRow extends StatelessWidget {
 
   final IconData icon;
   final String title;
-  final Widget subtitle;
+  final Widget? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = this.subtitle;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       minLeadingWidth: 24,
@@ -82,15 +80,17 @@ class SettingsRow extends StatelessWidget {
           context,
         ).textTheme.bodyLarge?.copyWith(fontWeight: ameFontWeightSemibold),
       ),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: DefaultTextStyle.merge(
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-          child: subtitle,
-        ),
-      ),
+      subtitle: subtitle == null
+          ? null
+          : Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: DefaultTextStyle.merge(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                child: subtitle,
+              ),
+            ),
       trailing: trailing,
       onTap: onTap,
       enabled: enabled,

@@ -69,6 +69,35 @@ read-only package/digest/table checks without building, executing custom actions
 Run quality commands from PowerShell. The scripts resolve Cargo from `PATH` or the user's Rustup
 installation and resolve Flutter and Dart from `PATH` or the pinned local SDK location in [the repository contract](../../../AGENTS.md#101-local-flutter-toolchain).
 
+`./tool/quality_test_update_handoff.ps1` builds the shipped native update helper and its focused
+fixture with warnings denied, then checks package leases, atomic handoff/result files, redirected
+paths and argument quoting in leased scratch storage. Daily's Rust / Remaining component owns this
+check. It does not install an MSI, start a service or replace a running application.
+The production Release owner also checks the shipped helper's imports with its recorded MSVC
+linker. Only the admitted Windows system libraries are allowed; an adjacent VC runtime is not a
+substitute for the helper's static runtime.
+
+`./tool/acceptance_prepare_portable_update.ps1` accepts the built native fixture parent, shipped
+helper and pinned packaging-tool/engine paths. It creates two temporary portable versions and a
+hashed input manifest beneath `build/test/fixtures`. Then
+`./tool/acceptance_run_portable_update.ps1 -FixtureDirectory <prepared-fixture>` runs the shipping
+helper in an offline Windows Sandbox with read-only inputs and a separate report mapping. The
+fixture checks replacement, missing-commit recovery, dead-helper recovery, engine replacement and
+retained user markers under an ordinary guest token. The driver owns one Sandbox GUID and verifies
+its retirement. This acceptance does not install the host application or journal service.
+
+`./tool/acceptance_prepare_installed_update.ps1` seals the retained Alpha 3 MSI, target MSI and
+receipt, shipping helper, native fixture parent and guest prerequisites beneath `build/test/fixtures`.
+`./tool/acceptance_run_installed_update.ps1 -FixtureDirectory <prepared-fixture>` installs the baseline
+only in an owned offline Sandbox, exercises the ordinary-user handoff, and verifies the updated
+application, service, retained marker and uninstall. Inspect the actual updated window before supplying
+the report directory's `ui-verified` marker. If Windows requests user authentication, the user must
+complete it; an empty `retain-for-user` file in the report directory preserves that owned Sandbox and
+releases the host tool lock. Resume a retained fixture with
+`-Resume -OutputDirectory <report-directory>`; add `-UiVerified` after inspecting its updated window.
+`-Resume -OutputDirectory <report-directory> -Retire` explicitly retires the retained fixture.
+This procedure never installs into the host.
+
 Tool scripts use `snake_case` filenames beginning with an ownership category. Do not name a script
 only after its immediate action, such as `format.ps1`, `lint.ps1`, `verify.ps1`, or `generate.ps1`.
 Use these prefixes:

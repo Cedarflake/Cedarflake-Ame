@@ -16,6 +16,8 @@ foreach ($case in @(
     @{ paths = @('.github/workflows/release_publish_windows.yml'); stage = 'packages' },
     @{ paths = @('tool/release_package_installer_windows.ps1'); stage = 'candidate' },
     @{ paths = @('windows/installer/package.wxs'); stage = 'candidate' },
+    @{ paths = @('tool/release_prepare_update_engine.ps1', 'tool/patches/velopack-1.2.161-directory-rollback.patch'); stage = 'candidate' },
+    @{ paths = @('tool/release_portable_payload.ps1', 'tool/release_verify_portable_unsigned.ps1'); stage = 'candidate' },
     @{ paths = @('tool/release_verify_windows_candidate.ps1'); stage = 'fresh' },
     @{ paths = @('tool/release_msvc_runtime.ps1'); stage = 'fresh' },
     @{ paths = @('windows/cmake/msvc_runtime.cmake'); stage = 'fresh' },
@@ -60,6 +62,7 @@ $script:receipt = [pscustomobject]@{
     signingMode = 'unsigned'; expectedPublisher = ''
     archiveName = "Cedarflake-Ame-$tag-windows-x64-portable.zip"; archiveSha256 = 'f' * 64
     installerName = "Cedarflake-Ame-$tag-windows-x64.msi"; installerSha256 = 'f' * 64
+    updateManifestSha256 = 'f' * 64
 }
 function Read-AmeReleaseApi([string]$Endpoint) {
     switch -Wildcard ($Endpoint) {
@@ -118,6 +121,16 @@ Invoke-AmeAcceptanceScratch -Name 'release-reuse' -Action {
     }
     $script:receipt.archiveSha256 = (Get-FileHash (Join-Path $pair $script:receipt.archiveName) -Algorithm SHA256).Hash.ToLowerInvariant()
     $script:receipt.installerSha256 = (Get-FileHash (Join-Path $pair $script:receipt.installerName) -Algorithm SHA256).Hash.ToLowerInvariant()
+    $fullName = "CedarflakeAme-$($tag.Substring(1))-full.nupkg"
+    [IO.File]::WriteAllText((Join-Path $pair $fullName), 'portable fixture', [Text.UTF8Encoding]::new($false))
+    $metadata = [ordered]@{
+        schema = 1; version = $tag.Substring(1); build = 1; architecture = 'x64'
+        installed = Get-AmeUpdateAsset (Join-Path $pair $script:receipt.installerName)
+        portable = Get-AmeUpdateAsset (Join-Path $pair $fullName)
+    }
+    $metadataPath = Join-Path $pair 'ame-update-windows-x64.json'
+    [IO.File]::WriteAllText($metadataPath, ($metadata | ConvertTo-Json -Depth 4), [Text.UTF8Encoding]::new($false))
+    $script:receipt.updateManifestSha256 = (Get-FileHash -LiteralPath $metadataPath -Algorithm SHA256).Hash.ToLowerInvariant()
     Assert-AmeReusedPackageFiles $pair $script:receipt
     [IO.File]::WriteAllText((Join-Path $pair $script:receipt.installerName), 'changed', [Text.UTF8Encoding]::new($false))
     Assert-ReuseRejected { Assert-AmeReusedPackageFiles $pair $script:receipt } 'a changed MSI'

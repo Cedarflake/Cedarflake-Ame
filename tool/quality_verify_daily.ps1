@@ -33,6 +33,9 @@ try {
     } elseif ($Component.StartsWith("rust_", [StringComparison]::Ordinal)) {
         & (Join-Path $PSScriptRoot "quality_test_rust.ps1") -Partition $Component.Substring(5)
     }
+    if ($Component -in @("all", "rust_other")) {
+        & (Join-Path $PSScriptRoot "quality_test_update_handoff.ps1")
+    }
     if ($Component -in @("all", "flutter")) {
         & (Join-Path $PSScriptRoot "quality_test_flutter.ps1") -AffectedSince $AffectedSince
     }

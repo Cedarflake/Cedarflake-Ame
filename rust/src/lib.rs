@@ -2,6 +2,7 @@
 mod adapters;
 pub mod api;
 mod application;
+mod application_update_runtime;
 pub mod classification;
 #[cfg(feature = "classification-worker")]
 pub mod classification_worker;

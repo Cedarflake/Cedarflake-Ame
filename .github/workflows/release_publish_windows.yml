@@ -33,6 +33,9 @@ on:
       installer_sha256:
         required: true
         type: string
+      update_manifest_sha256:
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -52,6 +55,7 @@ jobs:
       AME_ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
       AME_INSTALLER_NAME: ${{ inputs.installer_name }}
       AME_INSTALLER_SHA256: ${{ inputs.installer_sha256 }}
+      AME_UPDATE_MANIFEST_SHA256: ${{ inputs.update_manifest_sha256 }}
       AME_RELEASE_TAG: ${{ inputs.release_tag }}
       AME_SOURCE_COMMIT: ${{ inputs.source_commit }}
       AME_NOTES_COMMIT: ${{ inputs.trusted_workflow_commit }}
@@ -77,12 +81,34 @@ jobs:
             throw 'Publication package identities are invalid'
           }
           $items = @(Get-ChildItem -LiteralPath 'build/publish' -Force)
-          $expected = @($env:AME_ARCHIVE_NAME, $env:AME_INSTALLER_NAME)
-          if ($items.Count -ne 2) { throw 'Publication requires exactly one ZIP and one MSI' }
+          $packageName = "CedarflakeAme-$($env:AME_RELEASE_TAG.Substring(1))-full.nupkg"
+          $expected = @($env:AME_ARCHIVE_NAME, $env:AME_INSTALLER_NAME, $packageName, 'ame-update-windows-x64.json')
+          if ($items.Count -ne 4) { throw 'Publication requires ZIP, MSI, update package and metadata' }
           foreach ($item in $items) {
             if ($item.PSIsContainer -or $expected -cnotcontains $item.Name -or
                 ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
               throw 'Publication artifact contains an unexpected entry'
+            }
+          }
+          $metadataPath = Join-Path $PWD 'build/publish/ame-update-windows-x64.json'
+          if ((Get-Item -LiteralPath $metadataPath).Length -gt 16384 -or
+              $env:AME_UPDATE_MANIFEST_SHA256 -cnotmatch '^[0-9a-f]{64}$' -or
+              (Get-FileHash -LiteralPath $metadataPath -Algorithm SHA256).Hash.ToLowerInvariant() -cne $env:AME_UPDATE_MANIFEST_SHA256) {
+            throw 'Update metadata differs from the verified package provenance'
+          }
+          $metadata = Get-Content -LiteralPath $metadataPath -Raw -Encoding utf8 | ConvertFrom-Json
+          if ($metadata.schema -ne 1 -or $metadata.architecture -cne 'x64' -or
+              $metadata.version -cne $env:AME_RELEASE_TAG.Substring(1) -or
+              $metadata.build -lt 1 -or $metadata.build -gt 65535 -or
+              $metadata.installed.file_name -cne $env:AME_INSTALLER_NAME -or
+              $metadata.installed.sha256 -cne $env:AME_INSTALLER_SHA256 -or
+              $metadata.portable.file_name -cne $packageName) { throw 'Update metadata has a different package identity' }
+          foreach ($asset in @($metadata.installed, $metadata.portable)) {
+            $path = Join-Path 'build/publish' $asset.file_name
+            if ($asset.size -le 0 -or $asset.size -gt 2GB -or (Get-Item -LiteralPath $path).Length -ne $asset.size -or
+                $asset.sha256 -cnotmatch '^[0-9a-f]{64}$' -or
+                (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -cne $asset.sha256) {
+              throw 'Update package differs from its verified metadata'
             }
           }
 
@@ -224,9 +250,12 @@ jobs:
             return [pscustomobject]@{ Create = $false; Draft = $release.draft; Missing = $missing }
           }
 
+          $metadata = Get-Content -LiteralPath 'build/publish/ame-update-windows-x64.json' -Raw -Encoding utf8 | ConvertFrom-Json
           $artifacts = @(
             [pscustomobject]@{ Name = $env:AME_ARCHIVE_NAME; Sha256 = $env:AME_ARCHIVE_SHA256 }
             [pscustomobject]@{ Name = $env:AME_INSTALLER_NAME; Sha256 = $env:AME_INSTALLER_SHA256 }
+            [pscustomobject]@{ Name = 'ame-update-windows-x64.json'; Sha256 = $env:AME_UPDATE_MANIFEST_SHA256 }
+            [pscustomobject]@{ Name = $metadata.portable.file_name; Sha256 = $metadata.portable.sha256 }
           )
           foreach ($artifact in $artifacts) {
             $path = Join-Path ((Join-Path $PWD 'build/publish')) $artifact.Name

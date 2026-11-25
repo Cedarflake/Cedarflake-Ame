@@ -75,6 +75,13 @@ The Settings preview-cleanup confirmation consumes `libraryPlatformActionsProvid
 the displayed retired preview directory. Cleanup authority remains with the storage application;
 the shared dialog location component receives a callback and has no feature or filesystem dependency.
 
+The Settings About rows, update settings and update dialog consume the updates feature's named
+`applicationUpdateControllerProvider`, immutable `ApplicationUpdateState` and domain preference,
+release and failure values. Updates retains checking, download and restart ownership. Bootstrap
+composes its native adapter and restart port. The shared notification action host is presentation;
+it dispatches current admitted entries to bootstrap-bound UI callbacks without importing feature
+adapters into another feature.
+
 The Settings storage-error widget consumes the public `StorageSettingsFailure` domain contract to
 select localized feedback from its stable error code and disclose its diagnostic message. Storage
 retains path validation and configuration updates. The exact consumer-to-contract registration lives

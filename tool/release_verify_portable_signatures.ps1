@@ -4,6 +4,7 @@ param(
     [string]$ArchivePath,
     [Parameter(Mandatory = $true)]
     [string]$Tag,
+    [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64',
     [Parameter(Mandatory = $true)]
     [string]$ExpectedBrokerPublisher,
     [string]$PubspecPath,
@@ -13,6 +14,7 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
+. (Join-Path $PSScriptRoot "quality_windows_pe_image.ps1")
 
 if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) {
     throw "Portable signature verification requires the exact expected publisher"
@@ -21,6 +23,7 @@ if ([string]::IsNullOrWhiteSpace($ExpectedBrokerPublisher)) {
 & (Join-Path $PSScriptRoot "release_verify_portable_archive.ps1") `
     -ArchivePath $ArchivePath `
     -Tag $Tag `
+    -Architecture $Architecture `
     -PubspecPath $PubspecPath `
     -CargoManifestPath $CargoManifestPath
 
@@ -47,15 +50,17 @@ try {
         [System.IO.Path]::GetFullPath($ArchivePath),
         $scratchRoot
     )
-    $payloadRoot = Join-Path $scratchRoot "Cedarflake-Ame"
+    $payloadRoot = Join-Path $scratchRoot "Cedarflake-Ame/current"
     $applicationPath = Join-Path $payloadRoot $script:AmeApplicationBinaryName
     $brokerPath = Join-Path $payloadRoot (Get-AmeBrokerServicePlan).BinaryName
-    Assert-AmeSignedX64Binary `
-        -Path $applicationPath `
-        -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
-    Assert-AmeBrokerBinary `
-        -Path $brokerPath `
-        -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+    foreach ($target in @($applicationPath, $brokerPath)) {
+        Assert-AmeWindowsPeImage -Path $target -Architecture $Architecture
+        $signature = Get-AuthenticodeSignature -LiteralPath $target
+        $publisher = if ($null -eq $signature.SignerCertificate) { $null } else { $signature.SignerCertificate.Subject }
+        Assert-AmeBrokerSignatureFacts -Status ([string]$signature.Status) -SignerSubject $publisher `
+            -ExpectedPublisher $ExpectedBrokerPublisher
+    }
+    Get-AmeBrokerProtocolFacts -Path $brokerPath | Out-Null
 } finally {
     if (Test-Path -LiteralPath $scratchRoot) {
         Remove-Item -LiteralPath $scratchRoot -Recurse -Force

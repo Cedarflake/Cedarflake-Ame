@@ -4,6 +4,7 @@ param()
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "quality_unsigned_windows_payload.ps1")
+. (Join-Path $PSScriptRoot "quality_update_helper.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_runner_lifecycle.ps1")
 . (Join-Path $PSScriptRoot "integration_windows_engine_retirement.ps1")
 
@@ -51,6 +52,9 @@ try {
     [System.IO.File]::WriteAllText($evidencePath, ($evidence | ConvertTo-Json -Depth 8))
     Invoke-AmeChecked $toolchain.Flutter @('pub', 'get', '--enforce-lockfile')
     Invoke-AmeChecked $toolchain.Flutter @('build', 'windows', '--release', '--no-pub')
+    $evidence['updateHelperImports'] = @(Assert-AmeStandaloneUpdateHelper `
+        -Path (Join-Path $releaseRoot 'cedarflake_ame_update.exe') `
+        -CMakeCache (Join-Path $repositoryRoot 'build/windows/x64/CMakeCache.txt'))
     $evidence['nativeRunnerLifecycle'] = Invoke-AmeWindowsRunnerLifecycle -RepositoryRoot $repositoryRoot
     $evidence['nativeEngineRetirement'] = Invoke-AmeWindowsEngineRetirement -RepositoryRoot $repositoryRoot
     Invoke-AmeChecked $toolchain.Cargo @(

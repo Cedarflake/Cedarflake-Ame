@@ -11,6 +11,110 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get updateSettings => '更新の設定';
+
+  @override
+  String get updatePolicy => '自動更新';
+
+  @override
+  String get updateChannel => '更新チャネル';
+
+  @override
+  String get updateManual => '手動で確認';
+
+  @override
+  String get updateCheckAutomatically => '自動で確認';
+
+  @override
+  String get updateDownloadAutomatically => '自動でダウンロード';
+
+  @override
+  String get updateStable => '安定版';
+
+  @override
+  String get updatePreview => 'プレビュー版';
+
+  @override
+  String get updateCheck => '更新を確認';
+
+  @override
+  String get updateView => '更新を表示';
+
+  @override
+  String get updateRestart => '再起動して更新';
+
+  @override
+  String get updateTitle => 'Ame を更新';
+
+  @override
+  String get updateAvailable => '新しいバージョンがあります';
+
+  @override
+  String get updateCurrent => '最新のバージョンです';
+
+  @override
+  String get updateChecking => '更新を確認中';
+
+  @override
+  String get updateDownloading => '更新をダウンロード中';
+
+  @override
+  String get updateVerifying => '更新を検証中';
+
+  @override
+  String get updateStopping => 'ダウンロードを停止中';
+
+  @override
+  String get updateReady => '更新の準備ができました';
+
+  @override
+  String get updateRestarting => 'Ame を再起動中';
+
+  @override
+  String get updateDownload => '更新をダウンロード';
+
+  @override
+  String get updateLater => '後で';
+
+  @override
+  String get updateStop => 'ダウンロードを停止';
+
+  @override
+  String get updateReadyHelp => 'Ame を再起動すると更新がインストールされます。';
+
+  @override
+  String get updateUnavailable => 'インストール版またはポータブル版で更新を確認してください。';
+
+  @override
+  String get updateNetworkFailure =>
+      '更新を確認またはダウンロードできませんでした。しばらくしてから再試行してください。';
+
+  @override
+  String get updateReleaseFailure => '更新情報が不足しています。しばらくしてから再試行してください。';
+
+  @override
+  String get updatePackageFailure => '更新パッケージが不完全です。もう一度ダウンロードしてください。';
+
+  @override
+  String get updateStorageFailure => '更新を保存できませんでした。空き容量とフォルダーの権限を確認してください。';
+
+  @override
+  String get updateInstallationFailure =>
+      '更新をインストールできませんでした。現在のバージョンを引き続き使用できます。';
+
+  @override
+  String get updateShutdownFailure => '完了できなかった操作があります。しばらくしてから再試行してください。';
+
+  @override
+  String get updateInstalled => 'Ame を更新しました';
+
+  @override
+  String get updateCancelled => '更新のインストールをキャンセルしました';
+
+  @override
+  String get updateFailed => '更新できませんでした';
+
+  @override
   String get settingsTitle => '設定';
 
   @override
@@ -1766,9 +1870,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get filesChanged => 'ファイルに変更があります';
-
-  @override
-  String get updateFailed => '更新できませんでした';
 
   @override
   String get scanCompleted => 'スキャンが完了しました。';

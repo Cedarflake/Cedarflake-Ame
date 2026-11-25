@@ -43,13 +43,13 @@ if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or
 }
 
 $names = @(
-    "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe", "cedarflake_ame_classification_worker.exe", "rust_lib_cedarflake_ame.dll",
+    "cedarflake_ame.exe", "cedarflake_ame_update.exe", "cedarflake_ame_journal_broker.exe", "cedarflake_ame_classification_worker.exe", "rust_lib_cedarflake_ame.dll",
     "flutter_windows.dll", "data/app.so", "data/icudtl.dat", "data/flutter_assets/AssetManifest.bin"
 ) + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames) +
     @(Get-AmeMsvcRuntimePayloadPaths)
 $files = @($names | ForEach-Object { [pscustomobject]@{ relativePath = $_; length = 1L; sha256 = "a" * 64 } })
 Assert-AmeInstallerPayloadNames $files
-foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames) +
+foreach ($missing in (@('cedarflake_ame_update.exe') + @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeClassificationModelsPayloadNames) +
         @(Get-AmeMsvcRuntimePayloadPaths))) {
     $failure = $null
     try { Assert-AmeInstallerPayloadNames @($files | Where-Object { $_.relativePath -cne $missing }) } catch { $failure = $_ }
@@ -80,11 +80,11 @@ try {
             throw 'Model installer components must bind the separately verified model payload'
         }
     }
-    if ($entries.Count -ne 43 -or
+    if ($entries.Count -ne 44 -or
         @($entries | Where-Object { $_.Source -like "*cedarflake_ame_journal_broker.exe" }).Count -ne 0 -or
         $source.SelectNodes("//w:Shortcut", $namespaces).Count -ne 2 -or
-        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 52 -or
-        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 50) {
+        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 53 -or
+        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 51) {
         throw "MSI generated component, broker exclusion, shortcut or ACL ownership is incomplete"
     }
     foreach ($name in (Get-AmeMsvcRuntimePayloadNames)) {

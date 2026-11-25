@@ -15,6 +15,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: ^3.5.0
+  flutter_markdown_plus: 1.0.12
   flutter_rust_bridge: 2.13.0
   freezed_annotation: ^3.1.0
   intl: ^0.20.3
@@ -44,5 +45,6 @@ flutter:
     - assets/licenses/similarity.txt
     - assets/licenses/classification_schema.txt
     - assets/licenses/material_loading_indicator.txt
+    - assets/licenses/application_updates.txt
     - assets/branding/ame_light.png
     - assets/branding/ame_outline.png

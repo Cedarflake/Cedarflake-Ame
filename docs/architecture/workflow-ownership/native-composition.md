@@ -8,6 +8,19 @@ source/symbol/target edges and regression owners live in
 Retained entries are technical composition boundaries; `activeIds` remain unfinished migration.
 Both kinds reject new or stale dependencies. The fixed legacy inventory is never regenerated.
 
+## Application update composition
+
+`application/application_updates/production.rs::open` selects the Windows installed/portable update
+source through `ApplicationUpdateSource`. Domain SemVer/channel policy and the retained download
+controller remain engine-independent. Checks and downloads acquire no catalog or source-media handle.
+`application_update_runtime::ame_application_update_startup` is the runner's no-argument startup
+export under [ADR 0043](../0043-application-update-coordination.md). It selects the portable hook
+adapter before the single-instance lock; no other caller inherits its concrete dependency.
+
+The native handoff owns a verified package lease, prepared helper and explicit commit. It waits for
+the parent to exit after joined shutdown, then invokes the admitted installer or portable engine.
+Production bootstrap joins downloads and the existing file-operation owners before disposal.
+
 ## Native tool entrypoints
 
 The `file_operations` facade exposes the exact `WindowsFileOperations` adapter constructor for the

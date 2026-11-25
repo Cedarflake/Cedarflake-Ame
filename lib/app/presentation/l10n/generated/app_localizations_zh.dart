@@ -11,6 +11,108 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get updateSettings => '更新设置';
+
+  @override
+  String get updatePolicy => '自动更新';
+
+  @override
+  String get updateChannel => '更新渠道';
+
+  @override
+  String get updateManual => '手动检查';
+
+  @override
+  String get updateCheckAutomatically => '自动检查更新';
+
+  @override
+  String get updateDownloadAutomatically => '自动下载更新';
+
+  @override
+  String get updateStable => '正式版';
+
+  @override
+  String get updatePreview => '预览版';
+
+  @override
+  String get updateCheck => '检查更新';
+
+  @override
+  String get updateView => '查看更新';
+
+  @override
+  String get updateRestart => '重启并更新';
+
+  @override
+  String get updateTitle => '更新 Ame';
+
+  @override
+  String get updateAvailable => '发现新版本';
+
+  @override
+  String get updateCurrent => '已是最新版本';
+
+  @override
+  String get updateChecking => '正在检查更新';
+
+  @override
+  String get updateDownloading => '正在下载更新';
+
+  @override
+  String get updateVerifying => '正在验证更新';
+
+  @override
+  String get updateStopping => '正在停止下载';
+
+  @override
+  String get updateReady => '更新已准备就绪';
+
+  @override
+  String get updateRestarting => '正在重启 Ame';
+
+  @override
+  String get updateDownload => '下载更新';
+
+  @override
+  String get updateLater => '稍后';
+
+  @override
+  String get updateStop => '停止下载';
+
+  @override
+  String get updateReadyHelp => '重启 Ame 后安装更新。';
+
+  @override
+  String get updateUnavailable => '请使用安装版或便携版检查更新。';
+
+  @override
+  String get updateNetworkFailure => '暂时无法检查或下载更新，请稍后重试。';
+
+  @override
+  String get updateReleaseFailure => '这个版本的更新信息不完整，请稍后重试。';
+
+  @override
+  String get updatePackageFailure => '下载的更新包不完整，请重新下载。';
+
+  @override
+  String get updateStorageFailure => '无法保存更新，请检查可用空间和文件夹权限。';
+
+  @override
+  String get updateInstallationFailure => '未能安装更新，当前版本仍可使用。';
+
+  @override
+  String get updateShutdownFailure => '还有操作未能结束，请稍后重试。';
+
+  @override
+  String get updateInstalled => 'Ame 已更新';
+
+  @override
+  String get updateCancelled => '已取消安装更新';
+
+  @override
+  String get updateFailed => '更新失败';
+
+  @override
   String get settingsTitle => '设置';
 
   @override
@@ -1726,9 +1828,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get filesChanged => '文件已变化';
-
-  @override
-  String get updateFailed => '更新失败';
 
   @override
   String get scanCompleted => '扫描已完成。';

@@ -149,3 +149,5 @@ pub(crate) fn production_library_change_source_factory() -> crate::ports::Librar
 }
 #[cfg(windows)]
 pub(crate) mod analysis_capacity;
+#[cfg(windows)]
+pub(crate) mod application_updates;

@@ -1,3 +1,4 @@
+pub mod application_updates;
 pub mod catalog;
 pub mod classification;
 pub mod classification_installation;

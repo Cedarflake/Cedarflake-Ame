@@ -1,311 +1,104 @@
-$ErrorActionPreference = "Stop"
-. (Join-Path $PSScriptRoot "quality_common.ps1")
-. (Join-Path $PSScriptRoot "release_classification_runtime.ps1")
-. (Join-Path $PSScriptRoot "release_msvc_runtime.ps1")
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'acceptance_scratch_storage.ps1')
+. (Join-Path $PSScriptRoot 'release_portable_payload.ps1')
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$repositoryRoot = Get-AmeRepositoryRoot
-$buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
-$scratchRoot = [System.IO.Path]::GetFullPath(
-    (Join-Path $buildRoot "release-portable-test-$PID")
-)
-$buildPrefix = "$buildRoot$([System.IO.Path]::DirectorySeparatorChar)"
-if (-not $scratchRoot.StartsWith(
-    $buildPrefix,
-    [System.StringComparison]::OrdinalIgnoreCase
-)) {
-    throw "Portable release test storage must remain inside the build directory"
+function Assert-PortableRejection {
+    param([scriptblock]$Action, [string]$Expected, [string]$Detail)
+    $failure = $null
+    try { & $Action } catch { $failure = $_ }
+    if ($null -eq $failure -or $failure.Exception.Message -notlike $Expected) { throw $Detail }
 }
 
-$releaseRoot = Join-Path $scratchRoot "fixture-release"
-$outputDirectory = Join-Path $scratchRoot "artifacts"
-$pubspecFixture = Join-Path $scratchRoot "pubspec.yaml"
-$cargoFixture = Join-Path $scratchRoot "Cargo.toml"
-$verifyScript = Join-Path $PSScriptRoot "release_verify_portable_archive.ps1"
-$signatureVerifyScript = Join-Path $PSScriptRoot "release_verify_portable_signatures.ps1"
-$unsignedVerifyScript = Join-Path $PSScriptRoot "release_verify_portable_unsigned.ps1"
-$tag = "v1.2.3"
-$archiveName = "Cedarflake-Ame-$tag-windows-x64-portable.zip"
-$utf8 = [System.Text.UTF8Encoding]::new($false)
-$signedFixtureSource = Join-Path $env:SystemRoot "System32\notepad.exe"
-$signedFixtureSignature = Get-AuthenticodeSignature -LiteralPath $signedFixtureSource
-if (
-    $signedFixtureSignature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
-    $null -eq $signedFixtureSignature.SignerCertificate
-) {
-    throw "The Windows signed fixture is unavailable"
-}
-$signedFixturePublisher = $signedFixtureSignature.SignerCertificate.Subject
-
-try {
-    New-Item -ItemType Directory `
-        -Path (Join-Path $releaseRoot "data\flutter_assets") `
-        -Force | Out-Null
-    [System.IO.File]::WriteAllText(
-        $pubspecFixture,
-        "name: fixture`nversion: 1.2.3+4`n",
-        $utf8
-    )
-    [System.IO.File]::WriteAllText(
-        $cargoFixture,
-        "[package]`nname = `"fixture`"`nversion = `"1.2.3`"`n",
-        $utf8
-    )
-    foreach ($relativePath in @(
-        "rust_lib_cedarflake_ame.dll",
-        "flutter_windows.dll",
-        "data\app.so",
-        "data\icudtl.dat",
-        "data\flutter_assets\AssetManifest.bin"
+Invoke-AmeAcceptanceScratch -Name 'portable-archive-tests' -Action {
+    param($scratch)
+    $tag = 'v1.2.3'
+    $name = "Cedarflake-Ame-$tag-windows-x64-portable.zip"
+    $root = Join-Path $scratch 'fixture/Cedarflake-Ame'
+    $current = Join-Path $root 'current'
+    [void][IO.Directory]::CreateDirectory((Join-Path $current 'data/flutter_assets'))
+    $pubspec = Join-Path $scratch 'pubspec.yaml'
+    $cargo = Join-Path $scratch 'Cargo.toml'
+    [IO.File]::WriteAllText($pubspec, "name: fixture`nversion: 1.2.3+4`n", [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($cargo, "[package]`nname = `"fixture`"`nversion = `"1.2.3`"`n", [Text.UTF8Encoding]::new($false))
+    $signedSource = Join-Path $env:SystemRoot 'System32/notepad.exe'
+    $signature = Get-AuthenticodeSignature -LiteralPath $signedSource
+    if ($signature.Status -ne 'Valid' -or $null -eq $signature.SignerCertificate) { throw 'Windows signed fixture is unavailable' }
+    foreach ($file in @('cedarflake_ame.exe', 'cedarflake_ame_update.exe', 'cedarflake_ame_journal_broker.exe', 'cedarflake_ame_classification_worker.exe')) {
+        Copy-Item -LiteralPath $signedSource -Destination (Join-Path $current $file)
+    }
+    Copy-Item -LiteralPath $signedSource -Destination (Join-Path $root 'Update.exe')
+    Copy-Item -LiteralPath $signedSource -Destination (Join-Path $root 'Cedarflake Ame.exe')
+    [IO.File]::WriteAllBytes((Join-Path $root '.portable'), [byte[]]::new(0))
+    foreach ($file in @('rust_lib_cedarflake_ame.dll', 'flutter_windows.dll', 'data/app.so',
+        'data/icudtl.dat', 'data/flutter_assets/AssetManifest.bin', 'velopack-LICENSE.txt') +
+        @(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths)) {
+        $target = Join-Path $current $file
+        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($target))
+        [IO.File]::WriteAllText($target, $file, [Text.UTF8Encoding]::new($false))
+    }
+    $manifest = '<package><metadata><id>CedarflakeAme</id><version>1.2.3</version><mainExe>cedarflake_ame.exe</mainExe><os>win</os><rid>win-x64</rid><machineArchitecture>x64</machineArchitecture></metadata></package>'
+    [IO.File]::WriteAllText((Join-Path $current 'sq.version'), $manifest, [Text.UTF8Encoding]::new($false))
+    $archive = Join-Path $scratch $name
+    [IO.Compression.ZipFile]::CreateFromDirectory((Split-Path -Parent $root), $archive)
+    $arguments = @{ Tag = $tag; PubspecPath = $pubspec; CargoManifestPath = $cargo }
+    $verify = Join-Path $PSScriptRoot 'release_verify_portable_archive.ps1'
+    & $verify -ArchivePath $archive @arguments
+    $missingNames = @('.portable', 'Update.exe', 'Cedarflake Ame.exe', 'current/cedarflake_ame_update.exe',
+        'current/cedarflake_ame_journal_broker.exe', 'current/rust_lib_cedarflake_ame.dll') +
+        @((@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths)) | ForEach-Object { "current/$_" })
+    foreach ($missing in $missingNames) {
+        $directory = Join-Path $scratch ([guid]::NewGuid().ToString('N'))
+        [void][IO.Directory]::CreateDirectory($directory)
+        $changed = Join-Path $directory $name
+        Copy-Item -LiteralPath $archive -Destination $changed
+        $zip = [IO.Compression.ZipFile]::Open($changed, [IO.Compression.ZipArchiveMode]::Update)
+        try { $zip.GetEntry("Cedarflake-Ame/$missing").Delete() } finally { $zip.Dispose() }
+        Assert-PortableRejection { & $verify -ArchivePath $changed @arguments } `
+            "*missing required entry: Cedarflake-Ame/$missing*" "Missing portable payload was admitted: $missing"
+    }
+    $unsigned = Join-Path $PSScriptRoot 'release_verify_portable_unsigned.ps1'
+    Assert-PortableRejection { & $unsigned -ArchivePath $archive @arguments } `
+        '*Unsigned portable executable unexpectedly carries an Authenticode signature*' 'Signed fixture passed unsigned verification'
+    $signed = Join-Path $PSScriptRoot 'release_verify_portable_signatures.ps1'
+    Assert-PortableRejection { & $signed -ArchivePath $archive -ExpectedBrokerPublisher 'CN=Invalid' @arguments } `
+        '*signer does not match*' 'Portable signature verification accepted the wrong publisher'
+    $bytes = [IO.File]::ReadAllBytes((Join-Path $current 'cedarflake_ame.exe'))
+    $bytes[4096] = $bytes[4096] -bxor 1
+    [IO.File]::WriteAllBytes((Join-Path $current 'cedarflake_ame.exe'), $bytes)
+    $tampered = Join-Path $scratch 'tampered'
+    [void][IO.Directory]::CreateDirectory($tampered)
+    $tamperedArchive = Join-Path $tampered $name
+    [IO.Compression.ZipFile]::CreateFromDirectory((Split-Path -Parent $root), $tamperedArchive)
+    Assert-PortableRejection { & $signed -ArchivePath $tamperedArchive -ExpectedBrokerPublisher $signature.SignerCertificate.Subject @arguments } `
+        '*valid Authenticode signature*' 'Portable signature verification accepted a tampered signed application'
+    foreach ($unsafe in @('../outside.txt', 'Cedarflake-Ame/current/file:stream', 'Cedarflake-Ame/current/CON.txt', 'Cedarflake-Ame/current/file.')) {
+        $directory = Join-Path $scratch ([guid]::NewGuid().ToString('N'))
+        [void][IO.Directory]::CreateDirectory($directory)
+        $changed = Join-Path $directory $name
+        $zip = [IO.Compression.ZipFile]::Open($changed, [IO.Compression.ZipArchiveMode]::Create)
+        try { [void]$zip.CreateEntry($unsafe) } finally { $zip.Dispose() }
+        Assert-PortableRejection { & $verify -ArchivePath $changed @arguments } '*unsafe or duplicate path*' 'Unsafe archive path was admitted'
+    }
+    foreach ($case in @(
+        @{ Name = 'Cedarflake-Ame/current/sq.version'; Content = $manifest.Replace('1.2.3', '1.2.4'); Error = '*release identity*' },
+        @{ Name = 'Cedarflake-Ame/.portable'; Content = 'installed'; Error = '*marker must be empty*' },
+        @{ Name = 'Cedarflake-Ame/.portable/'; Content = ''; Error = '*missing required entry: Cedarflake-Ame/.portable*' },
+        @{ Name = 'Cedarflake-Ame/unexpected.exe'; Content = 'unexpected'; Error = '*unexpected root*' },
+        @{ Name = ('Cedarflake-Ame/current/' + (Get-AmeClassificationModelsManifest).bundleDirectory + '/model.onnx'); Content = 'model'; Error = '*model*' }
     )) {
-        $fixturePath = Join-Path $releaseRoot $relativePath
-        [System.IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
-    }
-    foreach ($relativePath in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths))) {
-        $fixturePath = Join-Path $releaseRoot $relativePath
-        [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fixturePath))
-        [IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
-    }
-    Copy-Item `
-        -LiteralPath $signedFixtureSource `
-        -Destination (Join-Path $releaseRoot "cedarflake_ame.exe")
-    Copy-Item `
-        -LiteralPath $signedFixtureSource `
-        -Destination (Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe")
-    Copy-Item `
-        -LiteralPath $signedFixtureSource `
-        -Destination (Join-Path $releaseRoot "cedarflake_ame_classification_worker.exe")
-
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
-    $portableFixtureRoot = Join-Path $scratchRoot "portable-fixture\Cedarflake-Ame"
-    New-Item -ItemType Directory -Path $portableFixtureRoot -Force | Out-Null
-    foreach ($entry in @(Get-ChildItem -LiteralPath $releaseRoot -Force)) {
-        Copy-Item `
-            -LiteralPath $entry.FullName `
-            -Destination $portableFixtureRoot `
-            -Recurse `
-            -Force
-    }
-    $expectedArchivePath = Join-Path $outputDirectory $archiveName
-    [System.IO.Compression.ZipFile]::CreateFromDirectory(
-        ([System.IO.Path]::GetDirectoryName($portableFixtureRoot)),
-        $expectedArchivePath
-    )
-    & $verifyScript `
-        -ArchivePath $expectedArchivePath `
-        -Tag $tag `
-        -PubspecPath $pubspecFixture `
-        -CargoManifestPath $cargoFixture
-    $archivePath = $expectedArchivePath
-    foreach ($missing in (@(Get-AmeClassificationRuntimePayloadNames) + @(Get-AmeMsvcRuntimePayloadPaths))) {
-        $missingDirectory = Join-Path $scratchRoot ([Guid]::NewGuid().ToString("N"))
-        [void][IO.Directory]::CreateDirectory($missingDirectory)
-        $missingArchivePath = Join-Path $missingDirectory $archiveName
-        Copy-Item -LiteralPath $expectedArchivePath -Destination $missingArchivePath
-        $missingArchive = [IO.Compression.ZipFile]::Open($missingArchivePath, [IO.Compression.ZipArchiveMode]::Update)
-        try { $missingArchive.GetEntry("Cedarflake-Ame/$missing").Delete() } finally { $missingArchive.Dispose() }
-        $failure = $null
+        $directory = Join-Path $scratch ([guid]::NewGuid().ToString('N'))
+        [void][IO.Directory]::CreateDirectory($directory)
+        $changed = Join-Path $directory $name
+        Copy-Item -LiteralPath $archive -Destination $changed
+        $zip = [IO.Compression.ZipFile]::Open($changed, [IO.Compression.ZipArchiveMode]::Update)
         try {
-            & $verifyScript -ArchivePath $missingArchivePath -Tag $tag `
-                -PubspecPath $pubspecFixture -CargoManifestPath $cargoFixture
-        } catch { $failure = $_ }
-        if ($null -eq $failure -or -not $failure.Exception.Message.Contains("missing required entry: Cedarflake-Ame/$missing")) {
-            throw "Portable archive verification did not reject the missing runtime payload: $missing"
-        }
+            $entry = $zip.GetEntry($case.Name.TrimEnd('/'))
+            if ($null -ne $entry) { $entry.Delete() }
+            $writer = [IO.StreamWriter]::new($zip.CreateEntry($case.Name).Open(), [Text.UTF8Encoding]::new($false))
+            try { $writer.Write($case.Content) } finally { $writer.Dispose() }
+        } finally { $zip.Dispose() }
+        Assert-PortableRejection { & $verify -ArchivePath $changed @arguments } $case.Error 'Portable identity or model omission regression was admitted'
     }
-    if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
-        throw "Portable verifier did not retain the valid fixture archive"
-    }
-    $wrongPublisherRejected = $false
-    try {
-        & $signatureVerifyScript `
-            -ArchivePath $expectedArchivePath `
-            -Tag $tag `
-            -ExpectedBrokerPublisher "CN=Cedarflake Ame Invalid Fixture Publisher" `
-            -PubspecPath $pubspecFixture `
-            -CargoManifestPath $cargoFixture
-    } catch {
-        $wrongPublisherRejected = $true
-    }
-    if (-not $wrongPublisherRejected) {
-        throw "Portable signature verification accepted the wrong publisher"
-    }
-    if (@(Get-ChildItem `
-        -LiteralPath $buildRoot `
-        -Directory `
-        -Filter "portable-signature-verify-$PID-*" `
-        -ErrorAction SilentlyContinue).Count -ne 0) {
-        throw "Portable signature verification retained extraction state after rejection"
-    }
-
-    $unsignedRejection = $null
-    try {
-        & $unsignedVerifyScript `
-            -ArchivePath $expectedArchivePath `
-            -Tag $tag `
-            -PubspecPath $pubspecFixture `
-            -CargoManifestPath $cargoFixture
-    } catch {
-        $unsignedRejection = $_
-    }
-    if (
-        $null -eq $unsignedRejection -or
-        -not $unsignedRejection.Exception.Message.Contains(
-            "Unsigned portable executable unexpectedly carries an Authenticode signature"
-        )
-    ) {
-        throw "Unsigned portable verifier failed to reject the signed fixture"
-    }
-    if (@(Get-ChildItem `
-        -LiteralPath $buildRoot `
-        -Directory `
-        -Filter "portable-unsigned-verify-$PID-*" `
-        -ErrorAction SilentlyContinue).Count -ne 0) {
-        throw "Unsigned portable verifier retained extraction state after rejection"
-    }
-
-    $tamperedFixtureRoot = Join-Path $scratchRoot "tampered-fixture\Cedarflake-Ame"
-    New-Item -ItemType Directory -Path $tamperedFixtureRoot -Force | Out-Null
-    foreach ($entry in @(Get-ChildItem -LiteralPath $releaseRoot -Force)) {
-        Copy-Item `
-            -LiteralPath $entry.FullName `
-            -Destination $tamperedFixtureRoot `
-            -Recurse `
-            -Force
-    }
-    $tamperedApplication = Join-Path $tamperedFixtureRoot "cedarflake_ame.exe"
-    $tamperedBytes = [System.IO.File]::ReadAllBytes($tamperedApplication)
-    $tamperIndex = [Math]::Min(4096, $tamperedBytes.Length - 1)
-    $tamperedBytes[$tamperIndex] = $tamperedBytes[$tamperIndex] -bxor 0x01
-    [System.IO.File]::WriteAllBytes($tamperedApplication, $tamperedBytes)
-    $tamperedArchiveDirectory = Join-Path $scratchRoot "tampered-archive"
-    New-Item -ItemType Directory -Path $tamperedArchiveDirectory | Out-Null
-    $tamperedArchivePath = Join-Path $tamperedArchiveDirectory $archiveName
-    [System.IO.Compression.ZipFile]::CreateFromDirectory(
-        ([System.IO.Path]::GetDirectoryName($tamperedFixtureRoot)),
-        $tamperedArchivePath
-    )
-    $tamperedSignatureRejected = $false
-    try {
-        & $signatureVerifyScript `
-            -ArchivePath $tamperedArchivePath `
-            -Tag $tag `
-            -ExpectedBrokerPublisher $signedFixturePublisher `
-            -PubspecPath $pubspecFixture `
-            -CargoManifestPath $cargoFixture
-    } catch {
-        $tamperedSignatureRejected = $true
-    }
-    if (-not $tamperedSignatureRejected) {
-        throw "Portable signature verification accepted a tampered signed application"
-    }
-    if (@(Get-ChildItem `
-        -LiteralPath $buildRoot `
-        -Directory `
-        -Filter "portable-signature-verify-$PID-*" `
-        -ErrorAction SilentlyContinue).Count -ne 0) {
-        throw "Portable signature verification retained extraction state after tamper rejection"
-    }
-
-    $missingBrokerRoot = Join-Path $scratchRoot "missing-broker"
-    New-Item -ItemType Directory `
-        -Path (Join-Path $missingBrokerRoot "Cedarflake-Ame\data\flutter_assets") `
-        -Force | Out-Null
-    foreach ($relativePath in @(
-        "cedarflake_ame.exe",
-        "rust_lib_cedarflake_ame.dll",
-        "flutter_windows.dll",
-        "data\app.so",
-        "data\icudtl.dat",
-        "data\flutter_assets\AssetManifest.bin"
-    )) {
-        $fixturePath = Join-Path $missingBrokerRoot "Cedarflake-Ame\$relativePath"
-        [System.IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
-    }
-    $missingBrokerArchiveDirectory = Join-Path $scratchRoot "missing-broker-archive"
-    New-Item -ItemType Directory -Path $missingBrokerArchiveDirectory -Force | Out-Null
-    $missingBrokerArchivePath = Join-Path $missingBrokerArchiveDirectory $archiveName
-    [System.IO.Compression.ZipFile]::CreateFromDirectory(
-        $missingBrokerRoot,
-        $missingBrokerArchivePath
-    )
-    $missingBrokerRejected = $false
-    try {
-        & $verifyScript `
-            -ArchivePath $missingBrokerArchivePath `
-            -Tag $tag `
-            -PubspecPath $pubspecFixture `
-            -CargoManifestPath $cargoFixture
-    } catch {
-        $missingBrokerRejected = $true
-    }
-    if (-not $missingBrokerRejected) {
-        throw "Portable archive verification accepted a missing journal broker"
-    }
-
-    $missingRuntimeRoot = Join-Path $scratchRoot "missing-runtime"
-    New-Item -ItemType Directory `
-        -Path (Join-Path $missingRuntimeRoot "Cedarflake-Ame\data\flutter_assets") `
-        -Force | Out-Null
-    foreach ($relativePath in @(
-        "cedarflake_ame.exe",
-        "cedarflake_ame_journal_broker.exe",
-        "cedarflake_ame_classification_worker.exe",
-        "flutter_windows.dll",
-        "data\app.so",
-        "data\icudtl.dat",
-        "data\flutter_assets\AssetManifest.bin"
-    )) {
-        $fixturePath = Join-Path $missingRuntimeRoot "Cedarflake-Ame\$relativePath"
-        [System.IO.File]::WriteAllText($fixturePath, $relativePath, $utf8)
-    }
-    $invalidArchivePath = Join-Path $scratchRoot $archiveName
-    [System.IO.Compression.ZipFile]::CreateFromDirectory(
-        $missingRuntimeRoot,
-        $invalidArchivePath
-    )
-    $missingRuntimeRejected = $false
-    try {
-        & $verifyScript `
-            -ArchivePath $invalidArchivePath `
-            -Tag $tag `
-            -PubspecPath $pubspecFixture `
-            -CargoManifestPath $cargoFixture
-    } catch {
-        $missingRuntimeRejected = $true
-    }
-    if (-not $missingRuntimeRejected) {
-        throw "Portable archive verification accepted a missing runtime DLL"
-    }
-
-    $unsafeArchivePath = Join-Path $scratchRoot "unsafe\$archiveName"
-    New-Item -ItemType Directory `
-        -Path ([System.IO.Path]::GetDirectoryName($unsafeArchivePath)) `
-        -Force | Out-Null
-    $unsafeArchive = [System.IO.Compression.ZipFile]::Open(
-        $unsafeArchivePath,
-        [System.IO.Compression.ZipArchiveMode]::Create
-    )
-    try {
-        $unsafeArchive.CreateEntry("../outside.txt") | Out-Null
-    } finally {
-        $unsafeArchive.Dispose()
-    }
-    $unsafePathRejected = $false
-    try {
-        & $verifyScript `
-            -ArchivePath $unsafeArchivePath `
-            -Tag $tag `
-            -PubspecPath $pubspecFixture `
-            -CargoManifestPath $cargoFixture
-    } catch {
-        $unsafePathRejected = $true
-    }
-    if (-not $unsafePathRejected) {
-        throw "Portable archive verification accepted a path traversal entry"
-    }
-} finally {
-    if (Test-Path -LiteralPath $scratchRoot) {
-        Remove-Item -LiteralPath $scratchRoot -Recurse -Force
-    }
+    Write-Host 'Portable archive layout, integrity, signature and unsafe-path fixtures passed'
 }

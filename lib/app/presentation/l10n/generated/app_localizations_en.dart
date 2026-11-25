@@ -11,6 +11,115 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get updateSettings => 'Update settings';
+
+  @override
+  String get updatePolicy => 'Automatic updates';
+
+  @override
+  String get updateChannel => 'Update channel';
+
+  @override
+  String get updateManual => 'Check manually';
+
+  @override
+  String get updateCheckAutomatically => 'Check automatically';
+
+  @override
+  String get updateDownloadAutomatically => 'Download automatically';
+
+  @override
+  String get updateStable => 'Stable';
+
+  @override
+  String get updatePreview => 'Preview';
+
+  @override
+  String get updateCheck => 'Check for updates';
+
+  @override
+  String get updateView => 'View update';
+
+  @override
+  String get updateRestart => 'Restart and update';
+
+  @override
+  String get updateTitle => 'Update Ame';
+
+  @override
+  String get updateAvailable => 'An update is available';
+
+  @override
+  String get updateCurrent => 'Ame is up to date';
+
+  @override
+  String get updateChecking => 'Checking for updates';
+
+  @override
+  String get updateDownloading => 'Downloading update';
+
+  @override
+  String get updateVerifying => 'Verifying update';
+
+  @override
+  String get updateStopping => 'Stopping download';
+
+  @override
+  String get updateReady => 'Update ready';
+
+  @override
+  String get updateRestarting => 'Restarting Ame';
+
+  @override
+  String get updateDownload => 'Download update';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
+  String get updateStop => 'Stop download';
+
+  @override
+  String get updateReadyHelp => 'Restart Ame to install the update.';
+
+  @override
+  String get updateUnavailable =>
+      'Use an installed or portable release to check for updates.';
+
+  @override
+  String get updateNetworkFailure =>
+      'Could not check for or download updates. Try again later.';
+
+  @override
+  String get updateReleaseFailure =>
+      'Update information is incomplete. Try again later.';
+
+  @override
+  String get updatePackageFailure =>
+      'The update package is incomplete. Download it again.';
+
+  @override
+  String get updateStorageFailure =>
+      'Could not save the update. Check available space and folder permissions.';
+
+  @override
+  String get updateInstallationFailure =>
+      'The update could not be installed. You can keep using the current version.';
+
+  @override
+  String get updateShutdownFailure =>
+      'An operation could not finish. Try again later.';
+
+  @override
+  String get updateInstalled => 'Ame has been updated';
+
+  @override
+  String get updateCancelled => 'Update installation cancelled';
+
+  @override
+  String get updateFailed => 'Update failed';
+
+  @override
   String get settingsTitle => 'Settings';
 
   @override
@@ -1935,9 +2044,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get filesChanged => 'Files changed';
-
-  @override
-  String get updateFailed => 'Update failed';
 
   @override
   String get scanCompleted => 'Scan complete.';

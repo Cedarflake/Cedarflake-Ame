@@ -169,6 +169,13 @@ does not satisfy the installed-product lifecycle.
 
 ## Validation and consequences
 
+[ADR 0043](0043-application-update-coordination.md) adds application-initiated updates through the
+same MSI transaction. An unelevated shipped helper verifies and leases the downloaded MSI, waits
+for Ame's joined shutdown and process exit, then starts Windows Installer with elevation. It records
+the installation outcome before restarting Ame as the original ordinary user. Silent update mode
+retains the costed installation directory and migrated shortcut features; repair and removal remain
+Windows Installer operations. Portable updates do not install or change this service.
+
 Inspect actual MSI tables and reject unsafe actions, directory changes, identities, versions and
 sequence drift. Exercise a fresh install, two different product versions, repair, uninstall and
 injected upgrade failure after old-product removal and after service configuration. Compare exact

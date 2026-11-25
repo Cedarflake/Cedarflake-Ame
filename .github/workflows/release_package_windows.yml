@@ -41,6 +41,8 @@ on:
         value: ${{ jobs.package_windows.outputs.installer_name }}
       installer_sha256:
         value: ${{ jobs.package_windows.outputs.installer_sha256 }}
+      update_manifest_sha256:
+        value: ${{ jobs.package_windows.outputs.update_manifest_sha256 }}
 
 permissions:
   contents: read
@@ -67,6 +69,7 @@ jobs:
       archive_sha256: ${{ steps.portable_identity.outputs.archive_sha256 }}
       installer_name: ${{ steps.installer_identity.outputs.installer_name }}
       installer_sha256: ${{ steps.installer_identity.outputs.installer_sha256 }}
+      update_manifest_sha256: ${{ steps.installer_identity.outputs.update_manifest_sha256 }}
     steps:
       - name: Check out trusted packaging tools
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -175,12 +178,19 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          rustup toolchain install 1.97.1 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Update-engine Rust toolchain is unavailable' }
+          $updateTools = ./tool/release_prepare_update_toolchain.ps1 `
+            -OutputDirectory (Join-Path $PWD 'build/update-toolchain')
+          $updateEngine = ./tool/release_prepare_update_engine.ps1 `
+            -OutputDirectory (Join-Path $PWD 'build/dependency/velopack-1.2.161/engine-x64') -Architecture x64
           $archivePath = (
-            ./tool/release_package_portable_windows.ps1 `
+            ./tool/release_package_portable_windows.ps1 @updateTools @updateEngine `
               -Tag $env:AME_RELEASE_TAG `
               -PubspecPath build/release-source/pubspec.yaml `
               -CargoManifestPath build/release-source/rust/Cargo.toml `
-              -ReleaseRoot ([System.IO.Path]::GetFullPath("build\release-candidate\payload")) `
+              -CandidateRoot ([System.IO.Path]::GetFullPath("build\release-candidate")) `
+              -SourceCommit $env:AME_SOURCE_COMMIT `
               -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER |
               Select-Object -Last 1
           )
@@ -239,6 +249,15 @@ jobs:
           [void][IO.Directory]::CreateDirectory($staging)
           Copy-Item -LiteralPath $env:AME_PORTABLE_ARCHIVE -Destination $staging
           Copy-Item -LiteralPath $package -Destination $staging
+          $fullPackage = Join-Path (Split-Path $env:AME_PORTABLE_ARCHIVE) "CedarflakeAme-$($env:AME_RELEASE_TAG.Substring(1))-full.nupkg"
+          Copy-Item -LiteralPath $fullPackage -Destination $staging
+          . ./tool/release_update_manifest.ps1
+          $metadata = Write-AmeUpdateManifest -Tag $env:AME_RELEASE_TAG -Architecture x64 `
+            -PubspecPath build/release-source/pubspec.yaml -CargoManifestPath build/release-source/rust/Cargo.toml `
+            -InstallerPath (Join-Path $staging $name) `
+            -PortablePackagePath (Join-Path $staging (Split-Path $fullPackage -Leaf)) -OutputDirectory $staging
+          $metadataHash = (Get-FileHash -LiteralPath $metadata -Algorithm SHA256).Hash.ToLowerInvariant()
+          "update_manifest_sha256=$metadataHash" >> $env:GITHUB_OUTPUT
           "installer_name=$name" >> $env:GITHUB_OUTPUT
           "installer_sha256=$hash" >> $env:GITHUB_OUTPUT
 
@@ -258,6 +277,7 @@ jobs:
           AME_ARCHIVE_SHA256: ${{ steps.portable_identity.outputs.archive_sha256 }}
           AME_INSTALLER_NAME: ${{ steps.installer_identity.outputs.installer_name }}
           AME_INSTALLER_SHA256: ${{ steps.installer_identity.outputs.installer_sha256 }}
+          AME_UPDATE_MANIFEST_SHA256: ${{ steps.installer_identity.outputs.update_manifest_sha256 }}
         run: |
           [void][IO.Directory]::CreateDirectory('build/release-receipt')
           [ordered]@{
@@ -269,6 +289,7 @@ jobs:
             signingMode = $env:AME_RELEASE_SIGNING_MODE; expectedPublisher = $env:AME_EXPECTED_PUBLISHER
             archiveName = $env:AME_ARCHIVE_NAME; archiveSha256 = $env:AME_ARCHIVE_SHA256
             installerName = $env:AME_INSTALLER_NAME; installerSha256 = $env:AME_INSTALLER_SHA256
+            updateManifestSha256 = $env:AME_UPDATE_MANIFEST_SHA256
           } | ConvertTo-Json | Set-Content -LiteralPath build/release-receipt/release-package-receipt.json -Encoding utf8
 
       - name: Upload package provenance

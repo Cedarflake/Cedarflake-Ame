@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $scripts = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.ps1' -File | Select-Object -ExpandProperty FullName)
 Invoke-AmePowerShellSyntaxCheck $scripts
 foreach ($check in @(
-    'quality_test_ci_policy', 'release_test_version_validation',
+    'quality_test_ci_policy', 'release_test_version_validation', 'release_test_update_manifest',
     'release_test_installer_payload', 'release_test_classification_runtime',
     'release_test_classification_models', 'release_test_classification_vocabulary',
     'release_test_portable_archive', 'release_test_windows_publication',

@@ -15,5 +15,9 @@ void registerDependencyLicenses() {
       "assets/licenses/material_loading_indicator.txt",
     );
     yield LicenseEntryWithLineBreaks(["Material loading indicator"], loading);
+    final updates = await rootBundle.loadString(
+      "assets/licenses/application_updates.txt",
+    );
+    yield LicenseEntryWithLineBreaks(["Velopack", "semver"], updates);
   });
 }

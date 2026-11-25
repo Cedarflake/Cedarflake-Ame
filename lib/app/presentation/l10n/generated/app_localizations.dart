@@ -102,6 +102,210 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
   ];
 
+  /// No description provided for @updateSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新设置'**
+  String get updateSettings;
+
+  /// No description provided for @updatePolicy.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动更新'**
+  String get updatePolicy;
+
+  /// No description provided for @updateChannel.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新渠道'**
+  String get updateChannel;
+
+  /// No description provided for @updateManual.
+  ///
+  /// In zh, this message translates to:
+  /// **'手动检查'**
+  String get updateManual;
+
+  /// No description provided for @updateCheckAutomatically.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动检查更新'**
+  String get updateCheckAutomatically;
+
+  /// No description provided for @updateDownloadAutomatically.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动下载更新'**
+  String get updateDownloadAutomatically;
+
+  /// No description provided for @updateStable.
+  ///
+  /// In zh, this message translates to:
+  /// **'正式版'**
+  String get updateStable;
+
+  /// No description provided for @updatePreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'预览版'**
+  String get updatePreview;
+
+  /// No description provided for @updateCheck.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get updateCheck;
+
+  /// No description provided for @updateView.
+  ///
+  /// In zh, this message translates to:
+  /// **'查看更新'**
+  String get updateView;
+
+  /// No description provided for @updateRestart.
+  ///
+  /// In zh, this message translates to:
+  /// **'重启并更新'**
+  String get updateRestart;
+
+  /// No description provided for @updateTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新 Ame'**
+  String get updateTitle;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'发现新版本'**
+  String get updateAvailable;
+
+  /// No description provided for @updateCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'已是最新版本'**
+  String get updateCurrent;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在检查更新'**
+  String get updateChecking;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在下载更新'**
+  String get updateDownloading;
+
+  /// No description provided for @updateVerifying.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在验证更新'**
+  String get updateVerifying;
+
+  /// No description provided for @updateStopping.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在停止下载'**
+  String get updateStopping;
+
+  /// No description provided for @updateReady.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新已准备就绪'**
+  String get updateReady;
+
+  /// No description provided for @updateRestarting.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在重启 Ame'**
+  String get updateRestarting;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载更新'**
+  String get updateDownload;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In zh, this message translates to:
+  /// **'稍后'**
+  String get updateLater;
+
+  /// No description provided for @updateStop.
+  ///
+  /// In zh, this message translates to:
+  /// **'停止下载'**
+  String get updateStop;
+
+  /// No description provided for @updateReadyHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'重启 Ame 后安装更新。'**
+  String get updateReadyHelp;
+
+  /// No description provided for @updateUnavailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'请使用安装版或便携版检查更新。'**
+  String get updateUnavailable;
+
+  /// No description provided for @updateNetworkFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂时无法检查或下载更新，请稍后重试。'**
+  String get updateNetworkFailure;
+
+  /// No description provided for @updateReleaseFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个版本的更新信息不完整，请稍后重试。'**
+  String get updateReleaseFailure;
+
+  /// No description provided for @updatePackageFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载的更新包不完整，请重新下载。'**
+  String get updatePackageFailure;
+
+  /// No description provided for @updateStorageFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法保存更新，请检查可用空间和文件夹权限。'**
+  String get updateStorageFailure;
+
+  /// No description provided for @updateInstallationFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'未能安装更新，当前版本仍可使用。'**
+  String get updateInstallationFailure;
+
+  /// No description provided for @updateShutdownFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'还有操作未能结束，请稍后重试。'**
+  String get updateShutdownFailure;
+
+  /// No description provided for @updateInstalled.
+  ///
+  /// In zh, this message translates to:
+  /// **'Ame 已更新'**
+  String get updateInstalled;
+
+  /// No description provided for @updateCancelled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已取消安装更新'**
+  String get updateCancelled;
+
+  /// No description provided for @updateFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新失败'**
+  String get updateFailed;
+
   /// No description provided for @settingsTitle.
   ///
   /// In zh, this message translates to:
@@ -3143,12 +3347,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'文件已变化'**
   String get filesChanged;
-
-  /// No description provided for @updateFailed.
-  ///
-  /// In zh, this message translates to:
-  /// **'更新失败'**
-  String get updateFailed;
 
   /// No description provided for @scanCompleted.
   ///

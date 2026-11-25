@@ -4,6 +4,23 @@ sealed class AmeMessage {
 }
 
 enum AmeLabel implements AmeMessage {
+  updateTitle,
+  updateAvailable,
+  updateDownloading,
+  updateVerifying,
+  updateStopping,
+  updateReady,
+  updateView,
+  updateFailed,
+  updateInstalled,
+  updateCancelled,
+  updateNetworkFailure,
+  updateReleaseFailure,
+  updatePackageFailure,
+  updateStorageFailure,
+  updateInstallationFailure,
+  updateShutdownFailure,
+  updateUnavailable,
   catalogCleanupAlreadyFinished,
   albumDetailsUnavailable,
   acknowledge,
