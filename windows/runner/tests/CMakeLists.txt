@@ -19,6 +19,7 @@ add_executable(ame_window_lifecycle_test
   "../flutter_io_thread_priority.cpp"
   "../flutter_power_channel.cpp"
   "../flutter_image_clipboard.cpp"
+  "../flutter_diagnostic_environment.cpp"
   "../flutter_window.cpp"
   "../win32_window.cpp"
   "${WRAPPER_ROOT}/core_implementations.cc"
@@ -32,7 +33,7 @@ target_compile_options(ame_window_lifecycle_test PRIVATE /W4 /WX /wd4100 /EHsc)
 target_include_directories(ame_window_lifecycle_test PRIVATE
   ".." "${WINDOWS_ROOT}" "${FLUTTER_EPHEMERAL_ROOT}" "${WRAPPER_ROOT}/include")
 target_link_libraries(ame_window_lifecycle_test PRIVATE
-  "${ENGINE_DLL}.lib" user32 advapi32 dwmapi)
+  "${ENGINE_DLL}.lib" user32 advapi32 dwmapi setupapi)
 add_custom_command(TARGET ame_window_lifecycle_test POST_BUILD
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${ENGINE_DLL}"
     "$<TARGET_FILE_DIR:ame_window_lifecycle_test>/flutter_windows.dll"

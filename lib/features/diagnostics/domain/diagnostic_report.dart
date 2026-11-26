@@ -7,6 +7,12 @@ enum DiagnosticField {
   operatingSystemVersion,
   architecture,
   dartVersion,
+  flutterVersion,
+  flutterEngineRevision,
+  cpuModel,
+  physicalMemoryBytes,
+  displayScalePercent,
+  graphicsAdapterState,
   catalogSchemaVersion,
   storageFormatVersion,
   classificationRuntime,
@@ -43,7 +49,10 @@ enum DiagnosticCodeNamespace { ame, dart, os, win32, hresult, sqlite }
 
 class DiagnosticFact {
   DiagnosticFact(this.field, this.value) {
-    if (!RegExp(r"^[A-Za-z0-9_. :+()\-]{1,160}$").hasMatch(value)) {
+    final valid = field == DiagnosticField.cpuModel
+        ? isDiagnosticHardwareModel(value)
+        : RegExp(r"^[A-Za-z0-9_. :+()\-]{1,160}$").hasMatch(value);
+    if (!valid) {
       throw ArgumentError(
         "Diagnostic facts must contain admitted scalar values",
       );
@@ -52,6 +61,29 @@ class DiagnosticFact {
 
   final DiagnosticField field;
   final String value;
+}
+
+bool isDiagnosticHardwareModel(String value) =>
+    value.isNotEmpty &&
+    value.length <= 160 &&
+    RegExp(
+      r"^[\p{L}\p{M}\p{N} ._()+,@/\[\]™®\-]+$",
+      unicode: true,
+    ).hasMatch(value);
+
+class DiagnosticGraphicsAdapter {
+  DiagnosticGraphicsAdapter({
+    required this.model,
+    required this.driverVersion,
+  }) {
+    if (!isDiagnosticHardwareModel(model) ||
+        !RegExp(r"^(?:[0-9.]{1,80}|unavailable)$").hasMatch(driverVersion)) {
+      throw ArgumentError("Invalid diagnostic graphics adapter");
+    }
+  }
+
+  final String model;
+  final String driverVersion;
 }
 
 class DiagnosticNativeCode {
@@ -94,13 +126,16 @@ class DiagnosticSnapshot {
   DiagnosticSnapshot({
     required this.capturedAt,
     required List<DiagnosticFact> facts,
+    List<DiagnosticGraphicsAdapter> graphicsAdapters = const [],
     List<DiagnosticEvent> events = const [],
     this.journalAvailable = true,
   }) : facts = List.unmodifiable(facts),
+       graphicsAdapters = List.unmodifiable(graphicsAdapters),
        events = List.unmodifiable(
          events.skip(events.length > 256 ? events.length - 256 : 0),
        ) {
-    if (facts.length > DiagnosticField.values.length ||
+    if (graphicsAdapters.length > 8 ||
+        facts.length > DiagnosticField.values.length ||
         facts.map((fact) => fact.field).toSet().length != facts.length) {
       throw ArgumentError("Diagnostic fields must be unique and bounded");
     }
@@ -108,6 +143,7 @@ class DiagnosticSnapshot {
 
   final DateTime capturedAt;
   final List<DiagnosticFact> facts;
+  final List<DiagnosticGraphicsAdapter> graphicsAdapters;
   final List<DiagnosticEvent> events;
   final bool journalAvailable;
 }

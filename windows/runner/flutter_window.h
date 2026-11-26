@@ -10,6 +10,7 @@
 
 #include "flutter_power_channel.h"
 #include "flutter_image_clipboard.h"
+#include "flutter_diagnostic_environment.h"
 #include "win32_window.h"
 
 // A window that does nothing but host a Flutter view.
@@ -40,6 +41,7 @@ class FlutterWindow : public Win32Window {
       system_theme_channel_;
   std::unique_ptr<FlutterPowerChannel> power_channel_;
   std::unique_ptr<FlutterImageClipboard> image_clipboard_;
+  std::unique_ptr<FlutterDiagnosticEnvironment> diagnostic_environment_;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

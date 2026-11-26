@@ -44,8 +44,9 @@ message can open its folder. If Ame cannot start, use Export diagnostics on the 
 diagnostics copies a shorter safe summary. If saving fails, choose another location or use Retry
 when offered.
 
-The ZIP contains a readable summary and structured runtime information: application/system versions,
-available task/model state and recent error codes. It excludes images, catalog records, credentials
+The ZIP contains a readable summary and structured runtime information: application/system/Flutter
+versions, CPU and memory, graphics adapters and drivers, display scaling, available task/model state
+and recent error codes. It excludes images, catalog records, credentials
 and personal paths. It remains on your computer until you share it. Attach it to a
 [problem report](https://github.com/Cedarflake/Cedarflake-Ame/issues), together with the steps that
 triggered the issue and the approximate time. Check any screenshots separately for personal content.

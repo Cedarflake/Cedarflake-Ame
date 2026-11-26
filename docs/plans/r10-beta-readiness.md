@@ -110,7 +110,8 @@ and consistent version reporting. Reuse unchanged installer guardrails instead o
 
 Add one diagnostics-export action to the existing Settings/About surface and retain diagnosis when
 startup fails. Define a narrow application export contract and platform adapter before connecting UI.
-The export should include build/OS identity, selected analysis runtime, storage/schema versions,
+The export should include build/OS/Flutter engine identity, CPU and memory, graphics adapters and
+drivers, display scaling, selected analysis runtime, storage/schema versions,
 bounded task/error summaries and recent relevant logs, with native error-code namespaces intact.
 
 Default exports omit images, catalog contents and credentials, and replace personal paths/account

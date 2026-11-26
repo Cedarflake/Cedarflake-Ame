@@ -42,21 +42,33 @@ DiagnosticEvent decodeDiagnosticEvent(Object? value) {
 
 List<int> encodeDiagnosticArchive(DiagnosticSnapshot snapshot) {
   final report = const JsonEncoder.withIndent("  ").convert({
-    "format": 1,
+    "format": 2,
     "capturedAt": snapshot.capturedAt.toUtc().toIso8601String(),
     "facts": {for (final fact in snapshot.facts) fact.field.name: fact.value},
+    "graphicsAdapters": [
+      for (final adapter in snapshot.graphicsAdapters)
+        {"model": adapter.model, "driverVersion": adapter.driverVersion},
+    ],
     "journalAvailable": snapshot.journalAvailable,
     "events": snapshot.events.map(encodeDiagnosticEvent).toList(),
   });
   final summary = StringBuffer("Ame diagnostic report\n")
     ..writeln("Captured: ${snapshot.capturedAt.toUtc().toIso8601String()}")
-    ..writeln("Format: 1")
+    ..writeln("Format: 2")
     ..writeln(
       "Personal paths, media, catalog records and credentials are excluded.",
     )
     ..writeln();
   for (final fact in snapshot.facts) {
     summary.writeln("${fact.field.name}: ${fact.value}");
+  }
+  if (snapshot.graphicsAdapters.isNotEmpty) {
+    summary
+      ..writeln()
+      ..writeln("Installed graphics adapters (not runtime device selection)");
+    for (final adapter in snapshot.graphicsAdapters) {
+      summary.writeln("${adapter.model}: driver ${adapter.driverVersion}");
+    }
   }
   summary
     ..writeln()

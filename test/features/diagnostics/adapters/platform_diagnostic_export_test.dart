@@ -70,18 +70,26 @@ void main() {
         final summary = utf8.decode(archive.findFile("summary.txt")!.content);
         expect(summary, contains("OS:32"));
         expect(summary, contains("catalog_database_error"));
+        expect(summary, contains("Integrated Graphics: driver 31.0.101.5534"));
+        expect(summary, contains("Discrete Graphics: driver 32.0.15.6094"));
         final report =
             jsonDecode(
                   utf8.decode(archive.findFile("diagnostics.json")!.content),
                 )
                 as Map<String, dynamic>;
         expect(report["facts"], {"applicationVersion": "0.1.0-beta.1"});
+        expect(report["format"], 2);
+        expect(report["graphicsAdapters"], [
+          {"model": "Integrated Graphics", "driverVersion": "31.0.101.5534"},
+          {"model": "Discrete Graphics", "driverVersion": "32.0.15.6094"},
+        ]);
         expect(
           report.keys,
           unorderedEquals([
             "format",
             "capturedAt",
             "facts",
+            "graphicsAdapters",
             "journalAvailable",
             "events",
           ]),
@@ -193,6 +201,16 @@ void main() {
 DiagnosticSnapshot _snapshot() => DiagnosticSnapshot(
   capturedAt: DateTime.utc(2026, 11, 26),
   facts: [DiagnosticFact(DiagnosticField.applicationVersion, "0.1.0-beta.1")],
+  graphicsAdapters: [
+    DiagnosticGraphicsAdapter(
+      model: "Integrated Graphics",
+      driverVersion: "31.0.101.5534",
+    ),
+    DiagnosticGraphicsAdapter(
+      model: "Discrete Graphics",
+      driverVersion: "32.0.15.6094",
+    ),
+  ],
   events: [
     DiagnosticEvent(
       occurredAt: DateTime.utc(2026, 11, 26),

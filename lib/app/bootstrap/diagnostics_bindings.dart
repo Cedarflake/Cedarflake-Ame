@@ -153,6 +153,7 @@ class DiagnosticsBindings implements DiagnosticCollector {
 
   @override
   Future<DiagnosticSnapshot> collect() async {
+    final environmentReading = const PlatformDiagnosticEnvironment().collect();
     await _initializing.timeout(const Duration(seconds: 1), onTimeout: () {});
     const identity = AmeBuildIdentity.current();
     final facts = [
@@ -164,7 +165,6 @@ class DiagnosticsBindings implements DiagnosticCollector {
         DiagnosticField.applicationBuild,
         identity.number ?? "unavailable",
       ),
-      ...const PlatformDiagnosticEnvironment().facts(),
       DiagnosticFact(DiagnosticField.startupState, _startup),
       if (_nativeReady) ..._versions,
     ];
@@ -181,9 +181,11 @@ class DiagnosticsBindings implements DiagnosticCollector {
         );
       }
     }
+    final environment = await environmentReading;
     return DiagnosticSnapshot(
       capturedAt: DateTime.now().toUtc(),
-      facts: facts,
+      facts: [...facts, ...environment.facts],
+      graphicsAdapters: environment.graphicsAdapters,
       events: [..._journal.snapshot(), ...events],
       journalAvailable: _journal.available,
     );

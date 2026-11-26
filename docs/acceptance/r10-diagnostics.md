@@ -50,6 +50,32 @@ It did not exercise the failure page. The temporarily moved Debug dependency was
 `finally`, and its SHA-256 matched the original. Diagnostics export depends on reaching the Dart
 startup/fallback interface; this check does not establish recovery from a process-loader failure.
 
+## Environment fields — 2026-11-26
+
+The environment extension adds CPU model, OS-usable physical-memory bytes, installed display-adapter
+models with their corresponding driver versions, Flutter framework/engine build identity, and the
+current window's display scale. Format 2 retains the existing two-file ZIP layout and bounded journal.
+The native hardware query runs on one worker independently of catalog startup; unavailable hardware
+does not remove OS/runtime facts or prevent export.
+
+Four environment cases passed for paired drivers, 125% → 150% scale sampling, manufacturer model
+punctuation, missing/native-failed collection, a two-second deadline, and partial malformed values.
+The six existing platform-export cases also passed with format-2 adapter assertions. The affected
+Dart analyzer and format checks passed. The Windows Debug client built successfully in 29.1 seconds.
+
+Settings/About exported a real format-2 ZIP: `summary.txt` contained 2,174 bytes and `diagnostics.json`
+contained 3,672 bytes. CPU model, all three reported display devices and their driver versions matched
+independent Windows CIM queries. Physical-memory bytes matched CIM's total visible memory converted
+from KiB, and the window reported 125% scaling. Framework 3.50.0 and engine `371f77202a` matched the
+build's SDK defines. Collection retained the safe prior events and contained no personal paths or
+computer names. This desktop run covers the hardware channel and export; existing startup-failure
+coverage above remains applicable to the shared collector.
+
+Affected ownership counts are 123 production lines for the Dart environment adapter, 158 for its
+Windows adapter (plus a 24-line declaration), 99 for ZIP encoding, 207 for bootstrap bindings, and 174
+for runner composition, with no inline tests. Dedicated environment tests contain 151 lines; the
+shared platform-export suite contains 223. Hosted checks cover the pushed revision separately.
+
 ## Source and storage boundaries
 
 The desktop verification used an empty-library client. No original media was modified or hydrated.
