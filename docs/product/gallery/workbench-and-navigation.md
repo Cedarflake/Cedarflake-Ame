@@ -182,7 +182,8 @@ icon when read and the notification-with-dot icon when unread, without a text la
 The application mark and regular-weight `Ame` label sit together to the right of the hamburger. The mark
 uses the theme's primary color without an extra outline; its visible silhouette, text height and
 optical spacing are balanced as one identity. The wordmark uses the neutral on-surface color.
-Collapsing the sidebar hides this identity. The Windows application icon retains its colored artwork.
+This identity stays visible when the sidebar collapses or expands. The Windows application icon
+retains its colored artwork.
 Search starts at the configured expanded-sidebar boundary rather than the inset content heading.
 Its position and width remain unchanged when the sidebar collapses or expands, including during
 the transition. Resizing the sidebar adjusts that alignment and available search width. Window

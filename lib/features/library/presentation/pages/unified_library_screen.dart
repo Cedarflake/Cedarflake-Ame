@@ -546,23 +546,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                     controller,
                     updateState,
                     layoutManifest,
-                    globalBarBuilder: (sidebarWidth, sidebarExpansion) =>
-                        LibraryGlobalBar(
-                          sidebarWidth: sidebarWidth,
-                          sidebarExpansion: sidebarExpansion,
-                          isSearchEnabled:
-                              workspace.isBrowsing &&
-                              (workspace != LibraryWorkspace.albums ||
-                                  state.query.collection
-                                      is! LibraryAllCollection) &&
-                              canEditLibrarySearch(state),
-                          searchController: _searchController,
-                          discovery: _search,
-                          notifications: notifications,
-                          onNotificationsOpened:
-                              _notificationController.markAllRead,
-                          onNotificationSelected: _showNotificationDetails,
-                        ),
+                    globalBarBuilder: (sidebarWidth) => LibraryGlobalBar(
+                      sidebarWidth: sidebarWidth,
+                      isSearchEnabled:
+                          workspace.isBrowsing &&
+                          (workspace != LibraryWorkspace.albums ||
+                              state.query.collection
+                                  is! LibraryAllCollection) &&
+                          canEditLibrarySearch(state),
+                      searchController: _searchController,
+                      discovery: _search,
+                      notifications: notifications,
+                      onNotificationsOpened:
+                          _notificationController.markAllRead,
+                      onNotificationSelected: _showNotificationDetails,
+                    ),
                   ),
                 ),
                 viewer: viewerCatalogAsset == null
@@ -707,8 +705,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     LibraryController controller,
     LibraryUpdateState updateState,
     LibraryGalleryLayoutManifest? layoutManifest, {
-    required Widget Function(double sidebarWidth, double sidebarExpansion)
-    globalBarBuilder,
+    required Widget Function(double sidebarWidth) globalBarBuilder,
   }) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
     final workspace = ref.watch(libraryWorkbenchControllerProvider);

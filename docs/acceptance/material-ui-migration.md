@@ -9,6 +9,11 @@ button and window controls remained intact. The client was hot-reloaded and left
 sidebar width. Owned-file formatting and analysis passed. This geometry check uses the real desktop
 interaction rather than adding permanent pixel assertions.
 
+The brand identity also remains visible through sidebar toggles. The global-bar builder now takes
+only the configured width. A freshly built Windows Debug client with an isolated empty catalog
+showed the same brand and search placement in expanded and collapsed states. Analysis passed for
+the affected production files and existing test assemblies after their callback signatures changed.
+
 ## Flutter 3.50 compatibility, 2026-11-17
 
 The upgrade uses Flutter 3.50.0 / Dart 3.14.0, Material 1.11.1, Cupertino 1.1.7,

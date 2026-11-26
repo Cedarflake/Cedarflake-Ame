@@ -32,7 +32,7 @@ void main() {
           child: LocalizedTestApp(
             home: Scaffold(
               body: LibraryWorkbench(
-                globalBarBuilder: (_, _) => const SizedBox(height: 64),
+                globalBarBuilder: (_) => const SizedBox(height: 64),
                 albumsNavigationBuilder: (_) => const Text("Album list"),
                 navigationBuilder: (width) =>
                     SizedBox(width: width, child: const Text("Folders")),

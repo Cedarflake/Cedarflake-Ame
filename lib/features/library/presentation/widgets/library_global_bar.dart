@@ -17,7 +17,6 @@ class LibraryGlobalBar extends StatelessWidget {
     required this.isSearchEnabled,
     required this.searchController,
     required this.sidebarWidth,
-    required this.sidebarExpansion,
     this.onSearchChanged,
     this.discovery,
     required this.notifications,
@@ -29,7 +28,6 @@ class LibraryGlobalBar extends StatelessWidget {
   final bool isSearchEnabled;
   final TextEditingController searchController;
   final double sidebarWidth;
-  final double sidebarExpansion;
   final ValueChanged<String>? onSearchChanged;
   final LibrarySearch? discovery;
   final AmeNotificationState notifications;
@@ -46,14 +44,7 @@ class LibraryGlobalBar extends StatelessWidget {
         height: LibraryWorkbenchMetrics.globalBarHeight,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            const collapsedLeading = LibraryWorkbenchMetrics.contentInset;
-            final contentLeading =
-                collapsedLeading +
-                (sidebarWidth - LibraryWorkbenchMetrics.contentInset) *
-                    sidebarExpansion;
             const brandWidth = 172.0;
-            final leadingWidth = (contentLeading - 16).clamp(0.0, brandWidth);
-            final isCompact = leadingWidth < brandWidth;
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
@@ -73,48 +64,47 @@ class LibraryGlobalBar extends StatelessWidget {
                 const Positioned.fill(
                   child: AmeWindowDragRegion(child: SizedBox.expand()),
                 ),
-                if (!isCompact)
-                  Positioned(
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: leadingWidth,
-                    child: AmeWindowDragRegion(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            // The asset's transparent inset aligns its visible edge with the action.
-                            left: 10,
-                          ),
-                          child: Row(
-                            children: [
-                              Semantics(
-                                label: LibraryStrings.appName,
-                                image: true,
-                                child: const AmeBrandMark(size: 36),
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  LibraryStrings.workbenchName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                    fontWeight: ameFontWeightRegular,
-                                  ),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: brandWidth,
+                  child: AmeWindowDragRegion(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          // The asset's transparent inset aligns its visible edge with the action.
+                          left: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Semantics(
+                              label: LibraryStrings.appName,
+                              image: true,
+                              child: const AmeBrandMark(size: 36),
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                LibraryStrings.workbenchName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontWeight: ameFontWeightRegular,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
+                ),
                 Positioned(
                   left: sidebarWidth,
                   top: 0,
