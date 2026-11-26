@@ -4,6 +4,7 @@ import "package:flutter_riverpod/misc.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../features/library/application/library_album_pages.dart";
+import "../../features/diagnostics/presentation/diagnostic_feedback.dart";
 import "../../features/library/presentation/library_workbench_destinations.dart";
 import "../../features/library/presentation/widgets/library_album_picker.dart";
 import "../../features/settings/presentation/default_album_picker.dart";
@@ -20,7 +21,9 @@ List<Override> workbenchPresentationBindings() => [
         ),
   ),
   libraryRecordFeedbackProvider.overrideWithValue(
-    buildOrganizationRecordFeedback,
+    (context, ref) =>
+        buildDiagnosticFeedback(context, ref) ??
+        buildOrganizationRecordFeedback(context, ref),
   ),
   defaultAlbumPickerProvider.overrideWithValue(_pickDefaultAlbum),
 ];

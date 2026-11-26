@@ -102,6 +102,72 @@ abstract class AppLocalizations {
     Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
   ];
 
+  /// No description provided for @diagnosticsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'诊断信息'**
+  String get diagnosticsTitle;
+
+  /// No description provided for @diagnosticsHelp.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存运行信息，用于排查问题'**
+  String get diagnosticsHelp;
+
+  /// No description provided for @diagnosticsExport.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出'**
+  String get diagnosticsExport;
+
+  /// No description provided for @diagnosticsExportAction.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出诊断信息'**
+  String get diagnosticsExportAction;
+
+  /// No description provided for @diagnosticsFileType.
+  ///
+  /// In zh, this message translates to:
+  /// **'诊断压缩包'**
+  String get diagnosticsFileType;
+
+  /// No description provided for @diagnosticsCollecting.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在导出诊断信息'**
+  String get diagnosticsCollecting;
+
+  /// No description provided for @diagnosticsSaved.
+  ///
+  /// In zh, this message translates to:
+  /// **'诊断信息已保存'**
+  String get diagnosticsSaved;
+
+  /// No description provided for @diagnosticsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法导出诊断信息'**
+  String get diagnosticsFailed;
+
+  /// No description provided for @diagnosticsChooseAgain.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新选择位置'**
+  String get diagnosticsChooseAgain;
+
+  /// No description provided for @diagnosticsOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法打开保存位置'**
+  String get diagnosticsOpenFailed;
+
+  /// No description provided for @diagnosticsCancelled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已取消导出'**
+  String get diagnosticsCancelled;
+
   /// No description provided for @updateSettings.
   ///
   /// In zh, this message translates to:
@@ -519,25 +585,25 @@ abstract class AppLocalizations {
   /// No description provided for @startupUnsupportedCatalog.
   ///
   /// In zh, this message translates to:
-  /// **'图库数据来自不受支持的版本，无法安全打开。请复制诊断信息以便排查。'**
+  /// **'图库数据来自不受支持的版本，无法安全打开。请导出诊断信息以便排查。'**
   String get startupUnsupportedCatalog;
 
   /// No description provided for @startupDatabaseError.
   ///
   /// In zh, this message translates to:
-  /// **'图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请复制诊断信息以便排查。'**
+  /// **'图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请导出诊断信息以便排查。'**
   String get startupDatabaseError;
 
   /// No description provided for @startupCatalogError.
   ///
   /// In zh, this message translates to:
-  /// **'图库加载失败。请重新启动 Ame；如果仍然失败，请复制诊断信息以便排查。'**
+  /// **'图库加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。'**
   String get startupCatalogError;
 
   /// No description provided for @startupComponentError.
   ///
   /// In zh, this message translates to:
-  /// **'应用组件加载失败。请重新启动 Ame；如果仍然失败，请复制诊断信息以便排查。'**
+  /// **'应用组件加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。'**
   String get startupComponentError;
 
   /// No description provided for @choose.
@@ -2817,13 +2883,13 @@ abstract class AppLocalizations {
   /// No description provided for @emptyLibraryTitle.
   ///
   /// In zh, this message translates to:
-  /// **'建立你的图片图库'**
+  /// **'建立你的图库'**
   String get emptyLibraryTitle;
 
   /// No description provided for @emptyLibraryBody.
   ///
   /// In zh, this message translates to:
-  /// **'选择要在 Ame 中一起浏览的图片目录吧。'**
+  /// **'选择要在 Ame 中一起浏览的图片吧。'**
   String get emptyLibraryBody;
 
   /// No description provided for @importPhotos.

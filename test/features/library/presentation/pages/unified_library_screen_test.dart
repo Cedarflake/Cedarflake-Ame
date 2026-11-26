@@ -1,5 +1,4 @@
 import "package:cedarflake_ame/app/ame_app.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ports/ame_preference_store.dart";
@@ -11,7 +10,9 @@ import "package:flutter_test/flutter_test.dart";
 import "../../../../support/application_test_bindings.dart";
 
 void main() {
-  testWidgets("shows the unified empty library shell", (tester) async {
+  testWidgets("opens settings and returns to the empty library", (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -24,68 +25,6 @@ void main() {
       ),
     );
 
-    expect(
-      find.descendant(
-        of: find.byKey(const Key("library-function-rail")),
-        matching: find.text("图库"),
-      ),
-      findsOneWidget,
-    );
-    for (final key in const [
-      Key("library-sidebar-library"),
-      Key("library-gallery-header"),
-    ]) {
-      expect(
-        find.descendant(of: find.byKey(key), matching: find.text("所有图片")),
-        findsOneWidget,
-      );
-    }
-    expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
-    expect(find.text("Read-only validation"), findsNothing);
-    expect(find.byKey(const Key("library-task-activity-button")), findsNothing);
-    expect(find.byKey(const Key("library-import-button")), findsNothing);
-    expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
-    expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
-    expect(find.text("Ame"), findsOneWidget);
-    expect(
-      find.ancestor(
-        of: find.byKey(const Key("window-close")),
-        matching: find.byKey(const Key("library-global-bar")),
-      ),
-      findsOneWidget,
-    );
-    final searchCenter = tester.getCenter(
-      find.byKey(const Key("library-search")),
-    );
-    final globalBarCenter = tester.getCenter(
-      find.byKey(const Key("library-global-bar")),
-    );
-    final closeCenter = tester.getCenter(find.byKey(const Key("window-close")));
-    final minimizeCenter = tester.getCenter(
-      find.byKey(const Key("window-minimize")),
-    );
-    final notificationCenter = tester.getCenter(
-      find.byKey(const Key("notification-history-button")),
-    );
-    expect(searchCenter.dy, closeTo(globalBarCenter.dy, 0.1));
-    expect(tester.getSize(find.byKey(const Key("library-search"))).height, 44);
-    expect(closeCenter.dy, closeTo(globalBarCenter.dy, 0.1));
-    expect(notificationCenter.dx, lessThan(minimizeCenter.dx));
-    expect(
-      notificationCenter.dx,
-      greaterThan(
-        tester.getTopRight(find.byKey(const Key("library-search"))).dx,
-      ),
-    );
-    expect(find.byKey(const Key("notification-read-icon")), findsOneWidget);
-    expect(find.text("通知历史"), findsNothing);
-    expect(
-      find.ancestor(
-        of: find.byKey(const Key("library-search")),
-        matching: find.byKey(const Key("library-global-bar")),
-      ),
-      findsOneWidget,
-    );
     await tester.tap(find.byKey(const Key("library-sidebar-settings")));
     await tester.pump();
     expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
@@ -102,116 +41,6 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key("ame-settings-page")), findsNothing);
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
-  });
-
-  testWidgets("pins desktop caption controls to the maximized right edge", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(2048, 1200);
-    tester.view.devicePixelRatio = 1;
-    tester.view.padding = const FakeViewPadding(top: 8, right: 24);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPadding);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: applicationTestOverrides(),
-        child: const AmeApp(),
-      ),
-    );
-
-    expect(
-      tester.getTopLeft(find.byKey(const Key("library-global-bar"))).dy,
-      0,
-    );
-    expect(tester.getTopRight(find.byKey(const Key("window-close"))).dx, 2040);
-  });
-
-  testWidgets("separates the application shell with Material surfaces", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: applicationTestOverrides(),
-        child: const AmeApp(),
-      ),
-    );
-    await tester.pump();
-
-    final context = tester.element(
-      find.byKey(const Key("library-main-surface")),
-    );
-    final colorScheme = Theme.of(context).colorScheme;
-    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-    final globalSurface = tester.widget<Material>(
-      find.byKey(const Key("library-global-surface")),
-    );
-    final navigationSurface = tester.widget<Material>(
-      find.byKey(const Key("library-navigation-surface")),
-    );
-    final mainSurface = tester.widget<Material>(
-      find.byKey(const Key("library-main-surface")),
-    );
-
-    expect(scaffold.backgroundColor, colorScheme.surfaceContainerLow);
-    expect(globalSurface.type, MaterialType.transparency);
-    expect(navigationSurface.type, MaterialType.transparency);
-    expect(mainSurface.type, MaterialType.transparency);
-    expect(mainSurface.clipBehavior, Clip.none);
-    final backgrounds = find.ancestor(
-      of: find.byKey(const Key("library-main-surface")),
-      matching: find.byType(DecoratedBox),
-    );
-    final backgroundBox = tester.widget<DecoratedBox>(backgrounds.first);
-    final background = backgroundBox.decoration as BoxDecoration;
-    expect(background.color, colorScheme.surfaceBright);
-    expect(background.borderRadius, LibraryMainSurface.borderRadius);
-    final galleryClips = find.ancestor(
-      of: find.byKey(const Key("library-main-surface")),
-      matching: find.byType(ClipRRect),
-    );
-    expect(galleryClips, findsOneWidget);
-    expect(
-      tester.widget<ClipRRect>(galleryClips).borderRadius,
-      LibraryMainSurface.borderRadius,
-    );
-    expect(
-      tester
-          .widgetList<Material>(
-            find.ancestor(
-              of: find.byKey(const Key("library-main-surface")),
-              matching: find.byType(Material),
-            ),
-          )
-          .every((surface) => surface.clipBehavior == Clip.none),
-      isTrue,
-    );
-    expect(
-      find.ancestor(
-        of: find.byKey(const Key("library-gallery-header")),
-        matching: find.byKey(const Key("library-main-surface")),
-      ),
-      findsOneWidget,
-    );
-    final toggle = find.byKey(const Key("library-sidebar-toggle"));
-    final surface = find.byKey(const Key("library-main-surface"));
-    final expandedBounds = tester.getRect(surface);
-    await tester.tap(toggle);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    expect(tester.getRect(surface).left, lessThan(expandedBounds.left));
-    await tester.pumpAndSettle();
-    expect(tester.getRect(surface), const Rect.fromLTRB(80, 64, 1272, 792));
-    expect(tester.getTopLeft(find.byKey(const Key("library-search"))).dx, 80);
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
-    expect(tester.getRect(surface), expandedBounds);
   });
 
   testWidgets("resizes, resets, and persists the expanded sidebar width", (

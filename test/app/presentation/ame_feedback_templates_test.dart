@@ -35,38 +35,6 @@ void main() {
   });
 
   for (final brightness in Brightness.values) {
-    testWidgets(
-      "single-line feedback aligns content and actions in $brightness",
-      (tester) async {
-        await tester.pumpWidget(
-          LocalizedTestApp(
-            theme: buildAmeTheme(brightness: brightness),
-            home: Scaffold(
-              body: Center(
-                child: AmeFeedbackCard(
-                  title: "已加入收藏夹",
-                  severity: AmeNotificationSeverity.success,
-                  actions: [
-                    AmeFeedbackAction(label: "撤销", onPressed: () {}),
-                    AmeFeedbackAction(label: "知道了", onPressed: () {}),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-        final contentCenter = tester.getCenter(find.text("已加入收藏夹")).dy;
-        for (final element in [
-          find.byIcon(Symbols.check_circle_rounded),
-          find.text("撤销"),
-          find.text("知道了"),
-        ]) {
-          expect(tester.getCenter(element).dy, closeTo(contentCenter, 0.5));
-        }
-        expect(tester.takeException(), isNull);
-      },
-    );
-
     testWidgets("bottom card preserves layout and actions in $brightness", (
       tester,
     ) async {
@@ -99,36 +67,6 @@ void main() {
         ),
       );
       final card = find.byType(AmeFeedbackCard);
-      final surface = tester.widget<Material>(
-        find.descendant(of: card, matching: find.byType(Material)).first,
-      );
-      expect(surface.color, theme.colorScheme.surfaceContainerHigh);
-      expect(surface.elevation, ameNotificationElevation);
-      expect(
-        surface.borderRadius,
-        BorderRadius.circular(ameNotificationRadius),
-      );
-      expect(tester.getSize(card).width, ameNotificationWidth);
-      expect(
-        tester.widget<Text>(find.text("更新受阻")).style,
-        Theme.of(tester.element(card)).textTheme.titleSmall,
-      );
-      expect(
-        tester.getRect(find.byType(LinearProgressIndicator)).top,
-        greaterThan(tester.getRect(find.text("已保留现有图片")).bottom),
-      );
-      final textBlockCenter =
-          (tester.getTopLeft(find.text("更新受阻")).dy +
-              tester.getBottomLeft(find.text("已保留现有图片")).dy) /
-          2;
-      expect(
-        tester.getCenter(find.byIcon(Symbols.error_rounded)).dy,
-        closeTo(textBlockCenter, 0.5),
-      );
-      expect(
-        tester.getCenter(find.text("重试")).dy,
-        closeTo(textBlockCenter, 0.5),
-      );
       await tester.tap(find.text("重试"));
       expect(retries, 1);
       final workingHeight = tester.getSize(card).height;
@@ -146,7 +84,7 @@ void main() {
     });
 
     testWidgets(
-      "transient feedback shares bottom card, inset and acknowledgement in $brightness",
+      "transient feedback remains until acknowledgement in $brightness",
       (tester) async {
         await tester.pumpWidget(
           LocalizedTestApp(
@@ -169,9 +107,6 @@ void main() {
         await tester.pumpAndSettle();
         final card = find.byType(AmeFeedbackCard);
         expect(card, findsOneWidget);
-        expect(tester.getSize(card).width, ameNotificationWidth);
-        expect(tester.getBottomLeft(card).dy, 600 - ameNotificationBottomInset);
-        expect(find.byIcon(Symbols.check_circle_rounded), findsOneWidget);
         await tester.tap(find.text("知道了"));
         await tester.pumpAndSettle();
         expect(card, findsNothing);
@@ -180,7 +115,7 @@ void main() {
     );
 
     testWidgets(
-      "viewer notice retains top placement, wrapping and action in $brightness",
+      "viewer notice keeps its action available at enlarged text in $brightness",
       (tester) async {
         var retried = false;
         await tester.pumpWidget(
@@ -205,14 +140,6 @@ void main() {
         );
         expect(find.byType(AmeFeedbackSurface), findsOneWidget);
         expect(find.byType(IconButton), findsNothing);
-        expect(
-          tester.getTopLeft(find.byType(AmeFeedbackSurface)).dy,
-          ameViewerNoticeInset,
-        );
-        expect(
-          tester.getSize(find.byType(AmeFeedbackSurface)).width,
-          lessThanOrEqualTo(ameNotificationWidth),
-        );
         await tester.tap(find.text("重试"));
         expect(retried, isTrue);
         expect(tester.takeException(), isNull);

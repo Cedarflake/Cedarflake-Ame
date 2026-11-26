@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
 
+pub mod storage_versions;
+
 pub(crate) mod analysis_capacity;
 pub mod application_update;
 pub mod classification;

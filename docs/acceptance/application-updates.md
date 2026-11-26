@@ -52,6 +52,12 @@ active progress after dismissal. Separate ignored preview copies exposed centere
 and the updated viewer slider for visual comparison. The accepted result retains status titles,
 left-aligned percentages and the existing viewer slider.
 
+The preference-dialog follow-up on 2026-11-26 uses the shared short-form dialog. Six focused
+widget checks passed, including policy/channel selection, persistence and closing at 150% text
+in all three languages. The affected analyzer check and Windows Debug build passed. In the
+isolated client, changing automatic checks to manual checks updated the About summary immediately;
+closing the dialog retained the original Settings scroll position. No update was installed.
+
 ## Distribution and recovery
 
 The admitted portable engine is Velopack `1.2.161+ame.rollback.1`, built from pinned upstream source

@@ -30,6 +30,28 @@ decisions or publication authority; speculative or unreachable combinations do n
 | Quality gate | Admitted and rejecting examples through the real entrypoint; verify exit status and protected effects, with parser unit cases where needed |
 | Documentation or pure relocation | Relevant links, formatting, imports and retained behavior evidence |
 
+## Temporary presentation checks
+
+Pure wording and visual tuning are temporary delivery checks. Do not keep tests that only freeze
+approved copy, icon choices, font weights, theme constants, corner radii, spacing or static alignment
+in the committed unit, widget, golden or source-text suites, or run them in CI. Use the affected
+desktop interaction and temporary scratch checks for these decisions; record a useful observation
+in the existing acceptance owner and remove the temporary harness after verification.
+
+Reuse the result while the affected presentation is unchanged. Repeat a visual check when a relevant
+change, reproduced defect or explicit request gives it a concrete purpose; passing once does not
+create a requirement to repeat that check on every later commit.
+
+Permanent UI tests must protect an observable behavior: an action and its result, state transitions,
+cancellation, recovery, bounded loading, keyboard access or accessibility constraints. Layout
+algorithms, clipping that affects hit testing, scroll continuity and contrast requirements remain
+behavioral contracts. Remove incidental copy and style assertions from mixed tests while preserving
+those contracts. Do not rebuild a removed visual test behind a new helper or assertion.
+
+Use stable keys, control roles or localized lookups when text is only a way to locate a control.
+A wording edit alone must not invalidate an unrelated behavior test. Remove fixtures and helpers
+when their last meaningful test is removed.
+
 ## Assert the requirement
 
 Derive expected outcomes from the product contract, accepted invariant, independently known fixture

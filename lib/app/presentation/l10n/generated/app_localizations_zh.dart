@@ -11,6 +11,39 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
+  String get diagnosticsTitle => '诊断信息';
+
+  @override
+  String get diagnosticsHelp => '保存运行信息，用于排查问题';
+
+  @override
+  String get diagnosticsExport => '导出';
+
+  @override
+  String get diagnosticsExportAction => '导出诊断信息';
+
+  @override
+  String get diagnosticsFileType => '诊断压缩包';
+
+  @override
+  String get diagnosticsCollecting => '正在导出诊断信息';
+
+  @override
+  String get diagnosticsSaved => '诊断信息已保存';
+
+  @override
+  String get diagnosticsFailed => '无法导出诊断信息';
+
+  @override
+  String get diagnosticsChooseAgain => '重新选择位置';
+
+  @override
+  String get diagnosticsOpenFailed => '无法打开保存位置';
+
+  @override
+  String get diagnosticsCancelled => '已取消导出';
+
+  @override
   String get updateSettings => '更新设置';
 
   @override
@@ -218,17 +251,17 @@ class AppLocalizationsZh extends AppLocalizations {
   String get diagnosticsCopied => '诊断信息已复制';
 
   @override
-  String get startupUnsupportedCatalog => '图库数据来自不受支持的版本，无法安全打开。请复制诊断信息以便排查。';
+  String get startupUnsupportedCatalog => '图库数据来自不受支持的版本，无法安全打开。请导出诊断信息以便排查。';
 
   @override
   String get startupDatabaseError =>
-      '图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请复制诊断信息以便排查。';
+      '图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请导出诊断信息以便排查。';
 
   @override
-  String get startupCatalogError => '图库加载失败。请重新启动 Ame；如果仍然失败，请复制诊断信息以便排查。';
+  String get startupCatalogError => '图库加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。';
 
   @override
-  String get startupComponentError => '应用组件加载失败。请重新启动 Ame；如果仍然失败，请复制诊断信息以便排查。';
+  String get startupComponentError => '应用组件加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。';
 
   @override
   String get choose => '选择';
@@ -1545,10 +1578,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updatingLibrary => '正在更新图库…';
 
   @override
-  String get emptyLibraryTitle => '建立你的图片图库';
+  String get emptyLibraryTitle => '建立你的图库';
 
   @override
-  String get emptyLibraryBody => '选择要在 Ame 中一起浏览的图片目录吧。';
+  String get emptyLibraryBody => '选择要在 Ame 中一起浏览的图片吧。';
 
   @override
   String get importPhotos => '导入';

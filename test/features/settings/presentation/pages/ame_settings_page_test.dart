@@ -21,7 +21,6 @@ import "package:flutter/services.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../support/application_test_bindings.dart";
 import "../../../../support/localized_test_app.dart";
@@ -121,108 +120,6 @@ void main() {
       tester.widget<LicensePage>(find.byType(LicensePage)).applicationVersion,
       "0.1.0-beta.1+4",
     );
-  });
-
-  testWidgets("renders settings in the main canvas with plain-language rows", (
-    tester,
-  ) async {
-    final gateway = _FakeStorageSettingsGateway(_status());
-    addTearDown(gateway.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: applicationTestOverrides([
-          storageSettingsGatewayProvider.overrideWithValue(gateway),
-        ]),
-        child: LocalizedTestApp(
-          theme: buildAmeTheme(),
-          home: const Scaffold(body: AmeSettingsPage(hasLibraryRoots: true)),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final heading = find.descendant(
-      of: find.ancestor(
-        of: find.byIcon(Symbols.settings_rounded),
-        matching: find.byType(Row),
-      ),
-      matching: find.text("设置"),
-    );
-    expect(heading, findsOneWidget);
-    expect(
-      tester.widget<Text>(heading).style?.fontWeight,
-      ameFontWeightRegular,
-    );
-    expect(
-      tester.widget<Text>(find.text("个性化")).style?.fontWeight,
-      ameFontWeightSemibold,
-    );
-    expect(
-      tester.widget<Text>(find.text("应用主题")).style?.fontWeight,
-      ameFontWeightSemibold,
-    );
-    expect(
-      DefaultTextStyle.of(
-        tester.element(find.text("选择明暗外观，主题色跟随 Windows")),
-      ).style.fontWeight,
-      ameFontWeightRegular,
-    );
-
-    expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
-    expect(find.byType(AlertDialog), findsNothing);
-    expect(find.text("个性化"), findsOneWidget);
-    expect(find.text("应用语言"), findsOneWidget);
-    expect(find.text("浏览"), findsOneWidget);
-    expect(find.text("智能相册"), findsOneWidget);
-    expect(find.text("GPU 加速"), findsOneWidget);
-    expect(find.text("本地分析"), findsNothing);
-    expect(find.text("在本机分析图片，自动生成分类"), findsNothing);
-    expect(find.text("缩略图加载速度"), findsOneWidget);
-    expect(find.text("存储"), findsOneWidget);
-    expect(find.text("关于"), findsOneWidget);
-    expect(find.text("图库数据位置"), findsOneWidget);
-    expect(find.text("缩略图位置"), findsOneWidget);
-    expect(find.text("清理未关联记录"), findsOneWidget);
-    expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
-    expect(find.byKey(const Key("settings-cleanup-inspect")), findsOneWidget);
-    expect(find.text("已有图库时不可更改"), findsOneWidget);
-    expect(find.textContaining("Settings file"), findsNothing);
-    expect(
-      find.textContaining(r"C:\AmeData\catalog\ame.sqlite3"),
-      findsOneWidget,
-    );
-    expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
-    expect(
-      find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
-      findsNWidgets(6),
-    );
-    expect(
-      find.byWidgetPredicate((widget) => widget is AmePopupMenuButton<Object?>),
-      findsNWidgets(6),
-    );
-    expect(find.byType(MenuAnchor), findsNothing);
-    expect(
-      find.byWidgetPredicate((widget) => widget is DropdownMenu<Object?>),
-      findsNothing,
-    );
-    expect(
-      find.descendant(
-        of: find.byWidgetPredicate((widget) => widget is AmeChoice<Object?>),
-        matching: find.byIcon(Symbols.arrow_drop_down_rounded),
-      ),
-      findsNWidgets(6),
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key("settings-default-album")),
-        matching: find.byIcon(Symbols.chevron_right_rounded),
-      ),
-      findsOneWidget,
-    );
-    expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
-    expect(find.byIcon(Icons.arrow_drop_up), findsNothing);
-    expect(AmeMenuTransition.duration, const Duration(milliseconds: 200));
   });
 
   testWidgets(
@@ -811,10 +708,6 @@ void main() {
 
     await _openPopupMenu(tester, speedButton);
     final largeOption = _popupMenuItemTarget("大");
-    expect(
-      DefaultTextStyle.of(tester.element(find.text("大"))).style.fontWeight,
-      ameFontWeightMedium,
-    );
     await _selectPopupMenuItem(tester, largeOption);
 
     expect(

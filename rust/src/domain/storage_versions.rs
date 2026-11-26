@@ -1,0 +1,2 @@
+pub const CATALOG_SCHEMA_VERSION: i64 = 83;
+pub const SETTINGS_SCHEMA_VERSION: i64 = 2;

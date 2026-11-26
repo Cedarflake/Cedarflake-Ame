@@ -61,7 +61,16 @@ Initial settings are limited to behavior that is understandable and connected en
   Ame 版本                 检查更新 / 查看更新 / 重启并更新
   更新设置                 当前渠道与自动更新偏好
   开源软件声明
+  诊断信息                 导出
 ```
+
+The diagnostic action opens the native save dialog for a ZIP. Export collection does not block
+browsing. Slow work uses the existing delayed bottom feedback with cancellation; success offers
+Open location. Collection failure offers Retry, while destination/write failure offers a new save
+location. Native codes retain their namespace on a separate feedback detail line. Folder-opening failure
+retries that action without recollecting. Startup failure offers the same export and a safe summary
+copy. The [diagnostic contract](../../architecture/0044-local-diagnostic-export.md) owns contents,
+privacy and resource bounds; no new task center or settings hierarchy is introduced.
 
 The version action opens one compact update dialog with the new version, download size and release
 notes. Download, stop and explicit restart operate on the same retained session; dismissing the
@@ -69,11 +78,14 @@ dialog leaves an active download running. Checking uses the shared delayed loadi
 Transfer progress appears only inside the update dialog and the existing notification entry is
 updated in place. A completed download remains available until restart, channel change or exit.
 
-`更新设置` opens a child settings page. `自动更新` offers manual checks, automatic checks (default),
+`更新设置` opens a compact shared dialog over Settings, retaining its scroll position.
+`自动更新` offers manual checks, automatic checks (default),
 and automatic download; `更新渠道` offers stable and preview, initially matching the installed
-version. Choices save when selected. Automatic work starts after the usable window is shown and
-does not open a dialog or restart the application. Switching channels never installs an older
-version. Installer updates request Windows elevation only after the explicit restart action.
+version. Choices save when selected. Automatic checks start 500 ms after initialization following
+the usable window's first display, or after saving update preferences. Subsequent automatic checks
+run 12 hours after the previous check finishes. They do not open a dialog or restart the application.
+Switching channels never installs an older version. Installer updates request Windows elevation
+only after the explicit restart action.
 
 The completed R2b preview lifecycle uses the following storage labels and descriptions. They
 explain the consequence instead of exposing implementation terms:

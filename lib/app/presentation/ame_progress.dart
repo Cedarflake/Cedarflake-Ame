@@ -13,12 +13,14 @@ class AmeProgressVisibility extends StatefulWidget {
     required this.child,
     this.active = true,
     this.delay = ameProgressDelay,
+    this.interactive = false,
     super.key,
   });
 
   final Widget child;
   final bool active;
   final Duration delay;
+  final bool interactive;
 
   @override
   State<AmeProgressVisibility> createState() => _AmeProgressVisibilityState();
@@ -87,6 +89,7 @@ class _AmeProgressVisibilityState extends State<AmeProgressVisibility>
 
   @override
   Widget build(BuildContext context) => IgnorePointer(
+    ignoring: !widget.interactive || !_shown || !widget.active,
     child: ExcludeSemantics(
       excluding: !_shown || !widget.active,
       child: FadeTransition(

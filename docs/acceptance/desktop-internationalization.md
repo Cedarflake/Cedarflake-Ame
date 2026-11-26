@@ -1,5 +1,13 @@
 # Desktop language verification
 
+## Integration — 2026-11-22
+
+[PR 73](https://github.com/Cedarflake/Cedarflake-Ame/pull/73) integrated desktop internationalization
+at `22816d57fb17dd0008d503788e05f3f837cd2577` on 2026-11-22. Git ancestry checked on 2026-11-26
+confirms that revision is included in the R10-04 baseline `7281949995313a752579053e77b34ad12631d754`.
+The client and focused verification below retain their original revision and scope; this ancestry
+check adds no new runtime or hosted-CI result.
+
 ## Windows client, 2026-11-21
 
 The [desktop language workflow](../../test/support/desktop_language_workflow.dart) runs in the

@@ -1,5 +1,6 @@
 import "package:material_ui/material_ui.dart";
 import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../features/library/application/ports/library_catalog.dart";
@@ -12,8 +13,11 @@ import "../presentation/ame_theme.dart";
 import "../presentation/ame_transient_feedback.dart";
 import "../window/ame_build_identity.dart";
 import "../window/ame_window_frame.dart";
+import "../../features/diagnostics/application/diagnostics_controller.dart";
+import "../../features/diagnostics/presentation/diagnostic_feedback.dart";
+import "diagnostic_error_projection.dart";
 
-class AmeBootstrapFailure extends StatelessWidget {
+class AmeBootstrapFailure extends ConsumerWidget {
   const AmeBootstrapFailure({
     required this.error,
     required this.preferences,
@@ -24,7 +28,9 @@ class AmeBootstrapFailure extends StatelessWidget {
   final AmePreferences preferences;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final diagnostics = ref.read(diagnosticsControllerProvider);
+    final exportState = ref.watch(diagnosticExportStateProvider);
     return AmeSystemThemeBuilder(
       preferredLocale: amePreferredLocale(preferences.language),
       builder: (context, seedColor, locale) => MaterialApp(
@@ -43,36 +49,71 @@ class AmeBootstrapFailure extends StatelessWidget {
         home: Builder(
           builder: (context) => AmeWindowFrame(
             child: Scaffold(
-              body: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Symbols.error_rounded, size: 48),
-                        const SizedBox(height: 20),
-                        Text(
-                          context.l10n.startupFailureTitle,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                          textAlign: TextAlign.center,
+              body: Stack(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Symbols.error_rounded, size: 48),
+                            const SizedBox(height: 20),
+                            Text(
+                              context.l10n.startupFailureTitle,
+                              style: Theme.of(context).textTheme.headlineSmall,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              bootstrapFailureMessage(context.l10n, error),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 20),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                FilledButton.tonalIcon(
+                                  onPressed: exportState.busy
+                                      ? null
+                                      : () => diagnostics.export(
+                                          diagnosticSaveLabels(context.l10n),
+                                        ),
+                                  icon: const Icon(
+                                    Symbols.file_download_rounded,
+                                  ),
+                                  label: Text(
+                                    context.l10n.diagnosticsExportAction,
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => _copyDiagnostics(context),
+                                  icon: const Icon(
+                                    Symbols.content_copy_rounded,
+                                  ),
+                                  label: Text(context.l10n.copyDiagnostics),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          bootstrapFailureMessage(context.l10n, error),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 20),
-                        OutlinedButton.icon(
-                          onPressed: () => _copyDiagnostics(context),
-                          icon: const Icon(Symbols.content_copy_rounded),
-                          label: Text(context.l10n.copyDiagnostics),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child:
+                          buildDiagnosticFeedback(context, ref) ??
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -84,7 +125,11 @@ class AmeBootstrapFailure extends StatelessWidget {
   Future<void> _copyDiagnostics(BuildContext context) async {
     await Clipboard.setData(
       ClipboardData(
-        text: const AmeBuildIdentity.current().startupDiagnostics(error),
+        text: [
+          const AmeBuildIdentity.current().applicationLabel,
+          diagnosticErrorEvent(error).code,
+          diagnosticErrorEvent(error).nativeCode?.label,
+        ].whereType<String>().join("\n"),
       ),
     );
     if (!context.mounted) {

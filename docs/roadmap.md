@@ -35,7 +35,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10c (R10-03) integrated through [PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68); R10-04 and R10-05 pending for `v0.1.0-beta.1` |
+| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10c (R10-03) integrated through [PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68); R10-04 active on `codex/r10-diagnostics`; R10-05 pending for `v0.1.0-beta.1` |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
@@ -66,6 +66,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Diagnostics and recovery guidance
+
+R10-04 is active on `codex/r10-diagnostics`: local diagnostic ZIP export from Settings/About and
+startup failure, bounded safe event retention, and a short multilingual user guide. The
+[execution plan](plans/r10-beta-readiness.md#r10-04--diagnostics-and-recovery-guidance) owns the scope;
+[ADR 0044](architecture/0044-local-diagnostic-export.md) owns the data and lifecycle boundary.
+The [verification record](acceptance/r10-diagnostics.md) tracks local checks and desktop coverage.
+R10-05 candidate publication follows this result.
+
 ### Application updates
 
 The [application updates plan](plans/application-updates.md) was integrated through
@@ -73,14 +82,15 @@ The [application updates plan](plans/application-updates.md) was integrated thro
 checks, automatic-check/download preferences and explicit restart, with installed and portable
 replacement under ADR 0043. The [integration record](acceptance/application-updates.md#integration--2026-11-26)
 owns current-head CI, retained client/package evidence and branch cleanup. Release publication
-remains separate; R10-04 diagnostics and R10-05 Beta readiness remain next.
+remains separate; R10-04 diagnostics is active; R10-05 Beta readiness follows.
 
 ### Desktop internationalization
 
-Deliver Simplified Chinese, English and Japanese in the Windows application under the
-[desktop internationalization plan](plans/desktop-internationalization.md). The branch includes
-all three languages, their READMEs and [Windows x64 client evidence](acceptance/desktop-internationalization.md).
-Integration precedes R10-04. R10 keeps its existing release criteria.
+Simplified Chinese, English and Japanese desktop support and localized READMEs were integrated through
+[PR 73](https://github.com/Cedarflake/Cedarflake-Ame/pull/73) on 2026-11-22. The
+[desktop internationalization plan](plans/desktop-internationalization.md) retains the scope;
+[client and integration evidence](acceptance/desktop-internationalization.md#integration--2026-11-22)
+retains its Windows x64 coverage and merged revision. R10 keeps its existing release criteria.
 
 ### Flutter 3.50 compatibility
 
@@ -92,7 +102,7 @@ Their nativeapi migration is deferred by the 2026-11-18 decision after rapid win
 transitions exposed native-caption and content-rendering regressions. Resume that migration only
 when requested, with its own lifecycle, multi-display and DPI verification.
 The [compatibility evidence](acceptance/material-ui-migration.md#flutter-350-compatibility-2026-11-17)
-records the SDK comparison, retained adapters and integration. R10-04 remains the next stage.
+records the SDK comparison, retained adapters and integration. R10-04 is active below.
 
 ### Material desktop workbench
 
@@ -103,7 +113,7 @@ desktop-qualification boundaries. The
 [integration record](acceptance/material-ui-migration.md#material-workbench-integration-2026-11-17)
 owns the authorized merge before final CI completion, desktop results and branch cleanup.
 Preserve existing actions, bounded browsing, source safety and the completed responsiveness work.
-R10-04 diagnostics and R10-05 Beta readiness remain next; R10a–R10c remain integrated.
+R10-04 diagnostics is active; R10-05 Beta readiness follows; R10a–R10c remain integrated.
 
 R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
 integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.
@@ -121,7 +131,7 @@ shared build identity and Alpha 3 upgrade, installation and catalog compatibilit
 [qualification record](acceptance/r10-upgrade-compatibility.md) retains the package, retained-data,
 recovery and clean-system results; the
 [integration record](acceptance/r10-upgrade-compatibility.md#r10c-integration--2026-11-16) retains
-the early-merge decision and branch cleanup. R10-04 and R10-05 remain pending.
+the early-merge decision and branch cleanup. R10-04 is active; R10-05 remains pending.
 
 ### Gallery group discovery
 
