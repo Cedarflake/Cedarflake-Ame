@@ -81,9 +81,11 @@ updated in place. A completed download remains available until restart, channel 
 `更新设置` opens a compact shared dialog over Settings, retaining its scroll position.
 `自动更新` offers manual checks, automatic checks (default),
 and automatic download; `更新渠道` offers stable and preview, initially matching the installed
-version. Choices save when selected. Automatic work starts after the usable window is shown and
-does not open a dialog or restart the application. Switching channels never installs an older
-version. Installer updates request Windows elevation only after the explicit restart action.
+version. Choices save when selected. Automatic checks start 500 ms after initialization following
+the usable window's first display, or after saving update preferences. Subsequent automatic checks
+run 12 hours after the previous check finishes. They do not open a dialog or restart the application.
+Switching channels never installs an older version. Installer updates request Windows elevation
+only after the explicit restart action.
 
 The completed R2b preview lifecycle uses the following storage labels and descriptions. They
 explain the consequence instead of exposing implementation terms:

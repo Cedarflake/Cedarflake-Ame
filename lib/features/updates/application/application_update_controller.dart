@@ -58,7 +58,7 @@ class ApplicationUpdateController extends ChangeNotifier {
           supported: supported,
         ),
       );
-      _scheduleAutomaticCheck(const Duration(seconds: 30));
+      _scheduleAutomaticCheck(const Duration(milliseconds: 500));
     } on ApplicationUpdateFailure catch (failure) {
       _initialization = null;
       if (!_closed) _setPhase(ApplicationUpdatePhase.failed, failure: failure);
@@ -97,7 +97,7 @@ class ApplicationUpdateController extends ChangeNotifier {
         ),
       );
     }
-    _scheduleAutomaticCheck(const Duration(seconds: 30));
+    _scheduleAutomaticCheck(const Duration(milliseconds: 500));
   }
 
   Future<void> check() async {

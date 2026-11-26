@@ -221,8 +221,6 @@ Future<void> main() async {
   await mountAmeApplicationAndRevealWindow(
     mountApplication: () => applicationMount.mount(application),
     startInBackground: () {
-      final updateBindings = updates;
-      if (updateBindings != null) unawaited(updateBindings.start());
       synchronizationLifecycle?.startInBackground();
       classificationLifecycle?.startInBackground();
       final recover = recoverModelInstallation;
@@ -230,4 +228,6 @@ Future<void> main() async {
     },
     revealWindowAfterFirstFrame: showAmeWindowAfterFirstFrame,
   );
+  final updateBindings = updates;
+  if (updateBindings != null) unawaited(updateBindings.start());
 }
