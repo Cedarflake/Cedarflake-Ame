@@ -76,8 +76,8 @@ HTTPS and SHA-256 checks are required; signing and automatic migration of old Al
 are excluded. Settings, native coordination and both package paths are implemented. Local client,
 portable replacement/recovery, installed handoff, package checks and product-commit CI passed;
 the [verification owner](acceptance/application-updates.md) records their separate inputs and results.
-Closeout retains cleanup of two disposable cloud-test accounts/profiles and marked fixture directories
-after remote authentication becomes available. Integration and release publication remain separate.
+Cloud-test accounts, profiles, fixture data and staging directories have been removed; branch
+implementation and verification are complete. Integration and release publication remain separate.
 
 ### Desktop internationalization
 

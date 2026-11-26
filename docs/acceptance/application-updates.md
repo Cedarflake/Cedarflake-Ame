@@ -131,12 +131,14 @@ uses the same shipping helper and MSI hashes above; only its service assertion d
 fixture in the hosted commit.
 
 Two disposable profiles remained loaded after their processes exited, preventing normal profile
-removal. The test computer restarted normally after sealing the successful worker receipt and exact
-cleanup owners. Remote terminal authentication did not subsequently complete, so those two accounts,
-profiles and their marked fixture directories remain pending cleanup. The protected immediate cleanup
-script requires the original elevated controller, sealed owner identities, no associated logon
-sessions and unloaded profiles. No startup task was registered. This retained test-environment residue
-does not change the passed upgrade result; closeout still requires its removal.
+removal. After a normal restart, cleanup on 2026-11-26 verified the sealed owners, original elevated
+controller, absent logon sessions and unloaded profiles. Both accounts and profiles, four marked
+fixture trees and their stored test credentials were removed; the receipt reports `passed-cleaned`.
+The upgrade and cleanup receipts were retained locally before removing the transferred packages,
+protected cleanup code and current and earlier fixture records. The final directory inventory was
+empty, and the cleanup sessions confirmed terminal closure. No startup task was registered. The ignored
+`application-update-cloud-retire-result.json` and
+`application-update-cloud-retire-archives-result.json` retain the cleanup evidence.
 
 ## Review boundaries
 
