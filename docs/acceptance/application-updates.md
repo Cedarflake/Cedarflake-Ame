@@ -45,7 +45,8 @@ The official Material 3 bar
 interpolates between received-byte snapshots over 200 ms; reopening uses the current value and
 reduced-motion settings bypass interpolation. Ten focused controller/presentation checks passed,
 including intermediate progress frames, total-size changes, reopening, reduced motion and all
-three languages at enlarged text. Earlier hosted results above do not cover this follow-up.
+three languages at enlarged text. The original hosted run above precedes this follow-up; the
+integration run below covers it.
 The isolated Profile comparison rendered the production left-aligned percentage and retained
 active progress after dismissal. Separate ignored preview copies exposed centered percentages
 and the updated viewer slider for visual comparison. The accepted result retains status titles,
@@ -154,7 +155,7 @@ empty, and the cleanup sessions confirmed terminal closure. No startup task was 
 
 ## Review boundaries
 
-The Dart update controller has 297 production lines; the native application coordinator has 184;
+The Dart update controller has 298 production lines; the native application coordinator has 184;
 the native platform facade has 220; handoff preparation has 263 and its process-authority owner has
 141. These owners contain no inline tests. The controller's dedicated test file has 316 lines,
 the native coordinator's has 90 and the handoff process tests have 136. The Windows helper entry point has 139
@@ -162,5 +163,19 @@ production lines and its session owner has 93. Portable package assembly has 157
 separate release discovery, transfer, process authority, package replacement and presentation; no
 catalog workflow takes update ownership.
 
-No real source root, installed host service or existing user catalog is a mutation fixture. Releases,
-merge and legacy Alpha migration are outside this implementation's publication authority.
+No real source root, installed host service or existing user catalog is a mutation fixture. Release
+publication and legacy Alpha migration remain outside this integration.
+
+## Integration — 2026-11-26
+
+[PR 74](https://github.com/Cedarflake/Cedarflake-Ame/pull/74) merged
+`003807911078bb59eec50b143858c345ed1cdbbd` as
+`81f579bfdb276b68f95a2f7ee7570eeb30e57110`. Full
+[CI run 45736459157](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45736459157) passed for
+that head, including the progress follow-up and revised installed-handoff fixture. The merge tree
+matches the checked head. Local `main` was synchronized and `codex/app-updates` was deleted locally
+and remotely.
+
+The automated request for independent update signatures was resolved under ADR 0043's accepted
+exclusion of code and feed signing. The official repository/release channel remains a trusted
+boundary; HTTPS and same-release hashes do not protect against its compromise.

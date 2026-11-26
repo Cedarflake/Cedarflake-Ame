@@ -68,16 +68,12 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Application updates
 
-Implement the accepted application-update workflow on `codex/app-updates` under the
-[application updates plan](plans/application-updates.md), before the remaining R10 release work.
-Settings supplies manual checks, automatic-check/download preferences and an explicit restart action.
-ADR 0043 retains WiX for the installed product and selects Velopack for portable replacement.
-HTTPS and SHA-256 checks are required; signing and automatic migration of old Alpha installations
-are excluded. Settings, native coordination and both package paths are implemented. Local client,
-portable replacement/recovery, installed handoff, package checks and product-commit CI passed;
-the [verification owner](acceptance/application-updates.md) records their separate inputs and results.
-Cloud-test accounts, profiles, fixture data and staging directories have been removed; branch
-implementation and verification are complete. Integration and release publication remain separate.
+The [application updates plan](plans/application-updates.md) was integrated through
+[PR 74](https://github.com/Cedarflake/Cedarflake-Ame/pull/74) on 2026-11-26. Settings supplies manual
+checks, automatic-check/download preferences and explicit restart, with installed and portable
+replacement under ADR 0043. The [integration record](acceptance/application-updates.md#integration--2026-11-26)
+owns current-head CI, retained client/package evidence and branch cleanup. Release publication
+remains separate; R10-04 diagnostics and R10-05 Beta readiness remain next.
 
 ### Desktop internationalization
 
