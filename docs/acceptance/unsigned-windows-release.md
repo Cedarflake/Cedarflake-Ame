@@ -193,3 +193,34 @@ The GitHub API digests and verified published package sizes are:
 | --- | --- | --- |
 | Portable ZIP | 47,862,449 | `f11f62f0c87c0d25f20e377040a989d4e117b2740792f991896e76538e38e2a1` |
 | MSI | 384,208,896 | `7232636a4d5a3588ea18179a1e08c0cdeda771d997b4d28414456db36fd735c1` |
+
+## Beta 1 preparation — 2026-11-26
+
+Preparation starts from `3e8400f823480b9cf7d15b138ff028785f10ba93` on
+`codex/r10-beta-candidate`. Flutter `0.1.0-beta.1+4` and Rust `0.1.0-beta.1` agree with the proposed
+tag; MSI version `0.1.4` follows published Alpha 3's `0.1.3`. The
+[prepared notes](../releases/v0.1.0-beta.1.md) describe changes since Alpha 3, manual Alpha upgrades,
+the portable launcher's new location and the four-asset update distribution.
+
+The release preflight recovered an unresolved Windows graphics failure from the separate
+upstream-tracking branch. Its [owning evidence](material-ui-migration.md#windows-gif-playback-regression-2026-11-22)
+records the original reproducer and the current stable-release lookup. The repository still pins
+Flutter 3.50.0; the repair was merged for a future stable hotfix but is not available in the current
+official stable revision. Candidate selection and the full candidate run are deferred until the
+matching released SDK passes that desktop workflow. This preparation changes documentation only.
+
+Retained evidence has the following scope:
+
+| Owner | Retained result | Final-candidate work |
+| --- | --- | --- |
+| [R10a](r10-responsiveness.md#r10a-closeout) and [R10b](r10-resource-recovery.md#r10b-closeout--2026-11-15) | Responsiveness, sustained resources and recovery qualification | Recheck affected graphics paths after the SDK change; retain unchanged workload evidence |
+| [R10c](r10-upgrade-compatibility.md#upgrade-and-recovery-matrix) | Alpha 3 data migration, MSI rollback, repair and portable replacement | Verify the final packages and final Windows 11 client; earlier package hashes do not identify this candidate |
+| [Application updates](application-updates.md#integration--2026-11-26) | Installed/portable handoff and recovery, integrated full CI | Verify the release's full package and metadata match its MSI/ZIP |
+| [Diagnostics](r10-diagnostics.md#integration--2026-11-26) | Diagnostic export, startup recovery guidance and full CI | Preserve these checks in the candidate's full gate |
+
+No release tag, package or GitHub Release was created in this preflight. The existing main-only
+workflow automatically publishes after its candidate and packaging gates; `validate_only` skips
+those builds and does not qualify a release. After the blocker clears, freeze one source and use
+that workflow for its full regression, native integration, synthetic and unsigned-candidate checks.
+Record the run, final downloaded asset hashes and release-body comparison here. The
+[roadmap](../roadmap.md#beta-candidate-and-publication) owns current stage status.

@@ -140,6 +140,22 @@ MSI and portable ZIP from one verified candidate. Retain the current model paylo
 checksums, immutable tag/package checks and [artifact reuse](release-artifact-reuse.md) workflow.
 Verify downloaded packages and the release body before recording publication.
 
+Freeze the candidate only after the accepted stable SDK passes the affected Windows graphics
+workflow in the [Material migration evidence](../acceptance/material-ui-migration.md#windows-gif-playback-regression-2026-11-22).
+Do not substitute an unreleased engine or combine runtime files from different SDK revisions.
+Then use the existing release owner in this order:
+
+1. Bind the version, release notes and immutable tag to the selected source. Keep the notes and
+   trusted publication workflow on `main` before dispatch.
+2. Dispatch `release_candidate_windows.yml` with the unsigned channel. Its fresh path owns full
+   regression, native Windows integration, synthetic workloads and candidate verification before
+   packaging and automatic publication. Read-only `validate_only` checks do not build a candidate.
+3. Check the exact downloaded MSI, ZIP, full portable update package and update metadata through
+   the existing published verifier. Exercise the final packaged Windows 11 client and retain the
+   applicable upgrade/recovery evidence without relabeling older packages as the final candidate.
+4. Compare the public body with the versioned notes and record the immutable source, workflow run,
+   asset identities and accepted limits in the existing release acceptance record.
+
 ## Working order and exit decision
 
 Start with R10-01's baseline, then R10-02's bounded resources/recovery, R10-03's upgrade path and

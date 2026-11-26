@@ -35,7 +35,7 @@ The [workbench contract](product/workbench.md) owns concepts and exclusions;
 | R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
 | R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
 | R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10c (R10-03) integrated through [PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68); R10-04 integrated through [PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75); R10-05 pending for `v0.1.0-beta.1` |
+| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10c (R10-03) integrated through [PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68); R10-04 integrated through [PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75); R10-05 preparation active for `v0.1.0-beta.1`, awaiting the stable Flutter Windows graphics repair |
 
 R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
 feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
@@ -66,6 +66,20 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Beta candidate and publication
+
+R10-05 preparation is active on `codex/r10-beta-candidate`. The
+[release notes](releases/v0.1.0-beta.1.md) cover Alpha 3-to-Beta changes and both upgrade paths.
+Candidate selection is blocked by the reproduced Windows image-playback crash: Flutter's
+[stable backport](https://github.com/flutter/flutter/pull/196991) merged on 2026-11-24, but
+3.50.2 has not been released as of 2026-11-26. Retain the accepted stable-SDK policy; qualify a
+complete matching SDK and the affected desktop workflow before freezing the release candidate.
+The [graphics evidence](acceptance/material-ui-migration.md#windows-gif-playback-regression-2026-11-22)
+and [release preparation record](acceptance/unsigned-windows-release.md#beta-1-preparation--2026-11-26)
+own the reproduced failure, upstream checks and retained acceptance. The
+[execution plan](plans/r10-beta-readiness.md#r10-05--beta-candidate-and-publication) owns the remaining
+candidate, packaging and publication steps. No Beta tag or release has been created.
+
 ### Diagnostics and recovery guidance
 
 R10-04 was integrated through [PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75) on
@@ -74,7 +88,7 @@ retention, and a short multilingual user guide. The
 [execution plan](plans/r10-beta-readiness.md#r10-04--diagnostics-and-recovery-guidance) owns the scope;
 [ADR 0044](architecture/0044-local-diagnostic-export.md) owns the data and lifecycle boundary.
 The [integration record](acceptance/r10-diagnostics.md#integration--2026-11-26) retains current-head
-CI, desktop coverage and branch cleanup. R10-05 candidate publication is next and remains pending.
+CI, desktop coverage and branch cleanup.
 
 ### Application updates
 
@@ -159,7 +173,7 @@ R10a completes R10-01 in `main`. Its [closeout](acceptance/r10-responsiveness.md
 records retained-library Release/Profile targets, publication behavior and passing full CI; the
 [integration record](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14) retains review and merge evidence.
 R10-02 through R10-04 are integrated in `main`. The plan owns the detailed workloads and completion
-criteria. R10-05 Beta candidate qualification and publication remain pending.
+criteria. R10-05 preparation is active; the current execution queue owns its publication blocker.
 
 R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
 session, index reuse, current-root recovery and bounded layout measurements. R2c-M now uses R10's

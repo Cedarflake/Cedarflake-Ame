@@ -12,6 +12,9 @@ matching file from that dispatch's immutable workflow commit and uses its conten
 body. Missing, empty or invalid notes stop publication. Rerunning publication synchronizes the
 body while retaining already verified package attachments. There is no generated-notes fallback.
 
+Prepared notes: [v0.1.0-beta.1](v0.1.0-beta.1.md). The
+[roadmap](../roadmap.md#r10--beta-readiness) owns its publication status.
+
 - [v0.1.0-alpha.3](v0.1.0-alpha.3.md)
 - [v0.1.0-alpha.2](v0.1.0-alpha.2.md)
 - [v0.1.0-alpha.1](v0.1.0-alpha.1.md)
