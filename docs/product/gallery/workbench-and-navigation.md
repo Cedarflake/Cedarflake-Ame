@@ -182,10 +182,11 @@ icon when read and the notification-with-dot icon when unread, without a text la
 The application mark and regular-weight `Ame` label sit together to the right of the hamburger. The mark
 uses the theme's primary color without an extra outline; its visible silhouette, text height and
 optical spacing are balanced as one identity. The wordmark uses the neutral on-surface color.
-Collapsing the sidebar hides this identity to leave
-room for search. The Windows application icon retains its colored artwork. Search starts at the
-sidebar/content boundary rather than the inset content heading. Both expanded and collapsed
-sidebars keep the search field within its 720-pixel maximum width.
+Collapsing the sidebar hides this identity. The Windows application icon retains its colored artwork.
+Search starts at the configured expanded-sidebar boundary rather than the inset content heading.
+Its position and width remain unchanged when the sidebar collapses or expands, including during
+the transition. Resizing the sidebar adjusts that alignment and available search width. Window
+resizing still constrains the search field, which retains its 720-pixel maximum width.
 
 There is no permanent Task button or task-center navigation entry. While an import or library update
 is active, a temporary bottom progress surface uses the concrete action name, reports progress and
@@ -209,9 +210,9 @@ Use the system accent's tonal-spot palette. Selected navigation uses secondary-c
 and their matching foreground; section-heading actions use standard icon buttons.
 Workspace headings use regular weight; section labels and counts use the quieter on-surface-variant
 color. Emphasize the current selection without accent-colored ordinary text.
-Collapsing a sidebar retains that eight-pixel gap between the function rail and the content surface,
-with search aligned above it. Primary-destination changes animate the content boundary and keep the
-right edge fixed; the image wall retains its destination-width layout during the transition.
+Collapsing a sidebar retains that eight-pixel gap between the function rail and the content surface.
+Primary-destination changes animate the content boundary and keep the right edge fixed; the image
+wall retains its destination-width layout during the transition.
 
 The Library sidebar contains only navigation and source scope:
 

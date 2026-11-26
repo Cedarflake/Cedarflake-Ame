@@ -57,35 +57,16 @@ class LibraryGlobalBar extends StatelessWidget {
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
-            const collapsedSearchGap = 16.0;
-            const expandedSearchGap = 32.0;
+            const searchGap = 32.0;
             const trailingWidth =
                 captionWidth + notificationWidth + notificationGap;
-            final collapsedSearchWidth = math.min(
+            final searchWidth = math.min(
               720.0,
               math.max(
                 0.0,
-                constraints.maxWidth -
-                    collapsedLeading -
-                    trailingWidth -
-                    collapsedSearchGap,
+                constraints.maxWidth - sidebarWidth - trailingWidth - searchGap,
               ),
             );
-            final expandedSearchWidth = math.min(
-              720.0,
-              math.max(
-                0.0,
-                constraints.maxWidth -
-                    collapsedLeading -
-                    (sidebarWidth - LibraryWorkbenchMetrics.contentInset) -
-                    trailingWidth -
-                    expandedSearchGap,
-              ),
-            );
-            // Fixed endpoints keep the right edge from reversing mid-transition.
-            final searchWidth =
-                collapsedSearchWidth +
-                (expandedSearchWidth - collapsedSearchWidth) * sidebarExpansion;
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -135,7 +116,7 @@ class LibraryGlobalBar extends StatelessWidget {
                     ),
                   ),
                 Positioned(
-                  left: contentLeading,
+                  left: sidebarWidth,
                   top: 0,
                   bottom: 0,
                   child: SizedBox(

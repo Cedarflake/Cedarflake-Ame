@@ -16,9 +16,10 @@ the search field and the settings selection circular.
 Place compact `添加文件夹` and `新建相册` plus actions beside their section headings,
 using the existing picker and album editor. Library and Favorites begin their respective sidebars.
 Use the global hamburger for sidebar visibility, keep the plain mark beside `Ame`, and align search
-with the content boundary. Manual/smart album sections collapse independently while retaining scope
-and selection. Primary-destination changes animate the content boundary without per-frame image
-reflow. Retain the filmstrip appearance while isolating its motion from unchanged image painting.
+with the configured expanded-sidebar boundary. Manual/smart album sections collapse independently
+while retaining scope and selection. Primary-destination changes animate the content boundary
+without per-frame image reflow. Retain the filmstrip appearance while isolating its motion from
+unchanged image painting.
 
 Apply Material canonical-layout guidance to the existing composition: the gallery is an adaptive
 feed, contextual sidebars select its scope, and the viewer filmstrip supports the current image.

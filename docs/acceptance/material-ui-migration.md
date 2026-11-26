@@ -1,5 +1,14 @@
 # Standalone Material migration
 
+## Search placement during sidebar toggles, 2026-11-26
+
+The Windows Debug client retained the search field's position and width through sidebar collapse
+and expansion. Dragging the sidebar from 247 to 319 logical pixels moved the search field with its
+boundary; dragging back restored the original alignment. The existing brand visibility, notification
+button and window controls remained intact. The client was hot-reloaded and left open at its original
+sidebar width. Owned-file formatting and analysis passed. This geometry check uses the real desktop
+interaction rather than adding permanent pixel assertions.
+
 ## Flutter 3.50 compatibility, 2026-11-17
 
 The upgrade uses Flutter 3.50.0 / Dart 3.14.0, Material 1.11.1, Cupertino 1.1.7,

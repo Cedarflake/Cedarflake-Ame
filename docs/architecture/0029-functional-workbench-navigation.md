@@ -67,7 +67,9 @@ the active pane's reported boundary.
 The shared search field has a leading search symbol and a trailing options arrow. Existing mode,
 scope, clear, progress and retry semantics remain intact. Settings uses a circular selected surface.
 The top-left hamburger controls contextual-sidebar visibility; the plain application mark and `Ame`
-wordmark share the adjacent brand area. Search aligns with the content boundary.
+wordmark share the adjacent brand area. Search uses the configured sidebar width independently of
+its visibility animation, retaining the placement rules in the
+[global shell contract](../product/gallery/workbench-and-navigation.md#global-shell).
 The brand's drag region starts after the hamburger's rail-width target.
 Primary navigation symbols use the standard 24-pixel Material size without reducing their targets.
 The workbench brand pairs a 36-pixel asset box with a 20-pixel wordmark. Navigation destinations
