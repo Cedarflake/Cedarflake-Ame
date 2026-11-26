@@ -131,9 +131,10 @@ WiX 7.0.0 is pinned to upstream source commit
 The matching `WixToolset.UI.wixext` package is pinned to SHA-256
 `1716C2CBED4613A7291B5775630CF4D0DCA597568BA1128CEC5FDA1903F05BD1` at the same source commit.
 Compose its stock localized dialogs for installation, repair and removal; do not display its
-placeholder product license or invent an Ame license agreement. The first interactive installation
-page contains a `PathEdit`, a stock folder browser and two native `CheckBox` controls; no feature
-tree, welcome page or launch splash precedes these choices. These standard Windows Installer
+placeholder product license. [Ame's end-user terms](../../EULA.md) retain the applicable open-source
+licenses; this installation flow does not add a license-acceptance page. The first interactive
+installation page contains a `PathEdit`, a stock folder browser and two native `CheckBox` controls;
+no feature tree, welcome page or launch splash precedes these choices. These standard Windows Installer
 controls retain native keyboard and accessibility behavior. The stock feature tree hides ordinary
 directory and shortcut choices behind component-state menus; the composed options page addresses
 that product gap without replacing the install engine or folder picker.
