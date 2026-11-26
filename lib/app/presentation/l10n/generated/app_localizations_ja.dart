@@ -1610,10 +1610,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updatingLibrary => 'ライブラリを更新中…';
 
   @override
-  String get emptyLibraryTitle => '写真ライブラリを作成';
+  String get emptyLibraryTitle => 'ライブラリを作成';
 
   @override
-  String get emptyLibraryBody => 'フォルダーを選ぶと、そこにある写真を Ame でまとめて閲覧できます。';
+  String get emptyLibraryBody => 'Ame でまとめて閲覧する写真を選びましょう。';
 
   @override
   String get importPhotos => 'インポート';

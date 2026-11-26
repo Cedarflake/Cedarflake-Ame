@@ -1578,10 +1578,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updatingLibrary => '正在更新图库…';
 
   @override
-  String get emptyLibraryTitle => '建立你的图片图库';
+  String get emptyLibraryTitle => '建立你的图库';
 
   @override
-  String get emptyLibraryBody => '选择要在 Ame 中一起浏览的图片目录吧。';
+  String get emptyLibraryBody => '选择要在 Ame 中一起浏览的图片吧。';
 
   @override
   String get importPhotos => '导入';

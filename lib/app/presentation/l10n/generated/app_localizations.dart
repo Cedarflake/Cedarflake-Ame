@@ -2883,13 +2883,13 @@ abstract class AppLocalizations {
   /// No description provided for @emptyLibraryTitle.
   ///
   /// In zh, this message translates to:
-  /// **'建立你的图片图库'**
+  /// **'建立你的图库'**
   String get emptyLibraryTitle;
 
   /// No description provided for @emptyLibraryBody.
   ///
   /// In zh, this message translates to:
-  /// **'选择要在 Ame 中一起浏览的图片目录吧。'**
+  /// **'选择要在 Ame 中一起浏览的图片吧。'**
   String get emptyLibraryBody;
 
   /// No description provided for @importPhotos.

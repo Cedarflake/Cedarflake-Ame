@@ -1759,11 +1759,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updatingLibrary => 'Updating library…';
 
   @override
-  String get emptyLibraryTitle => 'Build your photo library';
+  String get emptyLibraryTitle => 'Build your library';
 
   @override
   String get emptyLibraryBody =>
-      'Choose folders to browse their photos together in Ame.';
+      'Choose the photos you want to browse together in Ame.';
 
   @override
   String get importPhotos => 'Import';
