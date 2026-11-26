@@ -72,20 +72,32 @@ class AmeBootstrapFailure extends ConsumerWidget {
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 20),
-                            FilledButton.tonalIcon(
-                              onPressed: exportState.busy
-                                  ? null
-                                  : () => diagnostics.export(
-                                      diagnosticSaveLabels(context.l10n),
-                                    ),
-                              icon: const Icon(Symbols.file_download_rounded),
-                              label: Text(context.l10n.diagnosticsExportAction),
-                            ),
-                            const SizedBox(height: 8),
-                            OutlinedButton.icon(
-                              onPressed: () => _copyDiagnostics(context),
-                              icon: const Icon(Symbols.content_copy_rounded),
-                              label: Text(context.l10n.copyDiagnostics),
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 12,
+                              runSpacing: 8,
+                              children: [
+                                FilledButton.tonalIcon(
+                                  onPressed: exportState.busy
+                                      ? null
+                                      : () => diagnostics.export(
+                                          diagnosticSaveLabels(context.l10n),
+                                        ),
+                                  icon: const Icon(
+                                    Symbols.file_download_rounded,
+                                  ),
+                                  label: Text(
+                                    context.l10n.diagnosticsExportAction,
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => _copyDiagnostics(context),
+                                  icon: const Icon(
+                                    Symbols.content_copy_rounded,
+                                  ),
+                                  label: Text(context.l10n.copyDiagnostics),
+                                ),
+                              ],
                             ),
                           ],
                         ),

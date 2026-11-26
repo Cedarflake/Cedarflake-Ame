@@ -8,8 +8,10 @@ The [roadmap](../roadmap.md#diagnostics-and-recovery-guidance) owns stage dispos
 
 ## Verification snapshot
 
-The observations below apply to this implementation on `codex/r10-diagnostics`, based on
-`7281949995313a752579053e77b34ad12631d754`. No exact-commit hosted result is recorded here yet.
+The observations below apply to implementation `3a48aadb135d7746894fab1f28a91773ea853816` on
+`codex/r10-diagnostics`, based on `7281949995313a752579053e77b34ad12631d754`.
+[Quality / CI run 45749814596](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45749814596)
+passed the full checks for that commit in [PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75).
 
 | Check | Observed result |
 | --- | --- |
@@ -93,5 +95,9 @@ Their settings/action labels were checked against the localization catalogs. Eng
 gallery labels use the actual `All photos` and `すべての写真` strings. Each localized README links
 to its guide; the documentation and acceptance indexes link to this record.
 
-Remaining evidence: the applicable hosted checks for the published candidate.
+The subsequent startup-failure action layout places Export and Copy side by side in a centered
+group, retaining wrapping for constrained text/window sizes. Its Windows Debug build completed in
+21.5 seconds, and the actual damaged-catalog startup page displayed both buttons on the same row.
+This layout follow-up retains its separate exact-commit hosted result; the run above covers the
+preceding implementation.
 R10-05 candidate and release qualification remain in their existing owners.
