@@ -67,10 +67,9 @@ class ApplicationUpdatesSection extends ConsumerWidget {
                 "${updateChannelLabel(strings, state.preferences.channel)} · ${updatePolicyLabel(strings, state.preferences.policy)}",
               ),
               trailing: const Icon(Symbols.chevron_right_rounded),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const ApplicationUpdateSettings(),
-                ),
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (_) => const ApplicationUpdateSettings(),
               ),
             ),
             SettingsRow(

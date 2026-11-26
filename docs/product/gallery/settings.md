@@ -78,7 +78,8 @@ dialog leaves an active download running. Checking uses the shared delayed loadi
 Transfer progress appears only inside the update dialog and the existing notification entry is
 updated in place. A completed download remains available until restart, channel change or exit.
 
-`更新设置` opens a child settings page. `自动更新` offers manual checks, automatic checks (default),
+`更新设置` opens a compact shared dialog over Settings, retaining its scroll position.
+`自动更新` offers manual checks, automatic checks (default),
 and automatic download; `更新渠道` offers stable and preview, initially matching the installed
 version. Choices save when selected. Automatic work starts after the usable window is shown and
 does not open a dialog or restart the application. Switching channels never installs an older

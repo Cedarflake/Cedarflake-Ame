@@ -122,60 +122,86 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 30)));
   }
 
-  testWidgets(
-    "update preferences are selected in the existing Settings menus",
-    (tester) async {
-      final fixture = _Fixture();
-      final controller = ApplicationUpdateController(
-        service: fixture,
-        preferences: fixture,
-        restarter: fixture,
-        defaultChannel: ApplicationUpdateChannel.preview,
-      );
-      await controller.initialize();
-      addTearDown(() {
-        unawaited(controller.close());
-        controller.dispose();
-      });
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            inertDiagnostics(),
-            applicationUpdateControllerProvider.overrideWithValue(controller),
-          ],
-          child: LocalizedTestApp(
-            home: const Scaffold(body: ApplicationUpdatesSection()),
+  for (final locale in ameSupportedLocales) {
+    testWidgets(
+      "update preferences stay in a compact dialog at enlarged text in $locale",
+      (tester) async {
+        final fixture = _Fixture();
+        final controller = ApplicationUpdateController(
+          service: fixture,
+          preferences: fixture,
+          restarter: fixture,
+          defaultChannel: ApplicationUpdateChannel.preview,
+        );
+        await controller.initialize();
+        addTearDown(() {
+          unawaited(controller.close());
+          controller.dispose();
+        });
+        tester.view.physicalSize = const Size(1100, 700);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              inertDiagnostics(),
+              applicationUpdateControllerProvider.overrideWithValue(controller),
+            ],
+            child: LocalizedTestApp(
+              locale: locale,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: const TextScaler.linear(1.5)),
+                child: child!,
+              ),
+              home: const Scaffold(body: ApplicationUpdatesSection()),
+            ),
           ),
-        ),
-      );
-      final strings = AppLocalizations.of(
-        tester.element(find.byType(ApplicationUpdatesSection)),
-      );
-      await tester.tap(find.text(strings.updateSettings));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(strings.updateManual));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey("ame-choice-option-ApplicationUpdatePolicy.download"),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(fixture.saved?.policy, ApplicationUpdatePolicy.download);
-      await tester.tap(find.text(strings.updatePreview));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey("ame-choice-option-ApplicationUpdateChannel.stable"),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(fixture.saved?.channel, ApplicationUpdateChannel.stable);
-      expect(fixture.saved?.policy, ApplicationUpdatePolicy.download);
-      expect(tester.takeException(), isNull);
-      await controller.close();
-    },
-  );
+        );
+        final strings = AppLocalizations.of(
+          tester.element(find.byType(ApplicationUpdatesSection)),
+        );
+        await tester.tap(find.text(strings.updateSettings));
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.byType(Scaffold), findsOneWidget);
+        await tester.tap(find.text(strings.updateManual));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey(
+              "ame-choice-option-ApplicationUpdatePolicy.download",
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(fixture.saved?.policy, ApplicationUpdatePolicy.download);
+        await tester.tap(find.text(strings.updatePreview));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey("ame-choice-option-ApplicationUpdateChannel.stable"),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(fixture.saved?.channel, ApplicationUpdateChannel.stable);
+        expect(fixture.saved?.policy, ApplicationUpdatePolicy.download);
+        await tester.tap(find.text(strings.close));
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(
+          find.text(
+            "${strings.updateStable} · ${strings.updateDownloadAutomatically}",
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+        await controller.close();
+      },
+    );
+  }
 }
 
 class _Fixture
