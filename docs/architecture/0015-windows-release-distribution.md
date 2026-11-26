@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-11-16
+- Last amended: 2026-11-25
 
 ## Context
 
@@ -87,10 +87,24 @@ An additional installer may reuse the completed candidate's immutable applicatio
 evidence; reverify that manifest, validate the installer itself and preserve existing release assets.
 Installer packaging must not rebuild or substitute the already published application payload.
 
-The portable archive contains the complete repository-built Flutter Release directory. Archive
+Under [ADR 0043](0043-application-update-coordination.md), the portable archive contains a native
+`Cedarflake Ame.exe` launcher, `Update.exe`, the portable marker and the complete repository-built
+Flutter Release directory beneath `current/`. The launcher opens `current/cedarflake_ame.exe`.
+Velopack's generated metadata and execution stub are admitted separately from the immutable
+candidate payload. The pinned engine carries the verified directory-rollback patch; its source,
+patch and executable hashes are recorded alongside package provenance. Packaging tools and their
+.NET host are build dependencies only.
+
+Each release also contains `CedarflakeAme-<semantic-version>-full.nupkg` and
+`ame-update-windows-x64.json`. Metadata binds both the full portable package and MSI to the same
+release identity, exact length and SHA-256. These four assets are validated and published together.
+The existing ARM64 preview remains a native quality bundle, without published update metadata.
+
+Archive
 verification rejects an unexpected filename, entries outside the single archive root, traversal or
 absolute paths, duplicate paths, missing executable or core runtime DLLs, missing Rust bridge DLL,
-missing ICU or application data, and missing Flutter assets.
+missing ICU or application data, and missing Flutter assets. Extra root executables or unexpected
+portable-engine files are rejected. Payload verification uses `current/` as the application root.
 
 CMake's `InstallRequiredSystemLibraries` copies the selected MSVC toolchain's redistributable
 Release libraries beside the executable. Candidate and archive admission require `msvcp140.dll`, `msvcp140_1.dll`,

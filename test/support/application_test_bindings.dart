@@ -27,10 +27,12 @@ import "package:cedarflake_ame/features/settings/domain/ame_preferences.dart";
 import "package:flutter_riverpod/misc.dart";
 
 import "inert_library_synchronization.dart";
+import "inert_application_updates.dart";
 
 List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
   final preferences = MemoryPreferenceStore();
   final production = [
+    inertApplicationUpdates(),
     ...libraryPlatformBindings(
       preferenceStore: preferences,
       initialPreferences: const LibraryViewPreferences(),

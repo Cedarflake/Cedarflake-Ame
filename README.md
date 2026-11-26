@@ -15,15 +15,18 @@ provides two packages for **Windows 11 x64**:
 
 - **MSI installer**: includes the image-analysis models, runtime, and background library-update
   service. Installation requires administrator permissions.
-- **Portable ZIP**: extract the complete archive and run `Cedarflake-Ame/cedarflake_ame.exe`.
+- **Portable ZIP**: extract the complete archive and run `Cedarflake-Ame/Cedarflake Ame.exe`
+  (`cedarflake_ame.exe` in older packages).
   Models download separately when first needed; no Windows service is installed.
 
 The [Windows 11 previews](https://github.com/Cedarflake/Cedarflake-Ame/actions/workflows/quality_windows_arm64.yml)
 include MSI packages for x64 and ARM64 and a portable ZIP for ARM64. If you installed the x64 MSI
 on an Arm PC, uninstall it before switching to the ARM64 MSI.
 
-Ame does not update automatically. Close it before upgrading and keep portable versions in separate
-directories. Release and preview packages are unsigned. See the [release notes](docs/releases/README.md)
+Use **Settings → About** to check for and download updates, then restart to apply them. Update
+preferences control automatic checking and downloading. Builds without this entry require a manual
+upgrade after closing Ame; extract their portable replacements into separate directories.
+Release and preview packages are unsigned. See the [release notes](docs/releases/README.md)
 for changes and known limits.
 
 ## Browse your collection

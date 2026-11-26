@@ -121,6 +121,7 @@ jobs:
       archive_sha256: ${{ steps.reuse.outputs.archive_sha256 }}
       installer_name: ${{ steps.reuse.outputs.installer_name }}
       installer_sha256: ${{ steps.reuse.outputs.installer_sha256 }}
+      update_manifest_sha256: ${{ steps.reuse.outputs.update_manifest_sha256 }}
       manifest_sha256: ${{ steps.validate_reuse.outputs.manifest_sha256 }}
     steps:
       - name: Check out trusted release tooling
@@ -220,6 +221,7 @@ jobs:
       archive_name: ${{ needs.package_windows.outputs.archive_name || needs.release_prepare.outputs.archive_name }}
       archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 || needs.release_prepare.outputs.archive_sha256 }}
       installer_name: ${{ needs.package_windows.outputs.installer_name || needs.release_prepare.outputs.installer_name }}
+      update_manifest_sha256: ${{ needs.package_windows.outputs.update_manifest_sha256 || needs.release_prepare.outputs.update_manifest_sha256 }}
       installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 || needs.release_prepare.outputs.installer_sha256 }}
 
   verify_published:
@@ -239,3 +241,4 @@ jobs:
       release_signing_mode: ${{ inputs.release_signing_mode }}
       archive_sha256: ${{ needs.package_windows.outputs.archive_sha256 || needs.release_prepare.outputs.archive_sha256 }}
       installer_sha256: ${{ needs.package_windows.outputs.installer_sha256 || needs.release_prepare.outputs.installer_sha256 }}
+      update_manifest_sha256: ${{ needs.package_windows.outputs.update_manifest_sha256 || needs.release_prepare.outputs.update_manifest_sha256 }}

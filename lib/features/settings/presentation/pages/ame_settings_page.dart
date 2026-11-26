@@ -11,7 +11,6 @@ import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
-import "../../../../app/window/ame_build_identity.dart";
 import "../../application/ame_preferences.dart";
 import "../../domain/ame_preferences.dart";
 import "../widgets/album_settings_section.dart";
@@ -19,6 +18,7 @@ import "../widgets/analysis_settings_section.dart";
 import "../widgets/organization_archive_section.dart";
 import "../widgets/settings_section.dart";
 import "../widgets/storage_settings_section.dart";
+import "../widgets/updates/application_updates_section.dart";
 
 class AmeSettingsPage extends ConsumerWidget {
   const AmeSettingsPage({
@@ -34,7 +34,6 @@ class AmeSettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final preferences = ref.watch(amePreferencesControllerProvider);
     final strings = context.l10n;
-    final buildIdentity = ref.watch(ameBuildIdentityProvider);
     return ColoredBox(
       color: AmeWorkbenchSurfaces.of(context).content,
       child: AmeScrollMotion(
@@ -258,30 +257,7 @@ class AmeSettingsPage extends ConsumerWidget {
                           libraryRootIds: libraryRootIds,
                         ),
                         const SizedBox(height: 28),
-                        SettingsSection(
-                          title: strings.settingsAbout,
-                          children: [
-                            SettingsRow(
-                              icon: Symbols.info_rounded,
-                              title: strings.settingsVersion,
-                              subtitle: Text(buildIdentity.applicationLabel),
-                            ),
-                            SettingsRow(
-                              key: const Key("open-source-notices-setting"),
-                              icon: Symbols.code_rounded,
-                              title: strings.settingsLicenses,
-                              subtitle: Text(strings.settingsLicensesHelp),
-                              trailing: const Icon(
-                                Symbols.chevron_right_rounded,
-                              ),
-                              onTap: () => showLicensePage(
-                                context: context,
-                                applicationName: "Cedarflake Ame",
-                                applicationVersion: buildIdentity.version,
-                              ),
-                            ),
-                          ],
-                        ),
+                        const ApplicationUpdatesSection(),
                       ],
                     ),
                   ),

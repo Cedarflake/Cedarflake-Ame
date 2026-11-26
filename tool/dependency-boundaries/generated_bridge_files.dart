@@ -1,5 +1,6 @@
 // Keep this exact roster aligned with reviewed FRB generation; a directory is not an exemption.
 const generatedBridgeFiles = <String>{
+  "lib/src/rust/api/application_updates.dart",
   "lib/src/rust/api/catalog.dart",
   "lib/src/rust/api/classification.dart",
   "lib/src/rust/api/classification_installation.dart",
@@ -27,6 +28,7 @@ const generatedBridgeFiles = <String>{
   "lib/src/rust/application/viewer_source.dart",
   "lib/src/rust/domain.dart",
   "lib/src/rust/domain.freezed.dart",
+  "lib/src/rust/domain/application_update.dart",
   "lib/src/rust/domain/classification/installation.dart",
   "lib/src/rust/domain/classification/work.dart",
   "lib/src/rust/domain/classification_catalog.dart",

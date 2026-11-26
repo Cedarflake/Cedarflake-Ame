@@ -14,6 +14,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R10 upgrade and compatibility](r10-upgrade-compatibility.md) | Alpha-to-Beta data preservation, installer and migration recovery, runtime payload and build identity |
 | [Standalone Material migration](material-ui-migration.md) | Official package migration, localization/type compatibility and retained desktop interaction |
 | [Unsigned Windows publication](unsigned-windows-release.md) | Candidate admission, workflow outputs and optional signing integration checks |
+| [Application updates](application-updates.md) | Update settings, verified packages, joined restart, installed handoff and portable recovery |
 | [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
 | [Completed maintenance](completed-maintenance.md) | Delivered outcomes, accepted limitations and post-R2c roadmap provenance |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |

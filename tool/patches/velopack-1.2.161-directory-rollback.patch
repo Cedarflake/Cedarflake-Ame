@@ -1,0 +1,231 @@
+diff --git a/src/bins/src/commands/apply_windows_impl.rs b/src/bins/src/commands/apply_windows_impl.rs
+--- a/src/bins/src/commands/apply_windows_impl.rs
++++ b/src/bins/src/commands/apply_windows_impl.rs
+@@ -1,8 +1,11 @@
+ use crate::{dialogs, shared, windows};
+-use anyhow::{bail, Context, Result};
++use anyhow::{bail, Result};
+ use std::{ffi::OsString, fs, path::PathBuf, time::Duration};
+ use velopack::{bundle::load_bundle_from_file, constants, locator::VelopackLocator, process};
+ 
++#[path = "apply_windows_transaction.rs"]
++mod transaction;
++
+ // fn ropycopy<P1: AsRef<Path>, P2: AsRef<Path>>(source: &P1, dest: &P2) -> Result<()> {
+ //     let source = source.as_ref();
+ //     let dest = dest.as_ref();
+@@ -157,53 +160,14 @@
+ 
+         // third, we try _REALLY HARD_ to stop the package
+         let _ = shared::force_stop_package(&root_path);
+-        // fourth, we make as backup of the current dir to temp_path_old
+-        info!("Backing up current dir to {:?}", temp_path_old);
+-        shared::retry_io_ex(|| fs::rename(&current_dir, &temp_path_old), 1000, 10)
+-            .context("Unable to start the update, because one or more running processes prevented it. Try again later, or if the issue persists, restart your computer.")?;
+-
+-        // let mut requires_robocopy = false;
+-        // if let Err(e) = fs::rename(&current_dir, &temp_path_old) {
+-        //     warn!("Failed to rename current_dir to temp_path_old ({}). Retrying with robocopy...", e);
+-        //     ropycopy(&current_dir, &temp_path_old)?;
+-        //     requires_robocopy = true;
+-        // }
+-
+-        // fifth, we try to replace the current dir with temp_path_new
+-        // if this fails we will yolo a rollback...
+-        info!("Replacing current dir with {:?}", temp_path_new);
+-        shared::retry_io_ex(|| fs::rename(&temp_path_new, &current_dir), 1000, 30).context(
+-            "Unable to complete the update, and the app was left in a broken state. You may need to re-install or repair this application manually.",
++        transaction::replace_current_directory(
++            &current_dir,
++            &temp_path_new,
++            &temp_path_old,
++            |from, to, attempts| shared::retry_io_ex(|| fs::rename(from, to), 1000, attempts),
++            |backup| remove_temp_dir_timed(&backup.to_path_buf()),
+         )?;
+ 
+-        // if !requires_robocopy {
+-        //     // if we didn't need robocopy for the backup, we don't need it for the deploy hopefully
+-        //     if let Err(e1) = fs::rename(&temp_path_new, &current_dir) {
+-        //         warn!("Failed to rename temp_path_new to current_dir ({}). Retrying with robocopy...", e1);
+-        //         requires_robocopy = true;
+-        //     }
+-        // }
+-
+-        // if requires_robocopy {
+-        //     if let Err(e2) = ropycopy(&temp_path_new, &current_dir) {
+-        //         error!("Failed to robocopy temp_path_new to current_dir ({}). Will attempt a rollback...", e2);
+-        //         let _ = ropycopy(&temp_path_old, &current_dir);
+-        //         let _ = tx.send(splash::MSG_CLOSE);
+-
+-        //         info!("Showing error dialog...");
+-        //         let title = format!("{} Update", &new_locator.get_manifest_title());
+-        //         let header = "Failed to update";
+-        //         let body = format!(
+-        //             "Failed to update {} to version {}. Please check the logs for more details.",
+-        //             &new_locator.get_manifest_title(),
+-        //             &new_locator.get_manifest_version_full_string()
+-        //         );
+-        //         dialogs::show_error(&title, Some(header), &body);
+-
+-        //         bail!("Fatal error performing update.");
+-        //     }
+-        // }
+-
+         // from this point on, we're past the point of no return and should not bail
+         // sixth, we write the uninstall entry
+         if !old_locator.get_is_portable() {
+@@ -226,7 +190,6 @@
+         // because windows may try to use the "Distributed Link Tracking and Object Identifiers (DLT) service"
+         // to update the shortcut to point at the temp/renamed location
+         remove_temp_dir_timed(&temp_path_new);
+-        remove_temp_dir_timed(&temp_path_old);
+ 
+         if !old_locator.get_is_portable() {
+             crate::windows::create_or_update_manifest_lnks(&new_locator, Some(old_locator));
+@@ -274,7 +237,6 @@
+ 
+     reporter.close();
+     remove_temp_dir_timed(&temp_path_new);
+-    remove_temp_dir_timed(&temp_path_old);
+     action?;
+     Ok(new_locator)
+ }
+diff --git a/src/bins/src/commands/apply_windows_transaction.rs b/src/bins/src/commands/apply_windows_transaction.rs
+new file mode 100644
+--- /dev/null
++++ b/src/bins/src/commands/apply_windows_transaction.rs
+@@ -0,0 +1,134 @@
++use anyhow::{bail, Context, Result};
++use std::{io, path::Path};
++
++pub(super) fn replace_current_directory(
++    current: &Path,
++    staged: &Path,
++    backup: &Path,
++    mut rename: impl FnMut(&Path, &Path, i32) -> io::Result<()>,
++    mut remove_backup: impl FnMut(&Path),
++) -> Result<()> {
++    rename(current, backup, 10)
++        .context("Unable to start the update; the running application directory was retained.")?;
++    if let Err(apply_error) = rename(staged, current, 30) {
++        if let Err(restore_error) = rename(backup, current, 30) {
++            bail!(
++                "Unable to apply the update ({apply_error}) or restore the previous version ({restore_error}). The previous application is retained at {backup:?}."
++            );
++        }
++        return Err(apply_error)
++            .context("Unable to apply the update; the previous application was restored.");
++    }
++    remove_backup(backup);
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::fs;
++
++    struct Fixture {
++        _root: tempfile::TempDir,
++        current: std::path::PathBuf,
++        staged: std::path::PathBuf,
++        backup: std::path::PathBuf,
++    }
++
++    impl Fixture {
++        fn new() -> Self {
++            let root = tempfile::tempdir().unwrap();
++            let current = root.path().join("current");
++            let staged = root.path().join("new");
++            let backup = root.path().join("old");
++            fs::create_dir(&current).unwrap();
++            fs::create_dir(&staged).unwrap();
++            fs::write(current.join("app.exe"), b"retained version").unwrap();
++            fs::write(staged.join("app.exe"), b"new version").unwrap();
++            Self {
++                _root: root,
++                current,
++                staged,
++                backup,
++            }
++        }
++    }
++
++    #[test]
++    fn failed_new_rename_restores_the_previous_application() {
++        let fixture = Fixture::new();
++        let result = replace_current_directory(
++            &fixture.current,
++            &fixture.staged,
++            &fixture.backup,
++            |from, to, _| {
++                if from == fixture.staged {
++                    Err(io::Error::new(
++                        io::ErrorKind::PermissionDenied,
++                        "blocked new rename",
++                    ))
++                } else {
++                    fs::rename(from, to)
++                }
++            },
++            |_| panic!("Failed replacement must not dispose of its backup"),
++        );
++        assert!(result.is_err());
++        assert_eq!(
++            fs::read(fixture.current.join("app.exe")).unwrap(),
++            b"retained version"
++        );
++        assert!(!fixture.backup.exists());
++    }
++
++    #[test]
++    fn successful_replacement_retires_only_the_previous_payload() {
++        let fixture = Fixture::new();
++        replace_current_directory(
++            &fixture.current,
++            &fixture.staged,
++            &fixture.backup,
++            |from, to, _| fs::rename(from, to),
++            |backup| fs::remove_dir_all(backup).unwrap(),
++        )
++        .unwrap();
++        assert_eq!(
++            fs::read(fixture.current.join("app.exe")).unwrap(),
++            b"new version"
++        );
++        assert!(!fixture.backup.exists());
++        assert!(!fixture.staged.exists());
++    }
++
++    #[test]
++    fn failed_restore_preserves_the_complete_backup() {
++        let fixture = Fixture::new();
++        let result = replace_current_directory(
++            &fixture.current,
++            &fixture.staged,
++            &fixture.backup,
++            |from, to, _| {
++                if from == fixture.current {
++                    fs::rename(from, to)
++                } else {
++                    Err(io::Error::new(
++                        io::ErrorKind::PermissionDenied,
++                        "blocked replacement and restore",
++                    ))
++                }
++            },
++            |_| panic!("Failed restore must not delete the retained version"),
++        );
++        let detail = result.unwrap_err().to_string();
++        assert!(detail.contains("retained at"));
++        assert_eq!(
++            fs::read(fixture.backup.join("app.exe")).unwrap(),
++            b"retained version"
++        );
++        assert!(!fixture.current.exists());
++        assert_eq!(
++            fs::read(fixture.staged.join("app.exe")).unwrap(),
++            b"new version"
++        );
++    }
++}

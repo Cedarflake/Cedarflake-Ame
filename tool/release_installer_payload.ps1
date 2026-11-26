@@ -35,7 +35,7 @@ function Assert-AmeInstallerPayloadNames {
         if ($total -gt 2GB) { throw "Installer payload exceeds 2 GiB" }
     }
     $requiredFiles = @(
-        "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
+        "cedarflake_ame.exe", "cedarflake_ame_update.exe", "cedarflake_ame_journal_broker.exe",
         "cedarflake_ame_classification_worker.exe",
         "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
     ) + @(Get-AmeClassificationRuntimePayloadNames -Architecture $Architecture) +

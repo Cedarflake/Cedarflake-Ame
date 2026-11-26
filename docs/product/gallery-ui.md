@@ -12,6 +12,9 @@ accepted user workflow; it does not supersede technical or accessibility decisio
 The current UI source of truth is the accepted Google Material wide-screen composition, with the
 existing Ame workflows retained. Three tonal layers distinguish primary navigation, contextual
 chrome and content. Flutter Material 3 supplies components, tokens, focus and accessibility.
+Use the current Material 3 linear and circular progress indicators throughout the application.
+The shared theme owns compatibility opt-ins when the pinned library still defaults to an older
+appearance; compact circular indicators retain their existing footprint.
 
 Google Chat and Android large-screen layouts inform surface hierarchy and workspace composition.
 Microsoft Photos Legacy remains the historical reference for the accepted image-browsing behavior;

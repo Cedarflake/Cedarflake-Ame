@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.19)
+project(ame_update_handoff LANGUAGES CXX)
+
+if(NOT TARGET ame_installer_policy)
+  add_subdirectory("../installer" "installer" EXCLUDE_FROM_ALL)
+endif()
+
+add_executable(cedarflake_ame_update WIN32 main.cpp package.cpp handoff_storage.cpp handoff_session.cpp
+  ../runner/single_instance_lock.cpp)
+target_compile_features(cedarflake_ame_update PRIVATE cxx_std_17)
+target_compile_options(cedarflake_ame_update PRIVATE /W4 /WX /EHsc /utf-8)
+target_link_libraries(cedarflake_ame_update PRIVATE ame_installer_policy)
+set_property(TARGET cedarflake_ame_update PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+if(PROJECT_IS_TOP_LEVEL)
+  add_executable(ame_update_portable_parent tests/portable_parent.cpp package.cpp ../runner/single_instance_lock.cpp)
+  target_compile_features(ame_update_portable_parent PRIVATE cxx_std_17)
+  target_compile_options(ame_update_portable_parent PRIVATE /W4 /WX /EHsc /utf-8)
+  target_link_libraries(ame_update_portable_parent PRIVATE ame_installer_policy)
+  set_property(TARGET ame_update_portable_parent PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  add_executable(ame_update_handoff_test tests/handoff_test.cpp package.cpp handoff_storage.cpp)
+  target_compile_features(ame_update_handoff_test PRIVATE cxx_std_17)
+  target_compile_options(ame_update_handoff_test PRIVATE /W4 /WX /EHsc /utf-8)
+  target_link_libraries(ame_update_handoff_test PRIVATE ame_installer_policy)
+  set_property(TARGET ame_update_handoff_test PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()

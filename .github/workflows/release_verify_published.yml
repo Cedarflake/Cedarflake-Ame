@@ -26,6 +26,9 @@ on:
       installer_sha256:
         default: ""
         type: string
+      update_manifest_sha256:
+        default: ""
+        type: string
   workflow_dispatch:
     inputs:
       release_tag:
@@ -66,6 +69,7 @@ jobs:
       AME_RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
       AME_ARCHIVE_SHA256: ${{ inputs.archive_sha256 }}
       AME_INSTALLER_SHA256: ${{ inputs.installer_sha256 }}
+      AME_UPDATE_MANIFEST_SHA256: ${{ inputs.update_manifest_sha256 }}
       AME_VERIFIER_COMMIT: ${{ github.workflow_sha }}
     steps:
       - name: Validate published-verification request
@@ -137,6 +141,8 @@ jobs:
             --repo $env:GITHUB_REPOSITORY `
             --pattern $artifactName `
             --pattern $installerName `
+            --pattern "CedarflakeAme-$($env:AME_RELEASE_TAG.Substring(1))-full.nupkg" `
+            --pattern 'ame-update-windows-x64.json' `
             --dir $artifactDirectory
           if ($LASTEXITCODE -ne 0) {
             throw "Published ZIP and MSI download failed"
@@ -150,7 +156,8 @@ jobs:
           . ([scriptblock]::Create(($verifier -join "`n")))
           Assert-AmePublishedPackages -Release $release -Tag $env:AME_RELEASE_TAG `
             -Directory $artifactDirectory -ExpectedArchiveSha256 $env:AME_ARCHIVE_SHA256 `
-            -ExpectedInstallerSha256 $env:AME_INSTALLER_SHA256
+            -ExpectedInstallerSha256 $env:AME_INSTALLER_SHA256 `
+            -ExpectedUpdateManifestSha256 $env:AME_UPDATE_MANIFEST_SHA256
           "AME_PORTABLE_ARCHIVE=$(Join-Path $artifactDirectory $artifactName)" >> `
             $env:GITHUB_ENV
 

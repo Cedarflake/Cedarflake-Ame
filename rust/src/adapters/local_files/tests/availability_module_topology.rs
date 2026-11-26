@@ -254,6 +254,25 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         ),
         (
             crate_source.as_str(),
+            "mod application_update_runtime;",
+            vec![
+                "".to_owned(),
+                "mod application_update_runtime;\nmod application_update_runtime;".to_owned(),
+                "pub mod application_update_runtime;".to_owned(),
+                "#[cfg(test)]\nmod application_update_runtime;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod application_update_runtime;".to_owned(),
+                "#[cfg_attr(test, path = \"alternate.rs\")]\nmod application_update_runtime;"
+                    .to_owned(),
+                "#[adversarial_loader]\nmod application_update_runtime;".to_owned(),
+                "mod application_update_runtime { mod generated {} }".to_owned(),
+                "include!(\"alternate.rs\");".to_owned(),
+                "mod application_update_runtime;\nmod unknown_update_runtime;".to_owned(),
+            ],
+            "crate-parent",
+            "application_update_runtime",
+        ),
+        (
+            crate_source.as_str(),
             "#[cfg(feature = \"classification-worker\")]\npub mod classification_worker;",
             vec![
                 "pub mod classification_worker;".to_owned(),

@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'release_update_manifest.ps1')
 
 function Get-AmeReleaseReuseStage {
     param([string[]]$ChangedPaths)
@@ -18,7 +19,8 @@ function Get-AmeReleaseReuseStage {
         }
         if ($path -ceq '.github/workflows/release_package_windows.yml' -or
             $path -cmatch '^windows/installer/' -or
-            $path -cmatch '^tool/release_(package_[^/]+|installer_[^/]+|prepare_installer_[^/]+|prepare_classification_models|classification_models|test_classification_models|test_installer[^/]*)\.ps1$') {
+            $path -cmatch '^tool/patches/velopack-[^/]+\.patch$' -or
+            $path -cmatch '^tool/release_(package_[^/]+|installer_[^/]+|prepare_installer_[^/]+|prepare_update_[^/]+|update_[^/]+|portable_[^/]+|verify_portable_[^/]+|test_portable_[^/]+|prepare_classification_models|classification_models|test_classification_models|test_installer[^/]*)\.ps1$') {
             $stage = 'candidate'
             continue
         }
@@ -30,7 +32,8 @@ function Get-AmeReleaseReuseStage {
 function Test-AmeReleaseToolingPath {
     param([string]$Path)
 
-    return $Path -cmatch '^tool/release_(reuse_[^/]+|prepare_reuse|validate_reuse|test_reuse|test_tooling|package_[^/]+|installer_[^/]+|prepare_installer_[^/]+|test_windows_publication[^/]*)\.ps1$' -or
+    return $Path -cmatch '^tool/release_(reuse_[^/]+|prepare_reuse|validate_reuse|test_reuse|test_tooling|package_[^/]+|installer_[^/]+|prepare_installer_[^/]+|prepare_update_[^/]+|update_[^/]+|portable_[^/]+|verify_portable_[^/]+|test_portable_[^/]+|test_update_[^/]+|test_windows_publication[^/]*)\.ps1$' -or
+        $Path -cmatch '^tool/patches/velopack-[^/]+\.patch$' -or
         $Path -cmatch '^\.github/workflows/release_(candidate_windows|package_windows|publish_windows|verify_published|tooling_checks)\.yml$' -or
         $Path -cin @('tool/release_classification_models.ps1', 'tool/release_prepare_classification_models.ps1',
             'tool/release_test_classification_models.ps1', '.github/workflows/quality_ci.yml', 'tool/quality_ci_policy.ps1',
@@ -70,7 +73,9 @@ function Assert-AmeReleasePackageReceipt {
         $Receipt.archiveName -cne "Cedarflake-Ame-$Tag-windows-x64-portable.zip" -or
         $Receipt.installerName -cne "Cedarflake-Ame-$Tag-windows-x64.msi" -or
         $Receipt.archiveSha256 -cnotmatch '^[0-9a-f]{64}$' -or
-        $Receipt.installerSha256 -cnotmatch '^[0-9a-f]{64}$') {
+        $Receipt.installerSha256 -cnotmatch '^[0-9a-f]{64}$' -or
+        $null -eq $Receipt.PSObject.Properties['updateManifestSha256'] -or
+        $Receipt.updateManifestSha256 -cnotmatch '^[0-9a-f]{64}$') {
         throw 'Package receipt does not match the requested release, channel and producing run'
     }
 }
@@ -79,10 +84,14 @@ function Assert-AmeReusedPackageFiles {
     param([string]$Directory, [object]$Receipt)
 
     $files = @(Get-ChildItem -LiteralPath $Directory -Force)
-    if ($files.Count -ne 2) { throw 'Reused packages require exactly one ZIP and one MSI' }
+    if ($files.Count -ne 4) { throw 'Reused packages require ZIP, MSI, update package and metadata' }
+    $manifest = Assert-AmeUpdateManifest -Directory $Directory -Tag $Receipt.tag -Architecture x64 `
+        -ExpectedSha256 $Receipt.updateManifestSha256
     $hashes = @{}
     $hashes[$Receipt.archiveName] = $Receipt.archiveSha256
     $hashes[$Receipt.installerName] = $Receipt.installerSha256
+    $hashes['ame-update-windows-x64.json'] = $Receipt.updateManifestSha256
+    $hashes[$manifest.portable.file_name] = $manifest.portable.sha256
     foreach ($file in $files) {
         if ($file.PSIsContainer -or ($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
             -not $hashes.ContainsKey($file.Name) -or

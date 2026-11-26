@@ -4,6 +4,7 @@ param(
     [string]$ArchivePath,
     [Parameter(Mandatory = $true)]
     [string]$Tag,
+    [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64',
     [string]$PubspecPath,
     [string]$CargoManifestPath
 )
@@ -11,10 +12,12 @@ param(
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
 . (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
+. (Join-Path $PSScriptRoot "quality_windows_pe_image.ps1")
 
 & (Join-Path $PSScriptRoot "release_verify_portable_archive.ps1") `
     -ArchivePath $ArchivePath `
     -Tag $Tag `
+    -Architecture $Architecture `
     -PubspecPath $PubspecPath `
     -CargoManifestPath $CargoManifestPath
 
@@ -41,7 +44,7 @@ try {
         [System.IO.Path]::GetFullPath($ArchivePath),
         $scratchRoot
     )
-    $payloadRoot = Join-Path $scratchRoot "Cedarflake-Ame"
+    $payloadRoot = Join-Path $scratchRoot "Cedarflake-Ame/current"
     $applicationPath = Join-Path $payloadRoot $script:AmeApplicationBinaryName
     $brokerPath = Join-Path $payloadRoot (Get-AmeBrokerServicePlan).BinaryName
     foreach ($target in @($applicationPath, $brokerPath)) {
@@ -50,8 +53,9 @@ try {
             throw "Unsigned portable executable unexpectedly carries an Authenticode signature"
         }
     }
-    Assert-AmeBrokerPayload -Path $applicationPath | Out-Null
-    Assert-AmeBrokerBinary -Path $brokerPath | Out-Null
+    Assert-AmeWindowsPeImage -Path $applicationPath -Architecture $Architecture
+    Assert-AmeWindowsPeImage -Path $brokerPath -Architecture $Architecture
+    Get-AmeBrokerProtocolFacts -Path $brokerPath | Out-Null
 } finally {
     if (Test-Path -LiteralPath $scratchRoot) {
         Remove-Item -LiteralPath $scratchRoot -Recurse -Force

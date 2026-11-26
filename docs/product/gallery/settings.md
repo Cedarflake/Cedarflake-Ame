@@ -58,9 +58,22 @@ Initial settings are limited to behavior that is understandable and connected en
   清理缩略图               清理
 
 关于
-  Ame 版本
+  Ame 版本                 检查更新 / 查看更新 / 重启并更新
+  更新设置                 当前渠道与自动更新偏好
   开源软件声明
 ```
+
+The version action opens one compact update dialog with the new version, download size and release
+notes. Download, stop and explicit restart operate on the same retained session; dismissing the
+dialog leaves an active download running. Checking uses the shared delayed loading indicator.
+Transfer progress appears only inside the update dialog and the existing notification entry is
+updated in place. A completed download remains available until restart, channel change or exit.
+
+`更新设置` opens a child settings page. `自动更新` offers manual checks, automatic checks (default),
+and automatic download; `更新渠道` offers stable and preview, initially matching the installed
+version. Choices save when selected. Automatic work starts after the usable window is shown and
+does not open a dialog or restart the application. Switching channels never installs an older
+version. Installer updates request Windows elevation only after the explicit restart action.
 
 The completed R2b preview lifecycle uses the following storage labels and descriptions. They
 explain the consequence instead of exposing implementation terms:

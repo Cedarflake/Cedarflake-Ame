@@ -24,6 +24,11 @@ ThemeData buildAmeTheme({
     colorScheme: colorScheme,
     scaffoldBackgroundColor: colorScheme.surface,
     useMaterial3: true,
+    // material_ui 1.11.1 still requires this flag for its current M3 defaults.
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      // ignore: deprecated_member_use
+      year2023: false,
+    ),
     visualDensity: VisualDensity.standard,
     fontFamily: ameFontFamily,
     fontFamilyFallback: locale == ameJapaneseLocale

@@ -3,6 +3,7 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/application_updates.dart';
 import 'api/catalog.dart';
 import 'api/classification.dart';
 import 'api/classification_installation.dart';
@@ -32,6 +33,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'domain.dart';
+import 'domain/application_update.dart';
 import 'domain/classification/installation.dart';
 import 'domain/classification/work.dart';
 import 'domain/classification_acceleration.dart';
@@ -79,6 +81,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DesktopApplicationDownloadPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownloadPtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_DesktopApplicationUpdatesPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdatesPtr;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_DesktopClassificationSessionPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSessionPtr;
 
@@ -124,6 +134,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
+  DesktopApplicationDownload
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    dynamic raw,
+  );
+
+  @protected
+  DesktopApplicationUpdates
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    dynamic raw,
+  );
 
   @protected
   DesktopClassificationSession
@@ -192,6 +214,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DesktopApplicationDownload
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    dynamic raw,
+  );
+
+  @protected
+  DesktopApplicationUpdates
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    dynamic raw,
+  );
+
+  @protected
   DesktopClassificationSession
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     dynamic raw,
@@ -254,6 +288,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    dynamic raw,
+  );
+
+  @protected
+  DesktopApplicationDownload
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    dynamic raw,
+  );
+
+  @protected
+  DesktopApplicationUpdates
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
     dynamic raw,
   );
 
@@ -346,6 +392,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  ApplicationDownloadPhase dco_decode_application_download_phase(dynamic raw);
+
+  @protected
+  ApplicationDownloadProgress dco_decode_application_download_progress(
+    dynamic raw,
+  );
+
+  @protected
+  ApplicationRelease dco_decode_application_release(dynamic raw);
+
+  @protected
+  ApplicationUpdateChannel dco_decode_application_update_channel(dynamic raw);
+
+  @protected
+  ApplicationUpdateError dco_decode_application_update_error(dynamic raw);
+
+  @protected
+  ApplicationUpdateFailureCode dco_decode_application_update_failure_code(
+    dynamic raw,
+  );
+
+  @protected
+  ApplicationUpdateOutcome dco_decode_application_update_outcome(dynamic raw);
+
+  @protected
+  ApplicationUpdateResult dco_decode_application_update_result(dynamic raw);
+
+  @protected
   AssetLocationView dco_decode_asset_location_view(dynamic raw);
 
   @protected
@@ -356,6 +430,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AssetLocationView dco_decode_box_asset_location_view(dynamic raw);
+
+  @protected
+  DesktopApplicationDownload
+  dco_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    dynamic raw,
+  );
 
   @protected
   DesktopClassificationSession
@@ -372,6 +452,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   dco_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  ApplicationUpdateResult dco_decode_box_autoadd_application_update_result(
     dynamic raw,
   );
 
@@ -1184,6 +1269,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? dco_decode_opt_String(dynamic raw);
 
   @protected
+  DesktopApplicationDownload?
+  dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    dynamic raw,
+  );
+
+  @protected
   DesktopClassificationSession?
   dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     dynamic raw,
@@ -1198,6 +1289,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance?
   dco_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    dynamic raw,
+  );
+
+  @protected
+  ApplicationUpdateResult? dco_decode_opt_box_autoadd_application_update_result(
     dynamic raw,
   );
 
@@ -1651,6 +1747,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
+  DesktopApplicationDownload
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DesktopApplicationUpdates
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DesktopClassificationSession
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1717,6 +1825,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DesktopApplicationDownload
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DesktopApplicationUpdates
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DesktopClassificationSession
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1779,6 +1899,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DesktopApplicationDownload
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DesktopApplicationUpdates
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
     SseDeserializer deserializer,
   );
 
@@ -1879,6 +2011,46 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
+  ApplicationDownloadPhase sse_decode_application_download_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationDownloadProgress sse_decode_application_download_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationRelease sse_decode_application_release(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateChannel sse_decode_application_update_channel(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateError sse_decode_application_update_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateFailureCode sse_decode_application_update_failure_code(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateOutcome sse_decode_application_update_outcome(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateResult sse_decode_application_update_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   AssetLocationView sse_decode_asset_location_view(
     SseDeserializer deserializer,
   );
@@ -1897,6 +2069,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DesktopApplicationDownload
+  sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DesktopClassificationSession
   sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -1911,6 +2089,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance
   sse_decode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateResult sse_decode_box_autoadd_application_update_result(
     SseDeserializer deserializer,
   );
 
@@ -2953,6 +3136,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
+  DesktopApplicationDownload?
+  sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   DesktopClassificationSession?
   sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     SseDeserializer deserializer,
@@ -2967,6 +3156,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   PreparedClassificationMaintenance?
   sse_decode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateResult? sse_decode_opt_box_autoadd_application_update_result(
     SseDeserializer deserializer,
   );
 
@@ -3556,6 +3750,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    DesktopApplicationDownload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    DesktopApplicationUpdates self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -3633,6 +3841,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    DesktopApplicationDownload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    DesktopApplicationUpdates self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -3705,6 +3927,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    DesktopApplicationDownload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    DesktopApplicationUpdates self,
     SseSerializer serializer,
   );
 
@@ -3819,6 +4055,54 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_String(String self, SseSerializer serializer);
 
   @protected
+  void sse_encode_application_download_phase(
+    ApplicationDownloadPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_download_progress(
+    ApplicationDownloadProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_release(
+    ApplicationRelease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_update_channel(
+    ApplicationUpdateChannel self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_update_error(
+    ApplicationUpdateError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_update_failure_code(
+    ApplicationUpdateFailureCode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_update_outcome(
+    ApplicationUpdateOutcome self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_update_result(
+    ApplicationUpdateResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_asset_location_view(
     AssetLocationView self,
     SseSerializer serializer,
@@ -3841,6 +4125,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    DesktopApplicationDownload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession self,
     SseSerializer serializer,
@@ -3857,6 +4148,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     PreparedClassificationMaintenance self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_application_update_result(
+    ApplicationUpdateResult self,
     SseSerializer serializer,
   );
 
@@ -5137,6 +5434,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    DesktopApplicationDownload? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(
     DesktopClassificationSession? self,
     SseSerializer serializer,
@@ -5153,6 +5457,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_opt_box_autoadd_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerPreparedClassificationMaintenance(
     PreparedClassificationMaintenance? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_application_update_result(
+    ApplicationUpdateResult? self,
     SseSerializer serializer,
   );
 
@@ -5863,6 +6173,74 @@ class RustLibWire implements BaseWire {
   /// The symbols are looked up in [dynamicLibrary].
   RustLibWire(ffi.DynamicLibrary dynamicLibrary)
     : _lookup = dynamicLibrary.lookup;
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownloadPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownloadPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownloadPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownload =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationDownloadPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdatesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdatesPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdatesPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdates =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopApplicationUpdatesPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerDesktopClassificationSession(

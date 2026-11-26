@@ -46,16 +46,16 @@
       "target": "lib/features/settings/application/ame_preferences.dart",
       "contract": "amePreferencesControllerProvider and declared preference state"
     },
-      {
-        "source": "lib/features/library/presentation/widgets/library_duplicate_workspace_layout.dart",
-        "target": "lib/features/settings/application/ame_preferences.dart",
-        "contract": "amePreferencesControllerProvider sidebar presentation preferences"
-      },
-      {
-        "source": "lib/features/library/presentation/widgets/library_duplicate_workspace_layout.dart",
-        "target": "lib/features/settings/domain/ame_preferences.dart",
-        "contract": "Sidebar width limits for the retained duplicate workspace"
-      },
+    {
+      "source": "lib/features/library/presentation/widgets/library_duplicate_workspace_layout.dart",
+      "target": "lib/features/settings/application/ame_preferences.dart",
+      "contract": "amePreferencesControllerProvider sidebar presentation preferences"
+    },
+    {
+      "source": "lib/features/library/presentation/widgets/library_duplicate_workspace_layout.dart",
+      "target": "lib/features/settings/domain/ame_preferences.dart",
+      "contract": "Sidebar width limits for the retained duplicate workspace"
+    },
     {
       "source": "lib/features/library/presentation/widgets/library_image_viewer.dart",
       "target": "lib/features/settings/application/ame_preferences.dart",
@@ -270,6 +270,41 @@
       "source": "lib/features/settings/presentation/widgets/organization_record_feedback.dart",
       "target": "lib/features/library/application/library_cleanup_state.dart",
       "contract": "LibraryCleanupState progress, confirmation and terminal projections"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/application_update_dialog.dart",
+      "target": "lib/features/updates/application/application_update_controller.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/application_update_dialog.dart",
+      "target": "lib/features/updates/application/application_update_state.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/application_update_settings.dart",
+      "target": "lib/features/updates/application/application_update_controller.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/application_update_settings.dart",
+      "target": "lib/features/updates/domain/application_update.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/application_updates_section.dart",
+      "target": "lib/features/updates/application/application_update_controller.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/application_updates_section.dart",
+      "target": "lib/features/updates/application/application_update_state.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/updates/update_text.dart",
+      "target": "lib/features/updates/domain/application_update.dart",
+      "contract": "Application update commands, preferences and immutable display state under ADR 0043"
     }
   ]
 }

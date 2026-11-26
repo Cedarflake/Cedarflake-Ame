@@ -104,7 +104,7 @@ function gh {
         }
         'edit' {
             if ($Arguments -cnotcontains '--draft=false' -or
-                @($state.Assets | Where-Object { $script:fixtureArtifacts.Name -ccontains $_.name }).Count -ne 2) {
+                @($state.Assets | Where-Object { $script:fixtureArtifacts.Name -ccontains $_.name }).Count -ne 4) {
                 throw 'Publication was attempted without both packages'
             }
             $state.Draft = $false
@@ -125,7 +125,7 @@ function Read-FixtureNotes([object[]]$Arguments) {
 
 $savedEnvironment = @{}
 foreach ($name in @('AME_ARCHIVE_NAME', 'AME_ARCHIVE_SHA256', 'AME_INSTALLER_NAME', 'AME_INSTALLER_SHA256',
-        'AME_RELEASE_TAG', 'AME_SOURCE_COMMIT', 'AME_NOTES_COMMIT', 'GITHUB_REPOSITORY', 'GH_TOKEN')) {
+        'AME_UPDATE_MANIFEST_SHA256', 'AME_RELEASE_TAG', 'AME_SOURCE_COMMIT', 'AME_NOTES_COMMIT', 'GITHUB_REPOSITORY', 'GH_TOKEN')) {
     $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name)
 }
 try {
@@ -144,6 +144,21 @@ try {
         $env:AME_ARCHIVE_SHA256 = $script:fixtureArtifacts[0].Sha256
         $env:AME_INSTALLER_NAME = $script:fixtureArtifacts[1].Name
         $env:AME_INSTALLER_SHA256 = $script:fixtureArtifacts[1].Sha256
+        $fullName = "CedarflakeAme-$($fixtureTag.Substring(1))-full.nupkg"
+        $fullPath = Join-Path $directory $fullName
+        [IO.File]::WriteAllText($fullPath, 'full package fixture', [Text.UTF8Encoding]::new($false))
+        $fullAsset = [pscustomobject]@{ Name = $fullName; Size = (Get-Item -LiteralPath $fullPath).Length; Sha256 = (Get-FileHash -LiteralPath $fullPath).Hash.ToLowerInvariant() }
+        $metadata = [ordered]@{
+            schema = 1; version = $fixtureTag.Substring(1); build = 1; architecture = 'x64'
+            installed = @{ file_name = $env:AME_INSTALLER_NAME; sha256 = $env:AME_INSTALLER_SHA256; size = $script:fixtureArtifacts[1].Size }
+            portable = @{ file_name = $fullName; sha256 = $fullAsset.Sha256; size = $fullAsset.Size }
+        }
+        $metadataName = 'ame-update-windows-x64.json'
+        $metadataPath = Join-Path $directory $metadataName
+        [IO.File]::WriteAllText($metadataPath, ($metadata | ConvertTo-Json -Depth 4), [Text.UTF8Encoding]::new($false))
+        $metadataAsset = [pscustomobject]@{ Name = $metadataName; Size = (Get-Item -LiteralPath $metadataPath).Length; Sha256 = (Get-FileHash -LiteralPath $metadataPath).Hash.ToLowerInvariant() }
+        $script:fixtureArtifacts += @($fullAsset, $metadataAsset)
+        $env:AME_UPDATE_MANIFEST_SHA256 = $metadataAsset.Sha256
         $env:AME_RELEASE_TAG = $fixtureTag
         $env:AME_SOURCE_COMMIT = $fixtureCommit
         $env:AME_NOTES_COMMIT = $fixtureNotesCommit
@@ -200,7 +215,7 @@ try {
                     default {
                         if ($null -ne $failure -or $state.Draft) { throw "Publication fixture failed: $scenario / $failure" }
                         if ($state.Body -cne $fixtureNotes) { throw 'The release body does not match the versioned notes' }
-                        $expectedWrites = switch ($scenario) { 'new' { 4 }; 'missing-msi' { 2 }; default { 1 } }
+                        $expectedWrites = switch ($scenario) { 'new' { 6 }; 'missing-msi' { 2 }; default { 1 } }
                         if ($state.Writes.Count -ne $expectedWrites) { throw "Publication performed unintended writes: $scenario" }
                         if ($scenario -ceq 'paginated' -and $state.Pages -notcontains 2) { throw 'Publication ignored later asset pages' }
                         if ($scenario -ceq 'paginated-releases' -and $state.ReleasePages -notcontains 2) { throw 'Publication ignored a draft on a later release page' }
@@ -230,4 +245,4 @@ try {
 } finally {
     foreach ($name in $savedEnvironment.Keys) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name]) }
 }
-Write-Host 'Windows two-package publication fixtures passed'
+Write-Host 'Windows package and update publication fixtures passed'

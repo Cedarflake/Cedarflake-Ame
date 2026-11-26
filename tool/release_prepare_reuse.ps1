@@ -55,6 +55,7 @@ if ($null -ne $selection) {
         $outputs.archive_sha256 = $selection.receipt.archiveSha256
         $outputs.installer_name = $selection.receipt.installerName
         $outputs.installer_sha256 = $selection.receipt.installerSha256
+        $outputs.update_manifest_sha256 = $selection.receipt.updateManifestSha256
     }
 }
 foreach ($entry in $outputs.GetEnumerator()) {

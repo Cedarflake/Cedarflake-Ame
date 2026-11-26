@@ -152,6 +152,7 @@ class AmeCircularProgress extends StatelessWidget {
     active: active,
     child: CircularProgressIndicator(
       strokeWidth: strokeWidth,
+      padding: EdgeInsets.zero,
       semanticsLabel: semanticsLabel,
     ),
   );

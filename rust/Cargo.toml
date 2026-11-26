@@ -10,7 +10,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [features]
 default = ["classification-worker"]
 broker-acceptance-client = []
-classification-worker = ["dep:half", "dep:ort", "dep:prost", "dep:reqwest", "dep:sha2", "dep:tokenizers"]
+classification-worker = ["dep:half", "dep:ort", "dep:prost", "dep:tokenizers"]
 
 [[bin]]
 name = "cedarflake_ame_classification_worker"
@@ -36,7 +36,8 @@ prost = { version = "=0.14.3", optional = true }
 rusqlite = { version = "0.40.1", features = ["backup", "bundled", "hooks"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
-sha2 = { version = "=0.10.9", optional = true }
+semver = "=1.0.28"
+sha2 = "=0.10.9"
 tempfile = "3.27.0"
 thiserror = "2.0.19"
 tokenizers = { version = "=0.23.2", optional = true, default-features = false, features = ["fancy-regex"] }
@@ -51,7 +52,8 @@ dbg_macro = "deny"
 todo = "deny"
 
 [target."cfg(windows)".dependencies]
-reqwest = { version = "=0.13.5", optional = true, default-features = false, features = ["blocking", "native-tls-no-alpn", "system-proxy"] }
+reqwest = { version = "=0.13.5", default-features = false, features = ["blocking", "native-tls-no-alpn", "system-proxy"] }
+velopack = { version = "=1.2.161", features = ["public-utils"] }
 windows = { version = "=0.62.2", features = ["Win32_Graphics_Direct3D", "Win32_Graphics_Direct3D12", "Win32_Graphics_Dxgi", "Win32_Graphics_Dxgi_Common", "Win32_System_Com", "Win32_System_Ole", "Win32_System_Search", "Win32_System_Variant", "Win32_Storage_IndexServer", "Win32_UI_Shell"] }
 windows-core = "=0.62.2"
 notify = { version = "=8.2.0", default-features = false }

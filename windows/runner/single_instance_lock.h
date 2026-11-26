@@ -18,6 +18,8 @@ class SingleInstanceLock {
   SingleInstanceLock& operator=(const SingleInstanceLock&) = delete;
 
   SingleInstanceLockResult Acquire();
+  bool RetainForHandoff();
+  void Release();
 
  private:
   HANDLE mutex_ = nullptr;

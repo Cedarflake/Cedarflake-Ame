@@ -4460,6 +4460,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "application_update_runtime",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "domain",
             visibility: "",
             attributes: &[],

@@ -104,6 +104,7 @@ const _presentationPackages = {
   "flutter_riverpod",
   "intl",
   "material_symbols_icons",
+  "flutter_markdown_plus",
 };
 
 // ADR 0012 and ADR 0037 retain these Ame-owned desktop contracts at their platform boundary.

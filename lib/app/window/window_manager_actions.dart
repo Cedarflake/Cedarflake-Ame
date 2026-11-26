@@ -9,6 +9,7 @@ import "ame_window_actions.dart";
 import "ame_window_placement.dart";
 import "ame_window_fullscreen.dart";
 import "ame_shutdown_coordinator.dart";
+import "ame_window_retirement.dart";
 
 class WindowManagerActions
     with WindowListener
@@ -34,7 +35,14 @@ class WindowManagerActions
   AmeWindowPlacement? _normalPlacement;
   Timer? _placementSaveDebounce;
   bool _isClosing = false;
-  Future<void>? _closeOperation;
+  late final retirement = AmeWindowRetirement(
+    shutdown: _shutdownCoordinator,
+    hide: _hideWindow,
+    destroy: _destroyWindow,
+    onClosing: _beginClosing,
+    onPreparationFailed: () => _isClosing = false,
+    normalCloseTimeout: _shutdownTimeout,
+  );
 
   @override
   late final fullscreen = AmeWindowFullscreen(
@@ -173,22 +181,7 @@ class WindowManagerActions
   }
 
   Future<void> _requestClose() {
-    return _closeOperation ??= _closeAfterShutdown();
-  }
-
-  Future<void> _closeAfterShutdown() async {
-    _beginClosing();
-    try {
-      await _hideWindow();
-    } on Object {
-      // Shutdown must continue even if the platform cannot hide the window.
-    }
-    try {
-      await _shutdownCoordinator.shutdown().timeout(_shutdownTimeout);
-    } on Object {
-      // A bounded shutdown must not leave the desktop window trapped open.
-    }
-    await _destroyWindow();
+    return retirement.close();
   }
 
   void _runBackground(Future<void> operation) {

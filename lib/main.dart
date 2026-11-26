@@ -5,6 +5,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "app/ame_app.dart";
 import "app/bootstrap/ame_application_mount.dart";
+import "app/bootstrap/application_update_bindings.dart";
+import "app/bootstrap/application_update_restart.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
 import "app/bootstrap/ame_provider_assembly.dart";
 import "app/bootstrap/ame_startup_orchestrator.dart";
@@ -58,12 +60,18 @@ Future<void> main() async {
   LibrarySynchronizationLifecycleOwner? synchronizationLifecycle;
   LibraryClassificationLifecycle? classificationLifecycle;
   Future<void> Function()? recoverModelInstallation;
+  ApplicationUpdateBindings? updates;
   late final Widget application;
   try {
     application = await acquireAmeApplication(
       shutdown: shutdownCoordinator,
       acquire: () async {
         await initializeRustLibrary();
+        final updateBindings = ApplicationUpdateBindings(
+          restarter: ApplicationUpdateRestart(windowActions.retirement),
+        );
+        updates = updateBindings;
+        shutdownCoordinator.register(updateBindings.close);
         final reads = LibraryReadBindings.production();
         final query = LibraryGalleryQuery(
           sortKey: viewPreferences.sortKey,
@@ -137,6 +145,7 @@ Future<void> main() async {
           requirements: [
             ...libraryPlatformRequirements,
             ...settingsRequirements,
+            ...applicationUpdateRequirements,
             ...storageRequirements,
             ...workbenchPresentationRequirements,
             ...libraryReadRequirements,
@@ -150,6 +159,7 @@ Future<void> main() async {
             ...librarySynchronizationRequirements,
           ],
           overrides: [
+            ...updateBindings.overrides,
             ...libraryPlatformBindings(
               preferenceStore: preferenceStores.library,
               initialPreferences: viewPreferences,
@@ -179,6 +189,7 @@ Future<void> main() async {
         shutdownCoordinator.register(
           container.read(libraryFileActionsProvider.notifier).close,
         );
+        updateBindings.attachNotifications(container);
         return UncontrolledProviderScope(
           container: container,
           child: const AmeApp(),
@@ -189,6 +200,7 @@ Future<void> main() async {
     synchronizationLifecycle = null;
     classificationLifecycle = null;
     recoverModelInstallation = null;
+    updates = null;
     application = ProviderScope(
       overrides: [ameWindowActionsProvider.overrideWithValue(windowActions)],
       child: AmeBootstrapFailure(error: error, preferences: amePreferences),
@@ -197,6 +209,8 @@ Future<void> main() async {
   await mountAmeApplicationAndRevealWindow(
     mountApplication: () => applicationMount.mount(application),
     startInBackground: () {
+      final updateBindings = updates;
+      if (updateBindings != null) unawaited(updateBindings.start());
       synchronizationLifecycle?.startInBackground();
       classificationLifecycle?.startInBackground();
       final recover = recoverModelInstallation;

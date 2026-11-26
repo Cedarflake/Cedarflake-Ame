@@ -9,6 +9,7 @@ import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_message_text.dart";
 import "../../application/ports/library_catalog.dart";
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_notification_actions.dart";
 import "../../../../app/presentation/ame_notifications.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../settings/application/ame_preferences.dart";
@@ -323,6 +324,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
+    if (handleApplicationNotificationAction(context, ref, notification)) return;
     if (notification.actionId == LibrarySearchNotifications.retryAction) {
       unawaited(_search.retry());
       return;

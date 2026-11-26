@@ -350,6 +350,18 @@
         "rust/src/application/similar_images/tests.rs",
         "rust/src/adapters/sqlite_catalog/similar_images/tests.rs"
       ]
+    },
+    "application-update-composition": {
+      "responsibility": "Select the packaged Windows update source and initialize portable startup before the desktop single-instance lock",
+      "reason": "Only these composition entrypoints select native engines; release policy, retained download state and joined restart remain behind Ame ports.",
+      "lifetime": "One source per process and one bounded download; the explicit restart retains the verified handoff until the original process exits.",
+      "replacement": "Replace the Windows update adapter and distribution tooling together while preserving source-free checks, package integrity and joined shutdown.",
+      "decision": "docs/architecture/workflow-ownership/native-composition.md#application-update-composition",
+      "coverage": [
+        "rust/src/domain/application_update/tests.rs",
+        "rust/src/adapters/application_updates/package/tests.rs",
+        "windows/updater/tests/handoff_test.cpp"
+      ]
     }
   },
   "retained": [
@@ -1301,6 +1313,26 @@
         "symbol": "crate::application::similar_images::production::image_reader",
         "target": "crate::adapters::similar_image_reader::GuardedSimilarImageReader",
         "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "application-update-source",
+      "owner": "application-update-composition",
+      "dependency": {
+        "symbol": "crate::application::application_updates::production::open",
+        "rule": "concrete-adapter",
+        "target": "crate::adapters::application_updates::WindowsApplicationUpdates",
+        "source": "rust/src/application/application_updates/production.rs"
+      }
+    },
+    {
+      "id": "application-update-startup",
+      "owner": "application-update-composition",
+      "dependency": {
+        "symbol": "crate::application_update_runtime::ame_application_update_startup",
+        "rule": "concrete-adapter",
+        "target": "crate::adapters::application_updates::portable::startup",
+        "source": "rust/src/application_update_runtime.rs"
       }
     }
   ]

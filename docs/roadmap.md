@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-21
+Last planning update: 2026-11-26
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -65,6 +65,19 @@ archive compatibility and authorized model-installation recovery. The
 Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
+
+### Application updates
+
+Implement the accepted application-update workflow on `codex/app-updates` under the
+[application updates plan](plans/application-updates.md), before the remaining R10 release work.
+Settings supplies manual checks, automatic-check/download preferences and an explicit restart action.
+ADR 0043 retains WiX for the installed product and selects Velopack for portable replacement.
+HTTPS and SHA-256 checks are required; signing and automatic migration of old Alpha installations
+are excluded. Settings, native coordination and both package paths are implemented. Local client,
+portable replacement/recovery, installed handoff, package checks and product-commit CI passed;
+the [verification owner](acceptance/application-updates.md) records their separate inputs and results.
+Cloud-test accounts, profiles, fixture data and staging directories have been removed; branch
+implementation and verification are complete. Integration and release publication remain separate.
 
 ### Desktop internationalization
 

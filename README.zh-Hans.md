@@ -11,11 +11,11 @@ Ame 是一款在本地浏览、搜索和整理大量图片的 Windows 应用。�
 Ame 目前处于 **Alpha 阶段**。在[发布页面](https://github.com/Cedarflake/Cedarflake-Ame/releases)可以下载适用于 **Windows 11 x64** 的安装版或便携版。
 
 - **MSI 安装程序**需要管理员权限。安装包自带图片分析模型和运行时，并会安装用于在后台更新图库的 Windows 服务。
-- 使用**便携版 ZIP** 时，请先完整解压，再运行 `Cedarflake-Ame/cedarflake_ame.exe`。便携版不安装 Windows 服务，图片分析模型会在首次使用时下载。
+- 使用**便携版 ZIP** 时，请先完整解压，再运行 `Cedarflake-Ame/Cedarflake Ame.exe`（旧包为 `cedarflake_ame.exe`）。便携版不安装 Windows 服务，图片分析模型会在首次使用时下载。
 
 [Windows 11 预览版](https://github.com/Cedarflake/Cedarflake-Ame/actions/workflows/quality_windows_arm64.yml)提供 x64 和 ARM64 两种 MSI 安装包，以及 ARM64 便携版 ZIP。如果你的 Arm 电脑上已安装 x64 版 MSI，请先卸载，再安装 ARM64 版。
 
-Ame 需要手动升级。升级前请先关闭应用，不同版本的便携版请解压到各自的文件夹。发布包和预览包均未签名。各版本的改动和已知限制见[发行说明](docs/releases/README.md)。
+在**设置 → 关于**中检查和下载更新，下载完成后重启应用即可更新。更新设置可选择自动检查或自动下载。没有此入口的旧版需要先关闭应用，再手动升级；便携版请解压到新的文件夹。发布包和预览包均未签名。各版本的改动和已知限制见[发行说明](docs/releases/README.md)。
 
 ## 浏览图库
 
