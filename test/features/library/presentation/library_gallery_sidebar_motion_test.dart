@@ -37,7 +37,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final title = find.text("建立你的图片图库");
+        final title = find.text("建立你的图库");
         final toolbar = find.byKey(const Key("library-review-toolbar"));
         final boundary = find.byKey(const Key("library-gallery-transition"));
         void expectAligned() {
@@ -92,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
     expanded.value = false;
     await tester.pump();
-    expect(tester.getCenter(find.text("建立你的图片图库")).dx, 404);
+    expect(tester.getCenter(find.text("建立你的图库")).dx, 404);
     await tester.pump();
     expect(tester.binding.transientCallbackCount, 0);
     expect(tester.takeException(), isNull);

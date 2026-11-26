@@ -27,7 +27,7 @@ void main() {
         ),
       );
       await show(state);
-      final title = find.text("建立你的图片图库");
+      final title = find.text("建立你的图库");
       final before = tester.getRect(title);
       for (final queue in [
         LibraryOrganizationQueue.pending,
