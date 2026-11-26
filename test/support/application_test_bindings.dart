@@ -28,11 +28,13 @@ import "package:flutter_riverpod/misc.dart";
 
 import "inert_library_synchronization.dart";
 import "inert_application_updates.dart";
+import "inert_diagnostics.dart";
 
 List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
   final preferences = MemoryPreferenceStore();
   final production = [
     inertApplicationUpdates(),
+    inertDiagnostics(),
     ...libraryPlatformBindings(
       preferenceStore: preferences,
       initialPreferences: const LibraryViewPreferences(),

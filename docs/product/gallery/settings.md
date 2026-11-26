@@ -61,7 +61,16 @@ Initial settings are limited to behavior that is understandable and connected en
   Ame 版本                 检查更新 / 查看更新 / 重启并更新
   更新设置                 当前渠道与自动更新偏好
   开源软件声明
+  诊断信息                 导出
 ```
+
+The diagnostic action opens the native save dialog for a ZIP. Export collection does not block
+browsing. Slow work uses the existing delayed bottom feedback with cancellation; success offers
+Open location. Collection failure offers Retry, while destination/write failure offers a new save
+location. Native codes retain their namespace on a separate feedback detail line. Folder-opening failure
+retries that action without recollecting. Startup failure offers the same export and a safe summary
+copy. The [diagnostic contract](../../architecture/0044-local-diagnostic-export.md) owns contents,
+privacy and resource bounds; no new task center or settings hierarchy is introduced.
 
 The version action opens one compact update dialog with the new version, download size and release
 notes. Download, stop and explicit restart operate on the same retained session; dismissing the

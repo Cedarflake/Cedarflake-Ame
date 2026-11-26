@@ -11,6 +11,39 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get diagnosticsTitle => 'Diagnostics';
+
+  @override
+  String get diagnosticsHelp => 'Save runtime information for troubleshooting';
+
+  @override
+  String get diagnosticsExport => 'Export';
+
+  @override
+  String get diagnosticsExportAction => 'Export diagnostics';
+
+  @override
+  String get diagnosticsFileType => 'Diagnostic archive';
+
+  @override
+  String get diagnosticsCollecting => 'Exporting diagnostics';
+
+  @override
+  String get diagnosticsSaved => 'Diagnostics saved';
+
+  @override
+  String get diagnosticsFailed => 'Could not export diagnostics';
+
+  @override
+  String get diagnosticsChooseAgain => 'Choose location';
+
+  @override
+  String get diagnosticsOpenFailed => 'Could not open the saved location';
+
+  @override
+  String get diagnosticsCancelled => 'Export cancelled';
+
+  @override
   String get updateSettings => 'Update settings';
 
   @override
@@ -231,19 +264,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startupUnsupportedCatalog =>
-      'This library was created with an unsupported version. Copy the diagnostics for troubleshooting.';
+      'This library was created with an unsupported version. Export the diagnostics for troubleshooting.';
 
   @override
   String get startupDatabaseError =>
-      'Ame couldn\'t read the library. Check that the drive is available, then restart Ame. If it still won\'t open, copy the diagnostics.';
+      'Ame couldn\'t read the library. Check that the drive is available, then restart Ame. If it still won\'t open, export the diagnostics.';
 
   @override
   String get startupCatalogError =>
-      'Restart Ame to try opening the library again. If it still won\'t open, copy the diagnostics.';
+      'Restart Ame to try opening the library again. If it still won\'t open, export the diagnostics.';
 
   @override
   String get startupComponentError =>
-      'An app component couldn\'t load. Restart Ame. If it still won\'t start, copy the diagnostics.';
+      'An app component couldn\'t load. Restart Ame. If it still won\'t start, export the diagnostics.';
 
   @override
   String get choose => 'Choose';

@@ -12,6 +12,7 @@ import "package:flutter_test/flutter_test.dart";
 import "package:material_ui/material_ui.dart";
 
 import "../../../support/localized_test_app.dart";
+import "../../../support/inert_diagnostics.dart";
 
 void main() {
   for (final locale in ameSupportedLocales) {
@@ -37,6 +38,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            inertDiagnostics(),
             applicationUpdateControllerProvider.overrideWithValue(controller),
           ],
           child: LocalizedTestApp(
@@ -138,6 +140,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            inertDiagnostics(),
             applicationUpdateControllerProvider.overrideWithValue(controller),
           ],
           child: LocalizedTestApp(

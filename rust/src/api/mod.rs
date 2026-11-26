@@ -6,6 +6,7 @@ pub mod classification_maintenance;
 pub mod classification_retry;
 pub mod classification_review;
 pub mod classification_settings;
+pub mod diagnostics;
 pub mod exact_duplicate_review;
 pub mod exact_duplicates;
 pub mod file_operations;

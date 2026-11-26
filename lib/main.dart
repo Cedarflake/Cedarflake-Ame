@@ -21,6 +21,7 @@ import "app/bootstrap/library_similarity_bindings.dart";
 import "app/bootstrap/library_synchronization_bindings.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/dependency_licenses.dart";
+import "app/bootstrap/diagnostics_bindings.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
@@ -43,14 +44,18 @@ Future<void> main() async {
   registerDependencyLicenses();
   final preferenceStores = AmePreferenceStores.production();
   final shutdownCoordinator = AmeShutdownCoordinator();
+  final windowShutdown = AmeShutdownCoordinator();
+  windowShutdown.register(shutdownCoordinator.shutdown);
   final amePreferences = await preferenceStores.application
       .loadAmePreferences();
   final viewPreferences = await preferenceStores.library
       .loadLibraryViewPreferences();
   final windowActions = await initializeAmeWindow(
     preferenceStores.window,
-    shutdownCoordinator,
+    windowShutdown,
   );
+  final diagnostics = DiagnosticsBindings();
+  windowShutdown.register(diagnostics.close);
   final applicationMount = AmeApplicationMount();
   final providerAssembly = AmeProviderAssembly(
     shutdown: shutdownCoordinator,
@@ -67,6 +72,7 @@ Future<void> main() async {
       shutdown: shutdownCoordinator,
       acquire: () async {
         await initializeRustLibrary();
+        diagnostics.nativeReady();
         final updateBindings = ApplicationUpdateBindings(
           restarter: ApplicationUpdateRestart(windowActions.retirement),
         );
@@ -159,6 +165,7 @@ Future<void> main() async {
             ...librarySynchronizationRequirements,
           ],
           overrides: [
+            ...diagnostics.overrides,
             ...updateBindings.overrides,
             ...libraryPlatformBindings(
               preferenceStore: preferenceStores.library,
@@ -190,6 +197,7 @@ Future<void> main() async {
           container.read(libraryFileActionsProvider.notifier).close,
         );
         updateBindings.attachNotifications(container);
+        diagnostics.attach(container);
         return UncontrolledProviderScope(
           container: container,
           child: const AmeApp(),
@@ -197,12 +205,16 @@ Future<void> main() async {
       },
     );
   } on Object catch (error) {
+    diagnostics.startupFailed(error);
     synchronizationLifecycle = null;
     classificationLifecycle = null;
     recoverModelInstallation = null;
     updates = null;
     application = ProviderScope(
-      overrides: [ameWindowActionsProvider.overrideWithValue(windowActions)],
+      overrides: [
+        ...diagnostics.overrides,
+        ameWindowActionsProvider.overrideWithValue(windowActions),
+      ],
       child: AmeBootstrapFailure(error: error, preferences: amePreferences),
     );
   }

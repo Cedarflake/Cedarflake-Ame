@@ -50,7 +50,7 @@ void main() {
     );
   });
 
-  testWidgets("copies raw diagnostics only after an explicit action", (
+  testWidgets("copies safe diagnostics only after an explicit action", (
     tester,
   ) async {
     const diagnostics = "native loader diagnostic";
@@ -91,7 +91,8 @@ void main() {
     await tester.tap(find.text("Copy diagnostics"));
     await tester.pumpAndSettle();
 
-    expect(clipboardText, contains(diagnostics));
+    expect(clipboardText, contains("FormatException"));
+    expect(clipboardText, isNot(contains(diagnostics)));
     expect(
       clipboardText,
       startsWith("${const AmeBuildIdentity.current().applicationLabel}\n"),

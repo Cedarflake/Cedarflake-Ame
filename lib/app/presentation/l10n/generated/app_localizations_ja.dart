@@ -11,6 +11,39 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
+  String get diagnosticsTitle => '診断情報';
+
+  @override
+  String get diagnosticsHelp => '問題の調査に使う動作情報を保存します';
+
+  @override
+  String get diagnosticsExport => 'エクスポート';
+
+  @override
+  String get diagnosticsExportAction => '診断情報をエクスポート';
+
+  @override
+  String get diagnosticsFileType => '診断情報の圧縮ファイル';
+
+  @override
+  String get diagnosticsCollecting => '診断情報をエクスポートしています';
+
+  @override
+  String get diagnosticsSaved => '診断情報を保存しました';
+
+  @override
+  String get diagnosticsFailed => '診断情報をエクスポートできませんでした';
+
+  @override
+  String get diagnosticsChooseAgain => '保存先を選び直す';
+
+  @override
+  String get diagnosticsOpenFailed => '保存先を開けませんでした';
+
+  @override
+  String get diagnosticsCancelled => 'エクスポートをキャンセルしました';
+
+  @override
   String get updateSettings => '更新の設定';
 
   @override
@@ -222,19 +255,19 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get startupUnsupportedCatalog =>
-      'このライブラリは未対応のバージョンで作成されています。問題を調べるには、診断情報をコピーしてください。';
+      'このライブラリは未対応のバージョンで作成されています。問題を調べるには、診断情報をエクスポートしてください。';
 
   @override
   String get startupDatabaseError =>
-      'ライブラリを読み込めませんでした。ドライブが利用できることを確認して、Ame を再起動してください。それでも開けない場合は診断情報をコピーしてください。';
+      'ライブラリを読み込めませんでした。ドライブが利用できることを確認して、Ame を再起動してください。それでも開けない場合は診断情報をエクスポートしてください。';
 
   @override
   String get startupCatalogError =>
-      'Ame を再起動してライブラリを開き直してください。それでも開けない場合は診断情報をコピーしてください。';
+      'Ame を再起動してライブラリを開き直してください。それでも開けない場合は診断情報をエクスポートしてください。';
 
   @override
   String get startupComponentError =>
-      'アプリの一部を読み込めませんでした。Ame を再起動してください。それでも起動しない場合は診断情報をコピーしてください。';
+      'アプリの一部を読み込めませんでした。Ame を再起動してください。それでも起動しない場合は診断情報をエクスポートしてください。';
 
   @override
   String get choose => '選択';

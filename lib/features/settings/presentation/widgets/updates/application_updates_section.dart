@@ -9,6 +9,7 @@ import "../../../../../app/window/ame_build_identity.dart";
 import "../../../../updates/application/application_update_controller.dart";
 import "../../../../updates/application/application_update_state.dart";
 import "../settings_section.dart";
+import "../diagnostics_settings_row.dart";
 import "application_update_dialog.dart";
 import "application_update_settings.dart";
 import "update_text.dart";
@@ -84,6 +85,7 @@ class ApplicationUpdatesSection extends ConsumerWidget {
                 applicationVersion: build.version,
               ),
             ),
+            const DiagnosticsSettingsRow(),
           ],
         );
       },

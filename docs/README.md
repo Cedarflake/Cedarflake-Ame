@@ -5,6 +5,8 @@ only the contracts, execution details, and evidence that own the task.
 
 | Question | Document owner |
 | --- | --- |
+| How do I import images, back up organization, recover and share diagnostics? | [User guide](user-guide.md), [简体中文](user-guide.zh-Hans.md), [日本語](user-guide.ja.md) |
+| How are diagnostic data and export lifetimes bounded? | [ADR 0044](architecture/0044-local-diagnostic-export.md) and [verification](acceptance/r10-diagnostics.md) |
 | What stage is active, what blocks it, and what comes next? | [Roadmap](roadmap.md), the sole active stage and priority index |
 | What changed in a release, and where is its GitHub Release text maintained? | [Versioned release notes](releases/README.md) |
 | How are security issues reported, and which versions receive fixes? | [Security policy](../SECURITY.md) |

@@ -9,6 +9,7 @@ environment:
   flutter: ">=3.50.0"
 
 dependencies:
+  archive: 4.7.1
   file_selector: ^1.1.0
   flutter:
     sdk: flutter
@@ -21,6 +22,7 @@ dependencies:
   intl: ^0.20.3
   material_symbols_icons: 4.2960.0
   material_ui: 1.11.1
+  path_provider: 2.1.6
   rust_lib_cedarflake_ame:
     path: rust_builder
   screen_retriever: ^0.2.2

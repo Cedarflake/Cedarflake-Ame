@@ -12,6 +12,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R10 responsiveness](r10-responsiveness.md) | Retained-library navigation, viewer, resizing and publication measurements |
 | [R10 resources and recovery](r10-resource-recovery.md) | Sustained-use resource measurements, compatible index reuse and interruption/restart qualification |
 | [R10 upgrade and compatibility](r10-upgrade-compatibility.md) | Alpha-to-Beta data preservation, installer and migration recovery, runtime payload and build identity |
+| [R10 diagnostics and guidance](r10-diagnostics.md) | Local ZIP export, bounded event retention, privacy projection, startup-failure access and multilingual user guidance |
 | [Standalone Material migration](material-ui-migration.md) | Official package migration, localization/type compatibility and retained desktop interaction |
 | [Unsigned Windows publication](unsigned-windows-release.md) | Candidate admission, workflow outputs and optional signing integration checks |
 | [Application updates](application-updates.md) | Update settings, verified packages, joined restart, installed handoff and portable recovery |

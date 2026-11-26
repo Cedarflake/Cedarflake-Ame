@@ -58,3 +58,4 @@ Recorded decisions:
 - [ADR 0041: Resource-aware image and text scheduling](0041-resource-aware-analysis-scheduling.md)
 - [ADR 0042: Execute authorized file operations through Windows APIs](0042-windows-file-operations.md)
 - [ADR 0043: Coordinate application updates outside the catalog](0043-application-update-coordination.md)
+- [ADR 0044: Export bounded local diagnostics independently of catalog startup](0044-local-diagnostic-export.md)

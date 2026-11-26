@@ -2,6 +2,16 @@
   "activeExceptions": [],
   "publicFeatureEdges": [
     {
+      "source": "lib/features/settings/presentation/widgets/diagnostics_settings_row.dart",
+      "target": "lib/features/diagnostics/application/diagnostics_controller.dart",
+      "contract": "Diagnostic export state and user actions"
+    },
+    {
+      "source": "lib/features/settings/presentation/widgets/diagnostics_settings_row.dart",
+      "target": "lib/features/diagnostics/application/ports/diagnostic_export.dart",
+      "contract": "Localized labels for the native diagnostic save dialog"
+    },
+    {
       "source": "lib/features/settings/presentation/widgets/analysis_settings_section.dart",
       "target": "lib/features/library/application/library_classification_configuration.dart",
       "contract": "Persisted acceleration preference through the joined classification configuration lifecycle"

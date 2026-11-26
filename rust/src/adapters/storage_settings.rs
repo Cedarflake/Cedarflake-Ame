@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use crate::domain::{ScanError, StorageConfiguration};
 use crate::ports::StorageSettingsRepository;
 
-const SETTINGS_SCHEMA_VERSION: i64 = 2;
+use crate::domain::storage_versions::SETTINGS_SCHEMA_VERSION;
 
 pub struct SqliteStorageSettings {
     connection: Connection,

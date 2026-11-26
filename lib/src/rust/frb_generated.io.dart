@@ -11,6 +11,7 @@ import 'api/classification_maintenance.dart';
 import 'api/classification_retry.dart';
 import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
+import 'api/diagnostics.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
 import 'api/file_operations.dart';
@@ -815,6 +816,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
+
+  @protected
+  DiagnosticStorageVersions dco_decode_diagnostic_storage_versions(dynamic raw);
 
   @protected
   DuplicateCleanupGroup dco_decode_duplicate_cleanup_group(dynamic raw);
@@ -2550,6 +2554,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ConsolidatedLibraryRoot sse_decode_consolidated_library_root(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  DiagnosticStorageVersions sse_decode_diagnostic_storage_versions(
     SseDeserializer deserializer,
   );
 
@@ -4700,6 +4709,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_consolidated_library_root(
     ConsolidatedLibraryRoot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_diagnostic_storage_versions(
+    DiagnosticStorageVersions self,
     SseSerializer serializer,
   );
 

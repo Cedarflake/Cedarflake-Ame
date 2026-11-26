@@ -99,8 +99,9 @@ Make About, licenses, diagnostics, executable metadata, package receipts and rel
 their version from the same build identity. The Flutter build number must increase across Alpha to
 Beta so the existing MSI version mapping remains monotonic.
 
-The first Beta uses documented MSI upgrades and portable-package replacement. An in-app automatic
-downloader/installer remains a separate product decision; it is not needed for this upgrade outcome.
+The first Beta retains documented MSI upgrades and portable-package replacement. The subsequently
+accepted [application updater](application-updates.md) supplies in-app download and explicit restart;
+manual upgrade remains the recovery route.
 
 Exit evidence: preserved representative records, working installed/portable clients, recovery results
 and consistent version reporting. Reuse unchanged installer guardrails instead of recreating them.
@@ -114,11 +115,12 @@ bounded task/error summaries and recent relevant logs, with native error-code na
 
 Default exports omit images, catalog contents and credentials, and replace personal paths/account
 names with logical labels. Bound log bytes and collection time. The user chooses a local destination;
-the result uses existing feedback and folder-opening controls. Decide the exact format and preview
-the affected surface during this slice, without adding a task center or redesigning Settings.
+the result uses existing feedback and folder-opening controls. The accepted format is a local ZIP
+with a readable summary and structured JSON under [ADR 0044](../architecture/0044-local-diagnostic-export.md).
+Preview the affected surface during this slice, without adding a task center or redesigning Settings.
 
 Write a short user guide covering first import, installed versus portable behavior, model readiness,
-manual upgrade, backup/recovery, interrupted organization and how to provide a diagnostic bundle.
+automatic/manual upgrade, backup/recovery, interrupted organization and how to provide a diagnostic bundle.
 Reuse existing contracts for warnings and known limits; keep implementation details in technical docs.
 
 Exit evidence: an exported bundle that explains a representative failure, no unintended personal
