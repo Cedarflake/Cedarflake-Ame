@@ -4173,3 +4173,20 @@ After process retirement and report transfer/hash verification, the dedicated ru
 probe payloads and incoming archives are removed through exact-path, containment and reparse checks.
 This reclaims 155,436,493 bytes on cloud-primary and another 176,588,205 bytes locally. The reusable
 cloud test profile and compact reports remain; the original catalog hash is unchanged after cleanup.
+
+## Album picker refresh continuity — 2026-11-26
+
+On base `f1d9421f`, creating an album invalidated the shared album-page dependency and replaced the
+picker's existing content with an initial-loading panel. The picker now retains its loaded content
+during dependency reloads, as the album sidebar already does. Initial reads and query failures keep
+their existing feedback; confirmation remains unavailable until the refreshed page is ready.
+
+The ten existing and extended album-widget cases passed, including a controlled first-album refresh
+that retains the empty content while the read is pending, then selects and returns the created album.
+The new case checks state continuity and command admission without fixing copy or visual constants.
+Affected-file formatting, analysis and whitespace checks passed. In the existing isolated Windows
+Debug client, a hot reload followed by Settings' empty default-album picker, creation and return
+displayed the new album selected with confirmation enabled. No original media was involved.
+
+The picker contains 459 production lines and no inline tests; its dedicated widget suite contains
+530 lines. The surrounding routes, presentation styles and file-operation policies are unchanged.

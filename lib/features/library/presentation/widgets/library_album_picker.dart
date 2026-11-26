@@ -278,6 +278,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                               ),
                             page.when(
                               skipLoadingOnRefresh: true,
+                              skipLoadingOnReload: true,
                               data: (value) => ConstrainedBox(
                                 constraints: const BoxConstraints(
                                   maxHeight: 360,

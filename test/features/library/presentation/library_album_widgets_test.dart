@@ -369,6 +369,70 @@ void main() {
     },
   );
 
+  testWidgets(
+    "first album creation retains content until the refreshed page arrives",
+    (tester) async {
+      final refreshed = Completer<LibraryOrganizationAlbumPage>();
+      var reads = 0;
+      service.readAlbums = (_) async {
+        if (++reads > 1) return refreshed.future;
+        return LibraryOrganizationAlbumPage(
+          albums: const [],
+          revision: BigInt.one,
+          total: 0,
+        );
+      };
+      LibraryAlbumChoice? selected;
+      await host(
+        tester,
+        (context) => () async {
+          selected = await showLibraryAlbumPicker(
+            context: context,
+            actionLabel: context.l10n.choose,
+          );
+        },
+      );
+      final picker = find.byKey(const Key("library-album-picker"));
+      final empty = find.text(tester.element(picker).l10n.createFirstAlbum);
+      final retainedEmpty = tester.element(empty);
+      await tester.tap(find.byKey(const Key("library-album-create")));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key("library-album-name")),
+        "First album",
+      );
+      await tester.tap(find.byKey(const Key("library-album-save")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(reads, 2);
+      expect(tester.element(empty), same(retainedEmpty));
+      final confirm = find.byKey(const Key("library-album-confirm"));
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      final album = service.albumItems.single;
+      refreshed.complete(
+        LibraryOrganizationAlbumPage(
+          albums: [album],
+          revision: BigInt.two,
+          total: 1,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(empty, findsNothing);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(ValueKey("album-choice-${album.id}")),
+            )
+            .value,
+        isTrue,
+      );
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+      expect(selected?.album?.id, album.id);
+      expect(picker, findsNothing);
+    },
+  );
+
   testWidgets("picker pages retain selection and create within the same flow", (
     tester,
   ) async {
