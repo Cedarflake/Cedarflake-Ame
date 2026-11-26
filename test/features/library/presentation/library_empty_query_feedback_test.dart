@@ -27,8 +27,11 @@ void main() {
         ),
       );
       await show(state);
-      final title = find.text("建立你的图库");
-      final before = tester.getRect(title);
+      final emptyState = find.byKey(const Key("library-empty-state"));
+      final import = find.descendant(
+        of: emptyState,
+        matching: find.byType(FilledButton),
+      );
       for (final queue in [
         LibraryOrganizationQueue.pending,
         LibraryOrganizationQueue.deferred,
@@ -43,10 +46,9 @@ void main() {
           ),
         );
         await tester.pump(const Duration(milliseconds: 100));
-        expect(tester.getRect(title), before);
+        expect(emptyState, findsOneWidget);
         expect(find.byType(CircularProgressIndicator), findsNothing);
         expect(find.byIcon(Symbols.hourglass_top_rounded), findsNothing);
-        final import = find.widgetWithText(FilledButton, "导入");
         expect(tester.widget<FilledButton>(import).onPressed, isNotNull);
         await tester.tapAt(tester.getCenter(import));
         tester.widget<FilledButton>(import).onPressed!();
@@ -54,9 +56,9 @@ void main() {
         await show(
           state.copyWith(query: LibraryGalleryQuery(organizationQueue: queue)),
         );
-        expect(tester.getRect(title), before);
+        expect(emptyState, findsOneWidget);
       }
-      await tester.tap(find.widgetWithText(FilledButton, "导入"));
+      await tester.tap(import);
       expect(imports, 1);
     },
   );

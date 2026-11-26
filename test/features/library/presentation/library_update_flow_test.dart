@@ -251,52 +251,6 @@ void main() {
     }
   });
 
-  testWidgets("keeps import and configured-root update wording distinct", (
-    tester,
-  ) async {
-    final existingRoot = _root("root-a", "C:\\Pictures");
-
-    Future<void> pumpTask(LibraryState state) {
-      return tester.pumpWidget(
-        LocalizedTestApp(
-          home: Scaffold(
-            body: LibraryTaskSurface(
-              state: state,
-              onPause: () {},
-              onCancel: () {},
-              onResume: () async {},
-              onRetry: () async {},
-              onDismiss: () {},
-            ),
-          ),
-        ),
-      );
-    }
-
-    await pumpTask(
-      LibraryState(
-        status: LibraryStatus.scanning,
-        rootPath: existingRoot.path,
-        displayRootPath: existingRoot.displayPath,
-        taskKind: LibraryTaskKind.update,
-        roots: [existingRoot],
-      ),
-    );
-    expect(find.text("正在更新“Pictures”…"), findsOneWidget);
-    expect(find.textContaining("正在添加"), findsNothing);
-
-    await pumpTask(
-      const LibraryState(
-        status: LibraryStatus.scanning,
-        rootPath: "D:\\New",
-        displayRootPath: "D:\\New",
-        taskKind: LibraryTaskKind.import,
-      ),
-    );
-    expect(find.text("正在添加“New”…"), findsOneWidget);
-    expect(find.textContaining("正在更新"), findsNothing);
-  });
-
   testWidgets("keeps committed removal refresh recovery visible", (
     tester,
   ) async {

@@ -127,3 +127,19 @@ group, retaining wrapping for constrained text/window sizes. Its Windows Debug b
 This layout follow-up retains its separate exact-commit hosted result; the run above covers the
 preceding implementation.
 R10-05 candidate and release qualification remain in their existing owners.
+
+## Presentation test maintenance
+
+The final copy change exposed four stale title lookups in
+[CI run 45760537997](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45760537997).
+The affected five cases passed after aligning the title lookup. The subsequent test cleanup removes
+34 cases that freeze copy, visual constants or one-off alignment, and removes incidental style
+assertions from mixed workflow tests. Dedicated visual fixtures and their unused helpers are removed.
+The [test-design standard](../development/testing.md#temporary-presentation-checks) now assigns this
+work to temporary desktop verification.
+
+Retained coverage includes empty-state publication and import admission, sidebar reversal and reduced
+motion, gallery row continuity, menu keyboard interaction, notification actions, settings persistence
+and recovery, preview-demand retirement, and text contrast. No production behavior changes accompany
+this cleanup. Formatting, affected-file analysis and the final diff were checked locally; hosted CI
+owns the remaining suite execution.

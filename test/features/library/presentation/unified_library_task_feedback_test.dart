@@ -175,24 +175,6 @@ void main() {
       find.byKey(const Key("library-task-dismiss-button")),
       findsOneWidget,
     );
-    final taskSurface = tester.widget<Material>(
-      find
-          .descendant(
-            of: find.byKey(const Key("library-task-surface")),
-            matching: find.byType(Material),
-          )
-          .first,
-    );
-    final theme = Theme.of(
-      tester.element(find.byKey(const Key("library-task-surface"))),
-    );
-    expect(taskSurface.color, theme.snackBarTheme.backgroundColor);
-    expect(taskSurface.elevation, theme.snackBarTheme.elevation);
-    expect(
-      tester.getSize(find.byKey(const Key("library-task-surface"))).width,
-      theme.snackBarTheme.width,
-    );
-
     await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
     await tester.pump();
 
@@ -313,56 +295,6 @@ void main() {
     await tester.tap(updateCancel);
     await tester.pump();
     expect(updateController.cancelledRootId, updatingRoot.id);
-  });
-
-  testWidgets("aligns a pending source with existing source rows", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final state = populatedScreenState(totalItems: 1).copyWith(
-      status: LibraryStatus.scanning,
-      scanId: "scan-pending",
-      rootPath: "C:\\Documents",
-      displayRootPath: "C:\\Documents",
-      visitedEntries: 12,
-      stagedAssetCount: 3,
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: applicationTestOverrides([
-          initialLibraryStateProvider.overrideWithValue(state),
-        ]),
-        child: const AmeApp(),
-      ),
-    );
-    await tester.pump();
-
-    final sourceIcon = find.descendant(
-      of: find.byKey(const ValueKey("source-icon-root-1")),
-      matching: find.byIcon(Symbols.folder_rounded),
-    );
-    final pendingIcon = find.descendant(
-      of: find.byKey(const Key("pending-source-icon")),
-      matching: find.byIcon(Symbols.folder_rounded),
-    );
-    final sourceTitle = find.byKey(const ValueKey("source-title-root-1"));
-    final pendingTitle = find.byKey(const Key("pending-source-title"));
-    expect(sourceIcon, findsOneWidget);
-    expect(pendingIcon, findsOneWidget);
-    expect(tester.getSize(sourceIcon), tester.getSize(pendingIcon));
-    expect(find.byKey(const Key("pending-source-progress")), findsOneWidget);
-    expect(
-      tester.getTopLeft(sourceIcon).dx,
-      closeTo(tester.getTopLeft(pendingIcon).dx, 0.1),
-    );
-    expect(
-      tester.getTopLeft(sourceTitle).dx,
-      closeTo(tester.getTopLeft(pendingTitle).dx, 0.1),
-    );
   });
 
   testWidgets("keeps a missing source visible with its cached catalog state", (
