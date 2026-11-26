@@ -173,6 +173,7 @@ class ApplicationUpdateController extends ChangeNotifier {
       if (!_admits(generation)) return;
       final progress = download.progress;
       if (progress.receivedBytes == _state.progress?.receivedBytes &&
+          progress.totalBytes == _state.progress?.totalBytes &&
           progress.phase == _state.progress?.phase) {
         return;
       }

@@ -71,9 +71,43 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 300));
       expect(fixture.downloads, 1);
+      expect(find.text("3.1%"), findsOneWidget);
+      final indicator = find.byType(LinearProgressIndicator);
+      double displayedProgress() =>
+          tester.widget<LinearProgressIndicator>(indicator).value!;
+      final initialProgress = displayedProgress();
+      fixture.receivedBytes = 32 * 1024 * 1024;
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text("50.0%"), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(displayedProgress(), greaterThan(initialProgress));
+      expect(displayedProgress(), lessThan(0.5));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(displayedProgress(), 0.5);
+      fixture.totalBytes = 128 * 1024 * 1024;
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text("25.0%"), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(displayedProgress(), 0.25);
+      final labelRect = tester.getRect(find.text("25.0%"));
+      final progressRect = tester.getRect(indicator);
+      expect(labelRect.left, progressRect.left);
       await tester.tap(find.text(strings.updateLater));
       await tester.pumpAndSettle();
       expect(controller.state.phase, ApplicationUpdatePhase.downloading);
+      await tester.tap(find.byKey(const Key("application-update-check")));
+      await tester.pump();
+      expect(displayedProgress(), 0.25);
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      fixture.receivedBytes = 64 * 1024 * 1024;
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(displayedProgress(), 0.5);
+      await tester.tap(find.text(strings.updateLater));
+      await tester.pumpAndSettle();
       fixture.finished.complete();
       await tester.pump(const Duration(milliseconds: 300));
       expect(controller.state.phase, ApplicationUpdatePhase.ready);
@@ -152,6 +186,8 @@ class _Fixture
   int restarts = 0;
   bool cancelled = false;
   bool ready = false;
+  int receivedBytes = 2 * 1024 * 1024;
+  int totalBytes = 64 * 1024 * 1024;
   ApplicationUpdatePreferences? saved;
   @override
   Future<bool> isSupported() async => true;
@@ -179,8 +215,8 @@ class _Fixture
         : ready
         ? ApplicationDownloadPhase.ready
         : ApplicationDownloadPhase.downloading,
-    receivedBytes: ready ? release.downloadBytes : 1000,
-    totalBytes: release.downloadBytes,
+    receivedBytes: ready ? release.downloadBytes : receivedBytes,
+    totalBytes: totalBytes,
   );
   @override
   Future<void> download() async {

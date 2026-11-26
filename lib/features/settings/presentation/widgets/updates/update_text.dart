@@ -36,3 +36,9 @@ String updateFailureLabel(
 
 String updateSize(AppLocalizations strings, int bytes) =>
     "${NumberFormat("0.0", strings.localeName).format(bytes / (1024 * 1024))} MB";
+
+String updatePercent(AppLocalizations strings, double value) =>
+    NumberFormat.decimalPercentPattern(
+      locale: strings.localeName,
+      decimalDigits: 1,
+    ).format(value);

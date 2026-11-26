@@ -38,6 +38,15 @@ class ApplicationUpdateDialog extends StatelessWidget {
           phase == ApplicationUpdatePhase.checking;
       final ready = phase == ApplicationUpdatePhase.ready;
       final progress = state.progress;
+      final totalBytes = progress != null && progress.totalBytes > 0
+          ? progress.totalBytes
+          : release?.downloadBytes ?? 0;
+      final progressValue = totalBytes > 0
+          ? ((progress?.receivedBytes ?? 0) / totalBytes).clamp(0.0, 1.0)
+          : null;
+      final percentage = progressValue == null
+          ? null
+          : updatePercent(strings, progressValue);
       return AmeDialog(
         title: strings.updateTitle,
         isLoading: checking,
@@ -76,18 +85,19 @@ class ApplicationUpdateDialog extends StatelessWidget {
             else if (ready)
               Text(strings.updateReadyHelp),
             if (transferring) ...[
-              LinearProgressIndicator(
-                value: progress == null || progress.totalBytes == 0
-                    ? 0
-                    : (progress.receivedBytes / progress.totalBytes).clamp(
-                        0,
-                        1,
-                      ),
+              _UpdateDownloadProgress(
+                value: progressValue,
+                semanticsLabel: switch (phase) {
+                  ApplicationUpdatePhase.verifying => strings.updateVerifying,
+                  ApplicationUpdatePhase.stopping => strings.updateStopping,
+                  _ => strings.updateDownloading,
+                },
+                semanticsValue: percentage,
               ),
               Text(switch (phase) {
                 ApplicationUpdatePhase.verifying => strings.updateVerifying,
                 ApplicationUpdatePhase.stopping => strings.updateStopping,
-                _ => strings.updateDownloading,
+                _ => percentage ?? strings.updateDownloading,
               }),
             ],
             if (phase == ApplicationUpdatePhase.restarting)
@@ -126,4 +136,40 @@ class ApplicationUpdateDialog extends StatelessWidget {
       );
     },
   );
+}
+
+class _UpdateDownloadProgress extends StatelessWidget {
+  const _UpdateDownloadProgress({
+    required this.value,
+    required this.semanticsLabel,
+    required this.semanticsValue,
+  });
+
+  final double? value;
+  final String semanticsLabel;
+  final String? semanticsValue;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = value;
+    if (target == null ||
+        MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled) {
+      return LinearProgressIndicator(
+        value: target,
+        semanticsLabel: semanticsLabel,
+        semanticsValue: semanticsValue,
+      );
+    }
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: target, end: target),
+      duration: Durations.short4,
+      curve: Curves.linear,
+      builder: (context, displayed, _) => LinearProgressIndicator(
+        value: displayed,
+        semanticsLabel: semanticsLabel,
+        semanticsValue: semanticsValue,
+      ),
+    );
+  }
 }

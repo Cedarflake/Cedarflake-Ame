@@ -39,6 +39,17 @@ download with Escape retained it; completion changed the About action to restart
 automatic-download preference persisted in the fixture store. The window closed normally. This
 client check did not perform package replacement or touch a real catalog.
 
+The download-progress follow-up on 2026-11-26 retains the dialog title and left-aligned status
+position, displaying a localized percentage while downloading. The official Material 3 bar
+interpolates between received-byte snapshots over 200 ms; reopening uses the current value and
+reduced-motion settings bypass interpolation. Ten focused controller/presentation checks passed,
+including intermediate progress frames, total-size changes, reopening, reduced motion and all
+three languages at enlarged text. Earlier hosted results above do not cover this follow-up.
+The isolated Profile comparison rendered the production left-aligned percentage and retained
+active progress after dismissal. Separate ignored preview copies exposed the alternative status
+title, centered percentage and updated viewer slider for visual comparison; those alternatives
+are not part of the production change.
+
 ## Distribution and recovery
 
 The admitted portable engine is Velopack `1.2.161+ame.rollback.1`, built from pinned upstream source
