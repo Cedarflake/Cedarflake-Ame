@@ -47,8 +47,14 @@ class ApplicationUpdateDialog extends StatelessWidget {
       final percentage = progressValue == null
           ? null
           : updatePercent(strings, progressValue);
+      final title = switch (phase) {
+        ApplicationUpdatePhase.downloading => strings.updateDownloading,
+        ApplicationUpdatePhase.verifying => strings.updateVerifying,
+        ApplicationUpdatePhase.stopping => strings.updateStopping,
+        _ => strings.updateTitle,
+      };
       return AmeDialog(
-        title: strings.updateTitle,
+        title: title,
         isLoading: checking,
         loadingLabel: strings.updateChecking,
         content: AmeDialogBody(
@@ -87,18 +93,10 @@ class ApplicationUpdateDialog extends StatelessWidget {
             if (transferring) ...[
               _UpdateDownloadProgress(
                 value: progressValue,
-                semanticsLabel: switch (phase) {
-                  ApplicationUpdatePhase.verifying => strings.updateVerifying,
-                  ApplicationUpdatePhase.stopping => strings.updateStopping,
-                  _ => strings.updateDownloading,
-                },
+                semanticsLabel: title,
                 semanticsValue: percentage,
               ),
-              Text(switch (phase) {
-                ApplicationUpdatePhase.verifying => strings.updateVerifying,
-                ApplicationUpdatePhase.stopping => strings.updateStopping,
-                _ => percentage ?? strings.updateDownloading,
-              }),
+              if (percentage != null) Text(percentage),
             ],
             if (phase == ApplicationUpdatePhase.restarting)
               Text(strings.updateRestarting),

@@ -71,6 +71,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 300));
       expect(fixture.downloads, 1);
+      expect(find.text(strings.updateDownloading), findsOneWidget);
       expect(find.text("3.1%"), findsOneWidget);
       final indicator = find.byType(LinearProgressIndicator);
       double displayedProgress() =>
