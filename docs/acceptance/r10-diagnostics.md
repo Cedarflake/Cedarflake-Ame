@@ -141,5 +141,21 @@ work to temporary desktop verification.
 Retained coverage includes empty-state publication and import admission, sidebar reversal and reduced
 motion, gallery row continuity, menu keyboard interaction, notification actions, settings persistence
 and recovery, preview-demand retirement, and text contrast. No production behavior changes accompany
-this cleanup. Formatting, affected-file analysis and the final diff were checked locally; hosted CI
-owns the remaining suite execution.
+this cleanup. Formatting, affected-file analysis and the final diff were checked locally; the hosted
+suite results are recorded below.
+
+## Integration — 2026-11-26
+
+[PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75) was merged into `main` as
+`1cfbca7c6830d909a0ce29a641bbbcc91d14d8c0` after
+[Quality / CI run 45763476904](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45763476904)
+passed for final head `84136074af584ebdc750945f48cc37219c8c023e`.
+All selected static, Flutter, Rust, Windows scan, accessibility and production-build checks passed,
+including the aggregate Windows Gate. The preceding failed copy lookups and their disposition remain
+recorded above.
+
+The merge used base `7281949995313a752579053e77b34ad12631d754`. The merged tree and checked head both
+resolve to `3259013f99f86ebc62babca463d85092de9e9179`; the retained desktop evidence therefore applies
+within its stated scope. Local `main` was fast-forwarded to the merge, and `codex/r10-diagnostics`
+was deleted locally and remotely. R10-05 candidate qualification and publication retain their
+separate scope in the roadmap.
