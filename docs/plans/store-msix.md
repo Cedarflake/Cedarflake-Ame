@@ -38,6 +38,30 @@ unified data, and original photos are outside every uninstall cleanup scope.
 5. Add boundary regressions for delivery selection and package admission, run the applicable hosted
    gates, and commit/push implementation and evidence together.
 
+## Store-signed GitHub Release asset
+
+The selected follow-up distribution flow publishes the MSIX asset only after the Store has signed
+and published that version. Keep MSI and portable publication on their existing path; attach the
+retrieved Store package to the same version's GitHub Release when it becomes available.
+
+1. Record the admitted source commit, application build, mapped Store package version and target
+   Release tag before submitting that candidate. Complete the first Store publication in Partner
+   Center; configure subsequent submission credentials through the existing protected CI boundary.
+2. Wait for successful Store publication and availability of the matching downloadable package.
+   Retrieve it through the supported WinGet Store download path with offline-download eligibility.
+3. Validate the Windows package signature and integrity, reserved package identity, architecture,
+   exact Store version and application build against that candidate. Downloading the latest package
+   alone is insufficient to select an older Release. Keep the signed package unchanged and record
+   its own digest; signing changes the archive digest from the unsigned input.
+4. Verify the first retrieved Ame package's installation and applicable offline-license behavior in
+   an isolated environment, then attach the validated signed MSIX or bundle to its matching Release.
+   Existing same-name assets must match the admitted digest; retries must not replace another build.
+
+This follow-up requires the first published Store package and account configuration. Submission and
+external asset upload remain explicit release actions. The
+[WinGet download contract](https://learn.microsoft.com/en-us/windows/package-manager/winget/download)
+owns package and license retrieval; downloaded packages retain their actual Store format.
+
 ## Verification boundary
 
 Use disposable guest-owned media and app data. Do not install the test certificate or package into

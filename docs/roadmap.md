@@ -78,6 +78,11 @@ directly; legacy-data migration and a new backup/restore feature remain outside 
 MSI/portable delivery and R10-05's separate
 candidate work retain their existing scope. Store submission and publication are not yet authorized.
 
+The selected [distribution follow-up](plans/store-msix.md#store-signed-github-release-asset) retrieves
+the matching Store-signed package after Store publication and attaches it to the same GitHub Release.
+Follow-up implementation is planned; end-to-end verification awaits first Store publication and
+submission credentials. The current packager does not yet automate this handoff.
+
 ### Prerelease compatibility cleanup
 
 The requested [compatibility cleanup](plans/prerelease-compatibility.md) is implemented after
