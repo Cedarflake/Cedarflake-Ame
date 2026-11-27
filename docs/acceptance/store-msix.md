@@ -62,7 +62,7 @@ three cache artifacts and five originals. Reports are `direct-upgrade.json`, `di
 The final harness initially read a JSON array as one nested array under Windows PowerShell 5;
 correcting that read completed the per-file comparison without another uninstall. The test account's
 membership was restored, temporary certificate trust removed, and the owned client guest retired.
-The seven-case MSI lifecycle matrix remains pending.
+The MSI lifecycle results are recorded below.
 
 ## Store update selection
 
@@ -85,8 +85,7 @@ distributions. The earlier model-free packaging probe is superseded by this comp
 
 The native MSI policy executable passed 99 cases, including the new current-account removal
 boundaries. Its temporary files were constrained to leased scratch storage. This establishes the
-native policy and filesystem cases; interactive MSI cancellation, upgrade and credential-elevation
-behavior still require installed-package verification.
+native policy and filesystem cases. Installed-package verification follows below.
 
 The first MSI fixture attempts exposed harness errors: a released process handle hid the observer's
 exit code, an obsolete runtime entry remained in its file inventory, and the alternate-account
@@ -96,6 +95,32 @@ assertion incorrectly required a continuously running broker: its production hos
 after ten idle seconds. The fixture now records the service state and exit codes while retaining
 registration, identity and data-hash checks. Failed attempts and their retired guest receipts remain
 in `build/test/derived/msi-data-cleanup-*`; they are not counted as complete lifecycle runs.
+
+The retained `msi-data-cleanup-lifecycle` guest completed fresh installation, alternate-administrator
+cleanup rejection, repair of a missing installed file, a real `0.1.4` to `0.1.5` major upgrade,
+default uninstall with data retained, full-UI cancellation after selecting data removal, and explicit
+default-data removal. Each retaining case verified eight file hashes under an ordinary observer
+token; deletion retained all four external/cache/source/sibling files. Cancellation returned 1602;
+alternate-account removal returned 1603. The combined evidence is `remaining/result.json`, linked to
+the original case logs. MSI inputs were `B8AE0E0A8DC5F238413237A9A31A0E0BCDFF8076566EE9A3631510399068CE5C`
+and successor `1856506DB2C84C6F41202A45F35CFA32E92420823A2FCA2410AF001707D8D0C7`.
+
+The first cancellation invocation used `msiexec /x` without `/qf`; Windows selected basic UI and
+completed an ordinary uninstall with data retained. That result establishes default retention,
+not cancellation. The full-UI continuation separately established cancellation. Setup delegates
+maintenance to the MSI's full interface; direct basic/silent MSI removal retains data unless the
+explicit removal property is supplied.
+
+Full UI exposed missing Chinese glyphs with the previous Segoe UI TextStyle. The installer now
+uses Microsoft's Simplified Chinese UI font, Microsoft YaHei UI. The refreshed MSI digest is
+`B1E6B72086D85F6FCC1B0245EBFA106B83D753F47774ACC53675B1AB00C1CFBF`.
+Its Setup bundle installed successfully from the guest's local filesystem. Actual maintenance
+displayed readable Chinese, the initially unchecked option and complete data-scope text; selected
+removal returned zero and removed the disposable default marker. The native 99 cases, 42 rejecting
+MSI policy cases and 16 checkbox transitions also passed for this build. A first launch directly
+from the Sandbox mapped directory returned `0x8007139F` before producing a Burn log; the identical
+binary ran successfully after copying into the guest. `readable-local.json`, `readable-Remove.json`
+and the associated Burn/MSI logs retain these results. The owned guest was retired after verification.
 
 ## Review boundaries
 

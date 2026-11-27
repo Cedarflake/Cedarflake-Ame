@@ -66,10 +66,10 @@ service configuration and protected ACLs. The package owns its installed files, 
 product registration and shortcuts. Source directories and original media never belong to uninstall.
 Removal of unknown files or recursive deletion of the installation directory is not part of uninstall.
 
-Interactive removal also offers an initially unchecked option to delete the current account's
-default Ame data, shared across distributions under ADR 0045. Explicitly selected external catalog
+The full MSI interface, including Setup maintenance, offers an initially unchecked option to delete
+the current account's default Ame data, shared across distributions under ADR 0045. Explicitly selected external catalog
 and cache directories, along with earlier default directories outside the shared root, remain
-untouched. Silent removal retains data unless the option is explicitly supplied. Repair and major
+untouched. Basic and silent removal retain data unless the option is explicitly supplied. Repair and major
 upgrade preserve unified data and exclude cleanup even when that property is present.
 
 A separate native owner validates the request and current-account SID before uninstall starts,
