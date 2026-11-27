@@ -3502,6 +3502,159 @@ class AppLocalizationsJa extends AppLocalizations {
   String get categoryOther => 'その他';
 
   @override
+  String get categoryCatsPhoto => '猫';
+
+  @override
+  String get categoryCatsMeme => '猫のミーム';
+
+  @override
+  String get categoryDogsPhoto => '犬';
+
+  @override
+  String get categoryDogsMeme => '犬のミーム';
+
+  @override
+  String get categoryRabbitsPhoto => 'ウサギ';
+
+  @override
+  String get categoryBirdsPhoto => '鳥';
+
+  @override
+  String get categoryWildlifePhoto => '野生動物';
+
+  @override
+  String get categoryAnimalCharactersIllustration => '動物キャラクターのイラスト';
+
+  @override
+  String get categoryAnimalCharactersMeme => '動物キャラクターのミーム';
+
+  @override
+  String get categoryAnimalEaredCharactersIllustration => '獣耳キャラクターのイラスト';
+
+  @override
+  String get categoryAnimalEaredCharactersMeme => '獣耳キャラクターのミーム';
+
+  @override
+  String get categoryPortraitsPhoto => 'ポートレート';
+
+  @override
+  String get categoryGroupsPhoto => '集合写真';
+
+  @override
+  String get categoryCostumesPhoto => 'コスプレ';
+
+  @override
+  String get categoryPerformancesPhoto => '舞台';
+
+  @override
+  String get categorySportsPhoto => 'スポーツ';
+
+  @override
+  String get categoryChildrenPlayingPhoto => '遊ぶ子ども';
+
+  @override
+  String get categoryToysPhoto => 'おもちゃ・フィギュア';
+
+  @override
+  String get categoryToysMeme => '人形のミーム';
+
+  @override
+  String get categoryFoodPhoto => '料理';
+
+  @override
+  String get categoryMountainsPhoto => '山の風景';
+
+  @override
+  String get categoryMountainsIllustration => '山のイラスト';
+
+  @override
+  String get categoryCoastPhoto => '海辺の風景';
+
+  @override
+  String get categoryCoastIllustration => '海辺のイラスト';
+
+  @override
+  String get categoryForestsPhoto => '森林';
+
+  @override
+  String get categoryForestsIllustration => '森林のイラスト';
+
+  @override
+  String get categoryFlowersPhoto => '花・植物';
+
+  @override
+  String get categoryCityArchitecturePhoto => '街並み・建築';
+
+  @override
+  String get categoryCityArchitectureIllustration => '建築のイラスト';
+
+  @override
+  String get categoryInteriorsPhoto => '室内';
+
+  @override
+  String get categoryConstructionPhoto => '建設現場';
+
+  @override
+  String get categoryVehiclesPhoto => '乗り物';
+
+  @override
+  String get categoryProgrammingScreenshot => 'コードのスクリーンショット';
+
+  @override
+  String get categoryMessagingScreenshot => 'チャット履歴';
+
+  @override
+  String get categoryGamingScreenshot => 'ゲームのスクリーンショット';
+
+  @override
+  String get categoryDocumentReadingScreenshot => '文書のスクリーンショット';
+
+  @override
+  String get categoryDocumentReadingOther => '文書';
+
+  @override
+  String get categoryApplicationInterfacesScreenshot => 'アプリ画面';
+
+  @override
+  String get categoryMapsScreenshot => '地図のスクリーンショット';
+
+  @override
+  String get categoryMapsOther => '地図';
+
+  @override
+  String get categoryTablesChartsScreenshot => '図表のスクリーンショット';
+
+  @override
+  String get categoryTablesChartsOther => '表・グラフ';
+
+  @override
+  String get categoryNotesOther => '手書きメモ';
+
+  @override
+  String get categoryMathematicsOther => '数学資料';
+
+  @override
+  String get categoryMusicOther => '楽譜';
+
+  @override
+  String get categoryShoppingScreenshot => 'ショッピングページ';
+
+  @override
+  String get categoryReceiptsOther => '領収書・チケット';
+
+  @override
+  String get categoryInterfaceDesignOther => 'UIデザイン';
+
+  @override
+  String get categoryLogosOther => 'ロゴ・アイコン';
+
+  @override
+  String get categoryFilmScreenshot => '映画・テレビの場面';
+
+  @override
+  String get categoryFilmMeme => '映画・テレビのミーム';
+
+  @override
   String modelDownloadProgress(int percent, double received, double total) {
     final intl.NumberFormat receivedNumberFormat =
         intl.NumberFormat.decimalPatternDigits(

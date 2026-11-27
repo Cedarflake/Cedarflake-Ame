@@ -3853,6 +3853,163 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryOther => 'Other';
 
   @override
+  String get categoryCatsPhoto => 'Cats';
+
+  @override
+  String get categoryCatsMeme => 'Cat memes';
+
+  @override
+  String get categoryDogsPhoto => 'Dogs';
+
+  @override
+  String get categoryDogsMeme => 'Dog memes';
+
+  @override
+  String get categoryRabbitsPhoto => 'Rabbits';
+
+  @override
+  String get categoryBirdsPhoto => 'Birds';
+
+  @override
+  String get categoryWildlifePhoto => 'Wildlife';
+
+  @override
+  String get categoryAnimalCharactersIllustration =>
+      'Animal character illustrations';
+
+  @override
+  String get categoryAnimalCharactersMeme => 'Animal character memes';
+
+  @override
+  String get categoryAnimalEaredCharactersIllustration =>
+      'Animal-eared character illustrations';
+
+  @override
+  String get categoryAnimalEaredCharactersMeme =>
+      'Animal-eared character memes';
+
+  @override
+  String get categoryPortraitsPhoto => 'Portraits';
+
+  @override
+  String get categoryGroupsPhoto => 'Group photos';
+
+  @override
+  String get categoryCostumesPhoto => 'Cosplay';
+
+  @override
+  String get categoryPerformancesPhoto => 'Stage performances';
+
+  @override
+  String get categorySportsPhoto => 'Sports';
+
+  @override
+  String get categoryChildrenPlayingPhoto => 'Children at play';
+
+  @override
+  String get categoryToysPhoto => 'Toys and figures';
+
+  @override
+  String get categoryToysMeme => 'Toy memes';
+
+  @override
+  String get categoryFoodPhoto => 'Food';
+
+  @override
+  String get categoryMountainsPhoto => 'Mountain landscapes';
+
+  @override
+  String get categoryMountainsIllustration => 'Mountain illustrations';
+
+  @override
+  String get categoryCoastPhoto => 'Coastal landscapes';
+
+  @override
+  String get categoryCoastIllustration => 'Coastal illustrations';
+
+  @override
+  String get categoryForestsPhoto => 'Forests';
+
+  @override
+  String get categoryForestsIllustration => 'Forest illustrations';
+
+  @override
+  String get categoryFlowersPhoto => 'Flowers and plants';
+
+  @override
+  String get categoryCityArchitecturePhoto => 'Cities and architecture';
+
+  @override
+  String get categoryCityArchitectureIllustration =>
+      'Architectural illustrations';
+
+  @override
+  String get categoryInteriorsPhoto => 'Interiors';
+
+  @override
+  String get categoryConstructionPhoto => 'Construction';
+
+  @override
+  String get categoryVehiclesPhoto => 'Vehicles';
+
+  @override
+  String get categoryProgrammingScreenshot => 'Code screenshots';
+
+  @override
+  String get categoryMessagingScreenshot => 'Chat conversations';
+
+  @override
+  String get categoryGamingScreenshot => 'Game screenshots';
+
+  @override
+  String get categoryDocumentReadingScreenshot => 'Document screenshots';
+
+  @override
+  String get categoryDocumentReadingOther => 'Documents';
+
+  @override
+  String get categoryApplicationInterfacesScreenshot => 'App interfaces';
+
+  @override
+  String get categoryMapsScreenshot => 'Map screenshots';
+
+  @override
+  String get categoryMapsOther => 'Maps';
+
+  @override
+  String get categoryTablesChartsScreenshot => 'Chart screenshots';
+
+  @override
+  String get categoryTablesChartsOther => 'Tables and charts';
+
+  @override
+  String get categoryNotesOther => 'Handwritten notes';
+
+  @override
+  String get categoryMathematicsOther => 'Mathematics';
+
+  @override
+  String get categoryMusicOther => 'Sheet music';
+
+  @override
+  String get categoryShoppingScreenshot => 'Shopping pages';
+
+  @override
+  String get categoryReceiptsOther => 'Receipts and tickets';
+
+  @override
+  String get categoryInterfaceDesignOther => 'Interface design';
+
+  @override
+  String get categoryLogosOther => 'Logos and icons';
+
+  @override
+  String get categoryFilmScreenshot => 'Film and TV stills';
+
+  @override
+  String get categoryFilmMeme => 'Film and TV memes';
+
+  @override
   String modelDownloadProgress(int percent, double received, double total) {
     final intl.NumberFormat receivedNumberFormat =
         intl.NumberFormat.decimalPatternDigits(

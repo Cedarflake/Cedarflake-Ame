@@ -5874,6 +5874,312 @@ abstract class AppLocalizations {
   /// **'其他'**
   String get categoryOther;
 
+  /// Automatic smart-album name for the cats topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'猫咪'**
+  String get categoryCatsPhoto;
+
+  /// Automatic smart-album name for the cats topic with meme purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'猫咪表情'**
+  String get categoryCatsMeme;
+
+  /// Automatic smart-album name for the dogs topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'狗狗'**
+  String get categoryDogsPhoto;
+
+  /// Automatic smart-album name for the dogs topic with meme purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'狗狗表情'**
+  String get categoryDogsMeme;
+
+  /// Automatic smart-album name for the rabbits topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'兔子'**
+  String get categoryRabbitsPhoto;
+
+  /// Automatic smart-album name for the birds topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'鸟类'**
+  String get categoryBirdsPhoto;
+
+  /// Automatic smart-album name for the wildlife topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'野生动物'**
+  String get categoryWildlifePhoto;
+
+  /// Automatic smart-album name for the animal characters topic with illustration purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'动物角色插画'**
+  String get categoryAnimalCharactersIllustration;
+
+  /// Automatic smart-album name for the animal characters topic with meme purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'动物角色表情'**
+  String get categoryAnimalCharactersMeme;
+
+  /// Automatic smart-album name for the animal eared characters topic with illustration purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'兽耳角色插画'**
+  String get categoryAnimalEaredCharactersIllustration;
+
+  /// Automatic smart-album name for the animal eared characters topic with meme purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'兽耳角色表情'**
+  String get categoryAnimalEaredCharactersMeme;
+
+  /// Automatic smart-album name for the portraits topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'人物肖像'**
+  String get categoryPortraitsPhoto;
+
+  /// Automatic smart-album name for the groups topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'多人合影'**
+  String get categoryGroupsPhoto;
+
+  /// Automatic smart-album name for the costumes topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'角色扮演'**
+  String get categoryCostumesPhoto;
+
+  /// Automatic smart-album name for the performances topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'舞台表演'**
+  String get categoryPerformancesPhoto;
+
+  /// Automatic smart-album name for the sports topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'体育运动'**
+  String get categorySportsPhoto;
+
+  /// Automatic smart-album name for the children playing topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'儿童游玩'**
+  String get categoryChildrenPlayingPhoto;
+
+  /// Automatic smart-album name for the toys topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'玩具手办'**
+  String get categoryToysPhoto;
+
+  /// Automatic smart-album name for the toys topic with meme purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'玩偶表情'**
+  String get categoryToysMeme;
+
+  /// Automatic smart-album name for the food topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'餐饮美食'**
+  String get categoryFoodPhoto;
+
+  /// Automatic smart-album name for the mountains topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'山野风光'**
+  String get categoryMountainsPhoto;
+
+  /// Automatic smart-album name for the mountains topic with illustration purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'山野插画'**
+  String get categoryMountainsIllustration;
+
+  /// Automatic smart-album name for the coast topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'海滨风光'**
+  String get categoryCoastPhoto;
+
+  /// Automatic smart-album name for the coast topic with illustration purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'海滨插画'**
+  String get categoryCoastIllustration;
+
+  /// Automatic smart-album name for the forests topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'树林'**
+  String get categoryForestsPhoto;
+
+  /// Automatic smart-album name for the forests topic with illustration purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'森林插画'**
+  String get categoryForestsIllustration;
+
+  /// Automatic smart-album name for the flowers topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'花草'**
+  String get categoryFlowersPhoto;
+
+  /// Automatic smart-album name for the city architecture topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'城市与建筑'**
+  String get categoryCityArchitecturePhoto;
+
+  /// Automatic smart-album name for the city architecture topic with illustration purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'建筑插画'**
+  String get categoryCityArchitectureIllustration;
+
+  /// Automatic smart-album name for the interiors topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'室内空间'**
+  String get categoryInteriorsPhoto;
+
+  /// Automatic smart-album name for the construction topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'建筑施工'**
+  String get categoryConstructionPhoto;
+
+  /// Automatic smart-album name for the vehicles topic with photo purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'车辆'**
+  String get categoryVehiclesPhoto;
+
+  /// Automatic smart-album name for the programming topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'代码截图'**
+  String get categoryProgrammingScreenshot;
+
+  /// Automatic smart-album name for the messaging topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'聊天记录'**
+  String get categoryMessagingScreenshot;
+
+  /// Automatic smart-album name for the gaming topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'游戏截图'**
+  String get categoryGamingScreenshot;
+
+  /// Automatic smart-album name for the document reading topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档阅读截图'**
+  String get categoryDocumentReadingScreenshot;
+
+  /// Automatic smart-album name for the document reading topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'文档资料'**
+  String get categoryDocumentReadingOther;
+
+  /// Automatic smart-album name for the application interfaces topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用界面'**
+  String get categoryApplicationInterfacesScreenshot;
+
+  /// Automatic smart-album name for the maps topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'地图导航截图'**
+  String get categoryMapsScreenshot;
+
+  /// Automatic smart-album name for the maps topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'地图资料'**
+  String get categoryMapsOther;
+
+  /// Automatic smart-album name for the tables charts topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'图表截图'**
+  String get categoryTablesChartsScreenshot;
+
+  /// Automatic smart-album name for the tables charts topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'图表资料'**
+  String get categoryTablesChartsOther;
+
+  /// Automatic smart-album name for the notes topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'手写笔记'**
+  String get categoryNotesOther;
+
+  /// Automatic smart-album name for the mathematics topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'数学资料'**
+  String get categoryMathematicsOther;
+
+  /// Automatic smart-album name for the music topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'乐谱'**
+  String get categoryMusicOther;
+
+  /// Automatic smart-album name for the shopping topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'购物页面'**
+  String get categoryShoppingScreenshot;
+
+  /// Automatic smart-album name for the receipts topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'票据'**
+  String get categoryReceiptsOther;
+
+  /// Automatic smart-album name for the interface design topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'界面设计'**
+  String get categoryInterfaceDesignOther;
+
+  /// Automatic smart-album name for the logos topic with other purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'标志与图标'**
+  String get categoryLogosOther;
+
+  /// Automatic smart-album name for the film topic with screenshot purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'影视画面'**
+  String get categoryFilmScreenshot;
+
+  /// Automatic smart-album name for the film topic with meme purpose.
+  ///
+  /// In zh, this message translates to:
+  /// **'影视表情'**
+  String get categoryFilmMeme;
+
   /// Download progress, decimal megabytes received and total.
   ///
   /// In zh, this message translates to:
