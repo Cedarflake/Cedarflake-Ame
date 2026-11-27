@@ -407,6 +407,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ApplicationUpdateChannel dco_decode_application_update_channel(dynamic raw);
 
   @protected
+  ApplicationUpdateDelivery dco_decode_application_update_delivery(dynamic raw);
+
+  @protected
   ApplicationUpdateError dco_decode_application_update_error(dynamic raw);
 
   @protected
@@ -2031,6 +2034,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ApplicationUpdateChannel sse_decode_application_update_channel(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApplicationUpdateDelivery sse_decode_application_update_delivery(
     SseDeserializer deserializer,
   );
 
@@ -4084,6 +4092,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_application_update_channel(
     ApplicationUpdateChannel self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_application_update_delivery(
+    ApplicationUpdateDelivery self,
     SseSerializer serializer,
   );
 

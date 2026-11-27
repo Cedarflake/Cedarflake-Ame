@@ -33,32 +33,19 @@ impl ClassificationAccelerationRepository for ClassificationInstallationStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rusqlite::Connection;
 
     #[test]
-    fn legacy_installation_keeps_its_selection_and_defaults_to_gpu() {
+    fn changing_acceleration_preserves_selection_and_pending_download() {
         let temporary = tempfile::tempdir().unwrap();
         let path = temporary.path().join("classification.sqlite3");
         let store = ClassificationInstallationStore;
         assert!(store.gpu_enabled(&path).unwrap());
         assert!(!path.exists());
-        let connection = Connection::open(&path).unwrap();
+        let connection = open(&path).unwrap();
         connection
             .execute_batch(
-                "CREATE TABLE installation (
-                    id INTEGER PRIMARY KEY,
-                    models TEXT,
-                    runtime TEXT
-                );
-                INSERT INTO installation VALUES (1, 'retained-models', 'retained-runtime');
-                CREATE TABLE download_intent (
-                    id INTEGER PRIMARY KEY,
-                    generation INTEGER,
-                    package TEXT,
-                    pending INTEGER
-                );
-                INSERT INTO download_intent VALUES (1, 4, 'retained-package', 1);
-                PRAGMA user_version = 2;",
+                "INSERT INTO installation VALUES (1, 'retained-models', 'retained-runtime');
+                 INSERT INTO download_intent VALUES (1, 4, 'retained-package', 1);",
             )
             .unwrap();
         assert!(store.gpu_enabled(&path).unwrap());

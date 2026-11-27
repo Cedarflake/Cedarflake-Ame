@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -37,26 +37,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
            ON organization_admission_sources(root_key, admission_id)",
     ),
 ];
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 50)?;
-    for (_, _, ddl) in OBJECTS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    super::super::organization::admission::seed_current_catalog(transaction)?;
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 51; PRAGMA user_version = 51;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 51)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in OBJECTS {
@@ -102,21 +82,6 @@ fn invalid() -> ScanError {
         "catalog_organization_admission_invalid",
         "Organization admission requires ordered versions with configured source ownership",
     )
-}
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v50_for_test(connection: &Connection) {
-    super::organization_review::downgrade_to_v51_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 51 {
-        for (kind, name, _) in OBJECTS.iter().rev() {
-            connection
-                .execute_batch(&format!("DROP {kind} {name}"))
-                .unwrap();
-        }
-        connection
-            .execute_batch("UPDATE schema_info SET version = 50; PRAGMA user_version = 50;")
-            .unwrap();
-    }
 }
 
 #[cfg(test)]

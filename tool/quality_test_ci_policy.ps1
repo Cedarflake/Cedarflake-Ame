@@ -16,6 +16,7 @@ if ((Get-AmeCiPolicy -ChangedPaths @('README.md', 'docs/product/gallery.md')).Mo
 foreach ($paths in @(
     @('tool/release_reuse_policy.ps1', 'docs/releases/v1.0.0.md'),
     @('.github/workflows/release_publish_windows.yml'),
+    @('.github/workflows/release_store_windows.yml', 'tool/release_store_identity.ps1', 'tool/release_test_store.ps1'),
     @('tool/release_package_installer_windows.ps1', '.github/workflows/quality_ci.yml')
 )) {
     if ((Get-AmeCiPolicy -ChangedPaths $paths).Mode -cne 'release-tooling') {

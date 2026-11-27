@@ -40,7 +40,9 @@ abstract class DesktopApplicationUpdates implements RustOpaqueInterface {
     required ApplicationUpdateChannel channel,
   });
 
-  bool isSupported();
+  ApplicationUpdateDelivery delivery();
+
+  Future<void> openStore();
 
   Future<ApplicationUpdateResult?> takeResult();
 }

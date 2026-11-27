@@ -25,16 +25,25 @@ fn retained_failures(count: usize) -> CatalogFixture {
     let path = fixture.catalog.catalog_path().to_path_buf();
     drop(fixture.catalog);
     let connection = Connection::open(&path).unwrap();
-    crate::adapters::downgrade_to_v39_for_test(&connection);
     connection
         .execute_batch(
             "DELETE FROM library_terminal_media_evidence;
-        DROP TABLE library_media_admission_rechecks;
-        UPDATE schema_info SET version = 37; PRAGMA user_version = 37;",
+        INSERT INTO library_media_admission_rechecks(
+            root_id, root_generation, relative_path, location_id, asset_id,
+            file_identity_scheme, file_identity_value, state)
+        SELECT location.root_id, root.generation, location.relative_path,
+               location.location_id, location.asset_id,
+               location.file_identity_scheme, location.file_identity_value, 'pending'
+        FROM asset_locations AS location
+        JOIN library_roots AS library ON library.id = location.root_id
+          AND library.active_scan_id = location.scan_id
+        JOIN library_change_root_state AS root ON root.root_id = library.id
+        WHERE root.is_active = 1 AND location.width = 0 AND location.height = 0
+          AND location.preview_status = 'failed' AND location.preview_path = '';",
         )
         .unwrap();
     drop(connection);
-    fixture.catalog = SqliteCatalog::open(path).expect("upgrade retained failures");
+    fixture.catalog = SqliteCatalog::open(path).expect("reopen current admission fixtures");
     fixture
 }
 

@@ -36,6 +36,9 @@
   "updateStop": "停止下载",
   "updateReadyHelp": "重启 Ame 后安装更新。",
   "updateUnavailable": "请使用安装版或便携版检查更新。",
+  "updateOpenStore": "打开 Microsoft Store",
+  "updateStoreManaged": "更新由 Microsoft Store 管理。",
+  "updateStoreOpenFailure": "无法打开 Microsoft Store，请稍后重试。",
   "updateNetworkFailure": "暂时无法检查或下载更新，请稍后重试。",
   "updateReleaseFailure": "这个版本的更新信息不完整，请稍后重试。",
   "updatePackageFailure": "下载的更新包不完整，请重新下载。",
@@ -80,7 +83,7 @@
   "startupFailureTitle": "Cedarflake Ame 无法启动",
   "copyDiagnostics": "复制诊断信息",
   "diagnosticsCopied": "诊断信息已复制",
-  "startupUnsupportedCatalog": "图库数据来自不受支持的版本，无法安全打开。请导出诊断信息以便排查。",
+  "startupUnsupportedCatalog": "当前版本不支持这份图库数据。请导出诊断信息以便排查。",
   "startupDatabaseError": "图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请导出诊断信息以便排查。",
   "startupCatalogError": "图库加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。",
   "startupComponentError": "应用组件加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。",
@@ -2100,6 +2103,210 @@
   "categoryOther": "其他",
   "@categoryOther": {
     "description": "Display name for the factory smart album."
+  },
+  "categoryCatsPhoto": "猫咪",
+  "@categoryCatsPhoto": {
+    "description": "Automatic smart-album name for the cats topic with photo purpose."
+  },
+  "categoryCatsMeme": "猫咪表情",
+  "@categoryCatsMeme": {
+    "description": "Automatic smart-album name for the cats topic with meme purpose."
+  },
+  "categoryDogsPhoto": "狗狗",
+  "@categoryDogsPhoto": {
+    "description": "Automatic smart-album name for the dogs topic with photo purpose."
+  },
+  "categoryDogsMeme": "狗狗表情",
+  "@categoryDogsMeme": {
+    "description": "Automatic smart-album name for the dogs topic with meme purpose."
+  },
+  "categoryRabbitsPhoto": "兔子",
+  "@categoryRabbitsPhoto": {
+    "description": "Automatic smart-album name for the rabbits topic with photo purpose."
+  },
+  "categoryBirdsPhoto": "鸟类",
+  "@categoryBirdsPhoto": {
+    "description": "Automatic smart-album name for the birds topic with photo purpose."
+  },
+  "categoryWildlifePhoto": "野生动物",
+  "@categoryWildlifePhoto": {
+    "description": "Automatic smart-album name for the wildlife topic with photo purpose."
+  },
+  "categoryAnimalCharactersIllustration": "动物角色插画",
+  "@categoryAnimalCharactersIllustration": {
+    "description": "Automatic smart-album name for the animal characters topic with illustration purpose."
+  },
+  "categoryAnimalCharactersMeme": "动物角色表情",
+  "@categoryAnimalCharactersMeme": {
+    "description": "Automatic smart-album name for the animal characters topic with meme purpose."
+  },
+  "categoryAnimalEaredCharactersIllustration": "兽耳角色插画",
+  "@categoryAnimalEaredCharactersIllustration": {
+    "description": "Automatic smart-album name for the animal eared characters topic with illustration purpose."
+  },
+  "categoryAnimalEaredCharactersMeme": "兽耳角色表情",
+  "@categoryAnimalEaredCharactersMeme": {
+    "description": "Automatic smart-album name for the animal eared characters topic with meme purpose."
+  },
+  "categoryPortraitsPhoto": "人物肖像",
+  "@categoryPortraitsPhoto": {
+    "description": "Automatic smart-album name for the portraits topic with photo purpose."
+  },
+  "categoryGroupsPhoto": "多人合影",
+  "@categoryGroupsPhoto": {
+    "description": "Automatic smart-album name for the groups topic with photo purpose."
+  },
+  "categoryCostumesPhoto": "角色扮演",
+  "@categoryCostumesPhoto": {
+    "description": "Automatic smart-album name for the costumes topic with photo purpose."
+  },
+  "categoryPerformancesPhoto": "舞台表演",
+  "@categoryPerformancesPhoto": {
+    "description": "Automatic smart-album name for the performances topic with photo purpose."
+  },
+  "categorySportsPhoto": "体育运动",
+  "@categorySportsPhoto": {
+    "description": "Automatic smart-album name for the sports topic with photo purpose."
+  },
+  "categoryChildrenPlayingPhoto": "儿童游玩",
+  "@categoryChildrenPlayingPhoto": {
+    "description": "Automatic smart-album name for the children playing topic with photo purpose."
+  },
+  "categoryToysPhoto": "玩具手办",
+  "@categoryToysPhoto": {
+    "description": "Automatic smart-album name for the toys topic with photo purpose."
+  },
+  "categoryToysMeme": "玩偶表情",
+  "@categoryToysMeme": {
+    "description": "Automatic smart-album name for the toys topic with meme purpose."
+  },
+  "categoryFoodPhoto": "餐饮美食",
+  "@categoryFoodPhoto": {
+    "description": "Automatic smart-album name for the food topic with photo purpose."
+  },
+  "categoryMountainsPhoto": "山野风光",
+  "@categoryMountainsPhoto": {
+    "description": "Automatic smart-album name for the mountains topic with photo purpose."
+  },
+  "categoryMountainsIllustration": "山野插画",
+  "@categoryMountainsIllustration": {
+    "description": "Automatic smart-album name for the mountains topic with illustration purpose."
+  },
+  "categoryCoastPhoto": "海滨风光",
+  "@categoryCoastPhoto": {
+    "description": "Automatic smart-album name for the coast topic with photo purpose."
+  },
+  "categoryCoastIllustration": "海滨插画",
+  "@categoryCoastIllustration": {
+    "description": "Automatic smart-album name for the coast topic with illustration purpose."
+  },
+  "categoryForestsPhoto": "树林",
+  "@categoryForestsPhoto": {
+    "description": "Automatic smart-album name for the forests topic with photo purpose."
+  },
+  "categoryForestsIllustration": "森林插画",
+  "@categoryForestsIllustration": {
+    "description": "Automatic smart-album name for the forests topic with illustration purpose."
+  },
+  "categoryFlowersPhoto": "花草",
+  "@categoryFlowersPhoto": {
+    "description": "Automatic smart-album name for the flowers topic with photo purpose."
+  },
+  "categoryCityArchitecturePhoto": "城市与建筑",
+  "@categoryCityArchitecturePhoto": {
+    "description": "Automatic smart-album name for the city architecture topic with photo purpose."
+  },
+  "categoryCityArchitectureIllustration": "建筑插画",
+  "@categoryCityArchitectureIllustration": {
+    "description": "Automatic smart-album name for the city architecture topic with illustration purpose."
+  },
+  "categoryInteriorsPhoto": "室内空间",
+  "@categoryInteriorsPhoto": {
+    "description": "Automatic smart-album name for the interiors topic with photo purpose."
+  },
+  "categoryConstructionPhoto": "建筑施工",
+  "@categoryConstructionPhoto": {
+    "description": "Automatic smart-album name for the construction topic with photo purpose."
+  },
+  "categoryVehiclesPhoto": "车辆",
+  "@categoryVehiclesPhoto": {
+    "description": "Automatic smart-album name for the vehicles topic with photo purpose."
+  },
+  "categoryProgrammingScreenshot": "代码截图",
+  "@categoryProgrammingScreenshot": {
+    "description": "Automatic smart-album name for the programming topic with screenshot purpose."
+  },
+  "categoryMessagingScreenshot": "聊天记录",
+  "@categoryMessagingScreenshot": {
+    "description": "Automatic smart-album name for the messaging topic with screenshot purpose."
+  },
+  "categoryGamingScreenshot": "游戏截图",
+  "@categoryGamingScreenshot": {
+    "description": "Automatic smart-album name for the gaming topic with screenshot purpose."
+  },
+  "categoryDocumentReadingScreenshot": "文档阅读截图",
+  "@categoryDocumentReadingScreenshot": {
+    "description": "Automatic smart-album name for the document reading topic with screenshot purpose."
+  },
+  "categoryDocumentReadingOther": "文档资料",
+  "@categoryDocumentReadingOther": {
+    "description": "Automatic smart-album name for the document reading topic with other purpose."
+  },
+  "categoryApplicationInterfacesScreenshot": "应用界面",
+  "@categoryApplicationInterfacesScreenshot": {
+    "description": "Automatic smart-album name for the application interfaces topic with screenshot purpose."
+  },
+  "categoryMapsScreenshot": "地图导航截图",
+  "@categoryMapsScreenshot": {
+    "description": "Automatic smart-album name for the maps topic with screenshot purpose."
+  },
+  "categoryMapsOther": "地图资料",
+  "@categoryMapsOther": {
+    "description": "Automatic smart-album name for the maps topic with other purpose."
+  },
+  "categoryTablesChartsScreenshot": "图表截图",
+  "@categoryTablesChartsScreenshot": {
+    "description": "Automatic smart-album name for the tables charts topic with screenshot purpose."
+  },
+  "categoryTablesChartsOther": "图表资料",
+  "@categoryTablesChartsOther": {
+    "description": "Automatic smart-album name for the tables charts topic with other purpose."
+  },
+  "categoryNotesOther": "手写笔记",
+  "@categoryNotesOther": {
+    "description": "Automatic smart-album name for the notes topic with other purpose."
+  },
+  "categoryMathematicsOther": "数学资料",
+  "@categoryMathematicsOther": {
+    "description": "Automatic smart-album name for the mathematics topic with other purpose."
+  },
+  "categoryMusicOther": "乐谱",
+  "@categoryMusicOther": {
+    "description": "Automatic smart-album name for the music topic with other purpose."
+  },
+  "categoryShoppingScreenshot": "购物页面",
+  "@categoryShoppingScreenshot": {
+    "description": "Automatic smart-album name for the shopping topic with screenshot purpose."
+  },
+  "categoryReceiptsOther": "票据",
+  "@categoryReceiptsOther": {
+    "description": "Automatic smart-album name for the receipts topic with other purpose."
+  },
+  "categoryInterfaceDesignOther": "界面设计",
+  "@categoryInterfaceDesignOther": {
+    "description": "Automatic smart-album name for the interface design topic with other purpose."
+  },
+  "categoryLogosOther": "标志与图标",
+  "@categoryLogosOther": {
+    "description": "Automatic smart-album name for the logos topic with other purpose."
+  },
+  "categoryFilmScreenshot": "影视画面",
+  "@categoryFilmScreenshot": {
+    "description": "Automatic smart-album name for the film topic with screenshot purpose."
+  },
+  "categoryFilmMeme": "影视表情",
+  "@categoryFilmMeme": {
+    "description": "Automatic smart-album name for the film topic with meme purpose."
   },
   "modelDownloadProgress": "{percent}% · {received} / {total} MB",
   "@modelDownloadProgress": {

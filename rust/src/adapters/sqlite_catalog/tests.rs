@@ -1,4 +1,4 @@
-pub(super) use support::{migrate_v29_ambiguous_gap_fixture, publish_gallery_fixture};
+pub(super) use support::{publish_gallery_fixture, seed_explicit_recovery_fixture};
 
 mod catalog_migrations;
 mod foreground_recovery;

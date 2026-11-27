@@ -24,6 +24,7 @@ String updateFailureLabel(
   AppLocalizations strings,
   ApplicationUpdateFailure failure,
 ) => switch (failure.code) {
+  ApplicationUpdateFailureCode.store => strings.updateStoreOpenFailure,
   ApplicationUpdateFailureCode.unavailable => strings.updateUnavailable,
   ApplicationUpdateFailureCode.network => strings.updateNetworkFailure,
   ApplicationUpdateFailureCode.invalidRelease => strings.updateReleaseFailure,

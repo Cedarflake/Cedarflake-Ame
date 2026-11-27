@@ -1,5 +1,5 @@
 use crate::adapters::sqlite_catalog::tests::support::{
-    fixture_request, migrate_v29_ambiguous_gap_fixture, publication_identity,
+    fixture_request, publication_identity, seed_explicit_recovery_fixture,
 };
 
 use tempfile::tempdir;
@@ -11,8 +11,9 @@ fn current_v30_rejects_an_inexact_explicit_recovery_claim_on_reopen() {
     let directory = tempdir().expect("catalog directory");
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "invalid-explicit-claim-root";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, "C:\\InvalidExplicitClaim", false);
-    let catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    seed_explicit_recovery_fixture(&catalog_path, root_id, "C:\\InvalidExplicitClaim", false);
+    let catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("open explicit recovery fixture");
     catalog
         .connection
         .execute(
@@ -43,8 +44,9 @@ fn current_v30_rejects_an_inexact_active_foreground_claim_on_reopen() {
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "invalid-active-claim-root";
     let root_path = "C:\\InvalidActiveClaim";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
-    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    seed_explicit_recovery_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("open explicit recovery fixture");
     let request = fixture_request("invalid-active-claim-scan", root_path);
     catalog
         .begin_scan_with_publication_namespace(
@@ -85,7 +87,7 @@ fn current_v30_rejects_an_active_foreground_claim_bound_to_authoritative_recover
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "invalid-active-owner-root";
     let root_path = "C:\\Private\\InvalidActiveOwner";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    seed_explicit_recovery_fixture(&catalog_path, root_id, root_path, false);
     let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("explicit recovery catalog");
     let request = fixture_request("invalid-active-owner-scan", root_path);
     catalog
@@ -167,8 +169,9 @@ fn current_v30_rejects_an_inexact_consumed_foreground_claim_on_reopen() {
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "invalid-consumed-claim-root";
     let root_path = "C:\\InvalidConsumedClaim";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
-    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    seed_explicit_recovery_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("open explicit recovery fixture");
     let request = fixture_request("invalid-consumed-claim-scan", root_path);
     catalog
         .begin_scan_with_publication_namespace(
@@ -215,7 +218,7 @@ fn current_v30_rejects_a_consumed_foreground_claim_bound_to_authoritative_recove
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "invalid-consumed-owner-root";
     let root_path = "C:\\Private\\InvalidConsumedOwner";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
+    seed_explicit_recovery_fixture(&catalog_path, root_id, root_path, false);
     let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("explicit recovery catalog");
     let request = fixture_request("invalid-consumed-owner-scan", root_path);
     catalog

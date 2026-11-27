@@ -24,7 +24,7 @@ fn cancelling_unpublished_foreground_claim_restores_consumer_before_root_retirem
     let path = directory.path().join("catalog.sqlite3");
     let root_id = "unpublished-explicit-claim";
     let root_path = "C:\\SyntheticUnpublishedExplicitClaim";
-    super::super::tests::migrate_v29_ambiguous_gap_fixture(&path, root_id, root_path, false);
+    super::super::tests::seed_explicit_recovery_fixture(&path, root_id, root_path, false);
     let mut catalog = SqliteCatalog::open(path.clone()).expect("migrated derived fixture");
     let request = ScanRequest {
         scan_id: "first-import-claimed-gap".to_owned(),

@@ -1,35 +1,11 @@
 use rusqlite::Connection;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 #[test]
-fn prerelease_v19_without_catch_up_marker_fails_closed() {
+fn current_lineage_with_wrong_foreign_key_target_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    connection
-        .execute_batch(
-            "CREATE TABLE schema_info(version INTEGER NOT NULL);
-             INSERT INTO schema_info(version) VALUES (19);
-             CREATE TABLE library_change_queue_contract(
-               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-               root_authority_complete INTEGER NOT NULL CHECK(root_authority_complete = 1),
-               authoritative_recovery_complete INTEGER NOT NULL
-                 CHECK(authoritative_recovery_complete = 1),
-               scan_ownership_complete INTEGER NOT NULL
-                 CHECK(scan_ownership_complete = 1)
-             );
-             INSERT INTO library_change_queue_contract VALUES (1, 1, 1, 1);",
-        )
-        .expect("prerelease v19 fixture without catch-up marker");
-
-    let error = migrate_schema(&mut connection).expect_err("missing catch-up contract");
-
-    assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
-}
-
-#[test]
-fn current_v19_lineage_with_wrong_foreign_key_target_fails_closed() {
-    let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP TABLE library_change_queue_catch_up_lineage;
@@ -49,15 +25,15 @@ fn current_v19_lineage_with_wrong_foreign_key_target_fails_closed() {
         )
         .expect("wrong-target lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("wrong-target lineage foreign key");
+    let error = initialize_schema(&mut connection).expect_err("wrong-target lineage foreign key");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_lineage_with_extra_required_column_fails_closed() {
+fn current_lineage_with_extra_required_column_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP TABLE library_change_queue_catch_up_lineage;
@@ -77,15 +53,15 @@ fn current_v19_lineage_with_extra_required_column_fails_closed() {
         )
         .expect("extra-column lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("extra required lineage column");
+    let error = initialize_schema(&mut connection).expect_err("extra required lineage column");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_checkpoint_with_incomplete_shape_fails_closed() {
+fn current_checkpoint_with_incomplete_shape_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP TABLE library_change_catch_up_state;
@@ -95,15 +71,15 @@ fn current_v19_checkpoint_with_incomplete_shape_fails_closed() {
         )
         .expect("incomplete checkpoint fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("incomplete checkpoint contract");
+    let error = initialize_schema(&mut connection).expect_err("incomplete checkpoint contract");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_legacy_handoff_with_extra_required_column_fails_closed() {
+fn current_legacy_handoff_with_extra_required_column_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "ALTER TABLE library_change_catch_up_handoffs
@@ -111,15 +87,15 @@ fn current_v19_legacy_handoff_with_extra_required_column_fails_closed() {
         )
         .expect("extra legacy handoff column fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("extra legacy handoff column");
+    let error = initialize_schema(&mut connection).expect_err("extra legacy handoff column");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_orphan_lineage_fails_closed() {
+fn current_orphan_lineage_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
@@ -130,15 +106,15 @@ fn current_v19_orphan_lineage_fails_closed() {
         )
         .expect("orphan lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("orphan lineage");
+    let error = initialize_schema(&mut connection).expect_err("orphan lineage");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_scan_lineage_with_wrong_foreign_key_target_fails_closed() {
+fn current_scan_lineage_with_wrong_foreign_key_target_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP TABLE scan_run_catch_up_lineage;
@@ -157,15 +133,15 @@ fn current_v19_scan_lineage_with_wrong_foreign_key_target_fails_closed() {
         )
         .expect("wrong-target scan lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("wrong-target scan lineage key");
+    let error = initialize_schema(&mut connection).expect_err("wrong-target scan lineage key");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_orphan_scan_lineage_fails_closed() {
+fn current_orphan_scan_lineage_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "PRAGMA foreign_keys = OFF;
@@ -176,15 +152,15 @@ fn current_v19_orphan_scan_lineage_fails_closed() {
         )
         .expect("orphan scan lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("orphan scan lineage");
+    let error = initialize_schema(&mut connection).expect_err("orphan scan lineage");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_orphan_handoff_fails_closed() {
+fn current_orphan_handoff_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_change_catch_up_handoffs(
@@ -205,15 +181,15 @@ fn current_v19_orphan_handoff_fails_closed() {
         )
         .expect("orphan handoff fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("orphan handoff");
+    let error = initialize_schema(&mut connection).expect_err("orphan handoff");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_unbacked_active_scan_lineage_fails_closed() {
+fn current_unbacked_active_scan_lineage_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_roots(id, path, created_unix_ms)
@@ -230,7 +206,7 @@ fn current_v19_unbacked_active_scan_lineage_fails_closed() {
         )
         .expect("unbacked active scan lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("unbacked active scan lineage");
+    let error = initialize_schema(&mut connection).expect_err("unbacked active scan lineage");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }

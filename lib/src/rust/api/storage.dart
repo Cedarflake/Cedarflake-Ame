@@ -9,6 +9,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `clear_preview_cache_with`, `clear_retired_preview_cache_with`
 
+Future<String> applicationPreferencesDirectory() =>
+    RustLib.instance.api.crateApiStorageApplicationPreferencesDirectory();
+
 Future<StorageStatus> loadStorageStatus() =>
     RustLib.instance.api.crateApiStorageLoadStorageStatus();
 

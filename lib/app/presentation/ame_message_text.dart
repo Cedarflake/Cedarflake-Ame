@@ -34,6 +34,7 @@ extension AmeMessageText on AmeMessage {
       AmeLabel.updateInstallationFailure => strings.updateInstallationFailure,
       AmeLabel.updateShutdownFailure => strings.updateShutdownFailure,
       AmeLabel.updateUnavailable => strings.updateUnavailable,
+      AmeLabel.updateStoreOpenFailure => strings.updateStoreOpenFailure,
       AmeLabel.catalogCleanupAlreadyFinished =>
         strings.catalogCleanupAlreadyFinished,
       AmeLabel.albumDetailsUnavailable => strings.albumDetailsUnavailable,

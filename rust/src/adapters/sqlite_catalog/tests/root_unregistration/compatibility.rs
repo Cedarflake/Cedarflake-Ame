@@ -242,7 +242,7 @@ fn root_authority_repair_sql_failure_rolls_back_all_eligible_retirements() {
         )
         .expect("inject second update failure in actual migration transaction");
 
-    let error = crate::adapters::sqlite_catalog::migrations::migrate_schema(
+    let error = crate::adapters::sqlite_catalog::migrations::initialize_schema(
         &mut fixture.catalog.connection,
     )
     .expect_err("second retirement must abort the repair transaction");

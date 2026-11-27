@@ -1,13 +1,11 @@
 use rusqlite::Connection;
 
-use super::super::create_metadata_inventory_contract;
-use super::super::legacy_test_catalog::fresh_v19_catalog;
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 #[test]
-fn current_v20_malformed_inventory_contract_fails_closed() {
+fn current_malformed_inventory_contract_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v20 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP INDEX library_metadata_inventory_entries_compare;
@@ -16,7 +14,7 @@ fn current_v20_malformed_inventory_contract_fails_closed() {
         )
         .expect("malformed inventory index fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("malformed inventory contract");
+    let error = initialize_schema(&mut connection).expect_err("malformed inventory contract");
 
     assert_eq!(
         error.code,
@@ -25,9 +23,9 @@ fn current_v20_malformed_inventory_contract_fails_closed() {
 }
 
 #[test]
-fn current_v20_malformed_active_inventory_predicate_fails_closed() {
+fn current_malformed_active_inventory_predicate_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v20 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP INDEX library_metadata_inventory_runs_one_active_root;
@@ -37,7 +35,7 @@ fn current_v20_malformed_active_inventory_predicate_fails_closed() {
         )
         .expect("malformed active inventory index fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("malformed active inventory index");
+    let error = initialize_schema(&mut connection).expect_err("malformed active inventory index");
 
     assert_eq!(
         error.code,
@@ -46,27 +44,9 @@ fn current_v20_malformed_active_inventory_predicate_fails_closed() {
 }
 
 #[test]
-fn current_v20_without_inventory_queue_origin_fails_closed() {
-    let mut connection = fresh_v19_catalog();
-    let transaction = connection.transaction().expect("v20 fixture transaction");
-    create_metadata_inventory_contract(&transaction).expect("inventory contract fixture");
-    transaction
-        .execute("UPDATE schema_info SET version = 20", [])
-        .expect("v20 fixture version");
-    transaction.commit().expect("commit v20 fixture");
-
-    let error = migrate_schema(&mut connection).expect_err("missing inventory queue origin");
-
-    assert_eq!(
-        error.code,
-        "catalog_metadata_inventory_contract_unverifiable"
-    );
-}
-
-#[test]
-fn current_v20_active_inventory_with_stale_generation_fails_closed() {
+fn current_active_inventory_with_stale_generation_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v20 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
@@ -83,7 +63,7 @@ fn current_v20_active_inventory_with_stale_generation_fails_closed() {
         )
         .expect("stale inventory generation fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("stale active inventory");
+    let error = initialize_schema(&mut connection).expect_err("stale active inventory");
 
     assert_eq!(
         error.code,
@@ -92,9 +72,9 @@ fn current_v20_active_inventory_with_stale_generation_fails_closed() {
 }
 
 #[test]
-fn current_v20_active_inventory_with_staged_count_mismatch_fails_closed() {
+fn current_active_inventory_with_staged_count_mismatch_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v20 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_roots(id, path, created_unix_ms)
@@ -115,7 +95,7 @@ fn current_v20_active_inventory_with_staged_count_mismatch_fails_closed() {
         )
         .expect("active staged-count mismatch fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("active staged-count mismatch");
+    let error = initialize_schema(&mut connection).expect_err("active staged-count mismatch");
 
     assert_eq!(
         error.code,

@@ -1,3 +1,4 @@
+pub(crate) mod application_data;
 pub(crate) mod application_updates;
 mod authoritative_library_changes;
 mod background_analysis;

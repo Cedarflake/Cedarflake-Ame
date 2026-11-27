@@ -5,7 +5,8 @@ mod production;
 
 use crate::domain::application_update::{
     ApplicationDownloadPhase, ApplicationDownloadProgress, ApplicationRelease,
-    ApplicationUpdateChannel, ApplicationUpdateError, ApplicationUpdateFailureCode,
+    ApplicationUpdateChannel, ApplicationUpdateDelivery, ApplicationUpdateError,
+    ApplicationUpdateFailureCode,
 };
 use crate::ports::application_updates::{
     ApplicationDownloadObserver, ApplicationUpdatePackage, ApplicationUpdateSource,
@@ -29,8 +30,11 @@ impl ApplicationUpdates {
             source: production::open(version, build)?,
         })
     }
-    pub fn is_supported(&self) -> Result<bool, ApplicationUpdateError> {
-        self.source.is_supported()
+    pub fn delivery(&self) -> ApplicationUpdateDelivery {
+        self.source.delivery()
+    }
+    pub fn open_store(&self) -> Result<(), ApplicationUpdateError> {
+        self.source.open_store()
     }
     pub fn check(
         &self,

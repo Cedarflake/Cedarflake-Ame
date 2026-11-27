@@ -214,3 +214,15 @@ two suites passed with their original layout, persistence, navigation and cleanu
 The suites contain 416 and 326 lines; product code and CI selection are unchanged. The second failed
 job in [run 44944759629](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44944759629)
 was the aggregate Windows gate reporting the Flutter failure.
+
+## Automatic category labels, 2026-11-27
+
+The shared display resolver covers the six broad purposes and all 51 supported curated
+topic/purpose pairs by stable ID in Simplified Chinese, English and Japanese. Category identity,
+model input and saved results remain unchanged. The language-catalog check passed for 1,015
+messages; focused locale routing checks and static analysis passed.
+
+The rebuilt Windows Release client reopened the retained isolated library and displayed
+Flowers and plants, Coastal landscapes and Food in its sidebar. Selecting Flowers and plants
+showed the same English page title and preview category. The resolver contains 119 production
+lines and no inline tests. Hosted verification of these additions is pending.

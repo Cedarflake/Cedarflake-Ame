@@ -1,4 +1,3 @@
-use crate::adapters::sqlite_catalog::migrations::downgrade_source_revision_contract_to_v30_for_test;
 use crate::adapters::sqlite_catalog::*;
 
 pub(super) const TEST_QUERY_ID: &str = "test-default-query";
@@ -178,99 +177,6 @@ pub(super) fn exact_preview_request(location: &AssetLocationView) -> PreviewRequ
         retry_failed: false,
         protected_location_ids: Vec::new(),
     }
-}
-
-pub(super) fn ensure_legacy_scan_runs_contract(connection: &Connection) {
-    connection
-        .execute_batch(
-            "CREATE TABLE IF NOT EXISTS scan_runs (
-               id TEXT PRIMARY KEY,
-               root_id TEXT NOT NULL,
-               status TEXT NOT NULL,
-               started_unix_ms INTEGER NOT NULL,
-               completed_unix_ms INTEGER,
-               asset_count INTEGER NOT NULL DEFAULT 0,
-               issue_count INTEGER NOT NULL DEFAULT 0,
-               max_items INTEGER,
-               max_entries INTEGER,
-               preview_edge INTEGER NOT NULL,
-               current_directory_relative_path TEXT,
-               current_directory_enumerated INTEGER NOT NULL DEFAULT 0,
-               last_visited_relative_path TEXT,
-               visited_entries INTEGER NOT NULL DEFAULT 0,
-               accepted_items INTEGER NOT NULL DEFAULT 0
-             );
-             CREATE TABLE IF NOT EXISTS catalog_state (
-               revision INTEGER NOT NULL CHECK(revision >= 0)
-             );
-             INSERT INTO catalog_state(revision)
-               SELECT (SELECT COUNT(*) FROM scan_runs WHERE status = 'completed')
-               WHERE NOT EXISTS (SELECT 1 FROM catalog_state);",
-        )
-        .expect("legacy scan run contract");
-    ensure_legacy_asset_location_contract(connection);
-}
-
-pub(super) fn ensure_legacy_asset_location_contract(connection: &Connection) {
-    let version = connection
-        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
-            row.get::<_, i64>(0)
-        })
-        .expect("legacy asset location schema version");
-    let columns = [
-        (1, "absolute_path", "TEXT NOT NULL DEFAULT ''"),
-        (1, "preview_path", "TEXT NOT NULL DEFAULT ''"),
-        (1, "file_size", "INTEGER NOT NULL DEFAULT 0"),
-        (1, "modified_unix_ms", "INTEGER NOT NULL DEFAULT 0"),
-        (1, "width", "INTEGER NOT NULL DEFAULT 0"),
-        (1, "height", "INTEGER NOT NULL DEFAULT 0"),
-        (2, "asset_id", "TEXT NOT NULL DEFAULT ''"),
-        (7, "preview_status", "TEXT NOT NULL DEFAULT 'pending'"),
-        (7, "preview_issue_code", "TEXT"),
-        (7, "preview_issue_message", "TEXT"),
-        (8, "metadata_engine_id", "TEXT NOT NULL DEFAULT 'unknown'"),
-        (8, "metadata_engine_version", "TEXT NOT NULL DEFAULT '0'"),
-        (8, "capture_local_time", "TEXT"),
-        (8, "capture_offset_minutes", "INTEGER"),
-        (8, "capture_time_source", "TEXT"),
-        (8, "capture_raw_value", "TEXT"),
-        (9, "file_identity_scheme", "TEXT"),
-        (9, "file_identity_value", "TEXT"),
-        (12, "created_unix_ms", "INTEGER"),
-        (12, "parent_relative_path", "TEXT NOT NULL DEFAULT ''"),
-        (12, "natural_name_key", "TEXT NOT NULL DEFAULT ''"),
-        (13, "file_local_time", "TEXT"),
-    ];
-    for (introduced_in, name, definition) in columns {
-        if version < introduced_in {
-            continue;
-        }
-        let exists = connection
-            .query_row(
-                "SELECT EXISTS(
-                   SELECT 1 FROM pragma_table_info('asset_locations') WHERE name = ?1
-                 )",
-                [name],
-                |row| row.get::<_, bool>(0),
-            )
-            .expect("legacy asset location column query");
-        if !exists {
-            connection
-                .execute_batch(&format!(
-                    "ALTER TABLE asset_locations ADD COLUMN {name} {definition}"
-                ))
-                .expect("complete legacy asset location fixture");
-        }
-    }
-    connection
-        .execute_batch(
-            "CREATE TABLE IF NOT EXISTS assets (
-               id TEXT PRIMARY KEY, created_unix_ms INTEGER NOT NULL
-             );
-             INSERT OR IGNORE INTO assets(id, created_unix_ms)
-               SELECT DISTINCT asset_id, 0 FROM asset_locations;",
-        )
-        .expect("retain the legacy asset identity table");
 }
 
 pub(super) fn preview_reference_count(catalog: &SqliteCatalog, artifact_key: &str) -> i64 {
@@ -517,30 +423,15 @@ pub(super) fn seed_current_explicit_recovery_claim(
         .expect("insert explicit recovery claim");
 }
 
-pub(super) fn downgrade_live_gap_contract_to_v29(connection: &Connection) {
-    downgrade_source_revision_contract_to_v30_for_test(connection);
-    connection
-        .execute_batch(
-            "DROP TRIGGER library_live_gap_recovery_claim_identity_update_guard;
-             DROP TRIGGER library_live_gap_recovery_claim_insert_guard;
-             DROP INDEX library_live_gap_recovery_claims_root;
-             DROP TABLE library_live_gap_recovery_claims;
-             DROP TABLE library_live_gap_recovery_contract;
-             PRAGMA user_version = 29;
-             UPDATE schema_info SET version = 29;",
-        )
-        .expect("downgrade fixture to v29");
-}
-
-pub(in crate::adapters::sqlite_catalog) fn migrate_v29_ambiguous_gap_fixture(
+pub(in crate::adapters::sqlite_catalog) fn seed_explicit_recovery_fixture(
     catalog_path: &Path,
     root_id: &str,
     root_path: &str,
     with_publication_namespace: bool,
 ) {
-    let mut connection = Connection::open(catalog_path).expect("open ambiguous v29 fixture");
-    crate::adapters::sqlite_catalog::migrations::migrate_schema(&mut connection)
-        .expect("create current fixture schema");
+    let catalog =
+        SqliteCatalog::open(catalog_path.to_path_buf()).expect("create current recovery fixture");
+    let connection = &catalog.connection;
     connection
         .execute(
             "INSERT INTO library_roots(id, path, created_unix_ms) VALUES (?1, ?2, 1)",
@@ -580,20 +471,5 @@ pub(in crate::adapters::sqlite_catalog) fn migrate_v29_ambiguous_gap_fixture(
             )
             .expect("insert ambiguous fixture publication namespace");
     }
-    connection
-        .execute(
-            "INSERT INTO library_change_queue(
-               root_id, root_generation, intent_kind, scope, relative_path,
-               origin, first_observed_unix_ms, most_recent_observed_unix_ms,
-               first_sequence, most_recent_sequence, coalesced_observation_count,
-               status, ready_unix_ms, lease_expires_unix_ms, attempt_count,
-               catalog_revision_at_enqueue, created_unix_ms, updated_unix_ms
-             ) VALUES (
-               ?1, 1, 'freshness_unknown', 'root', '', 'startup_catch_up',
-               41, 41, '1', '1', 1, 'leased', 41, 99, 3, 0, 41, 41
-             )",
-            [root_id],
-        )
-        .expect("insert ambiguous v29 gap");
-    downgrade_live_gap_contract_to_v29(&connection);
+    seed_current_explicit_recovery_claim(&catalog, root_id, 41);
 }

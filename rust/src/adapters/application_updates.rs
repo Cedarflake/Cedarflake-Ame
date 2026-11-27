@@ -1,3 +1,4 @@
+mod distribution;
 mod handoff;
 mod manifest;
 mod package;
@@ -5,15 +6,16 @@ mod portable;
 mod portable_engine;
 mod result;
 mod retention;
+mod store;
 mod transport;
-pub(crate) use portable::startup;
+pub(crate) use distribution::{open, startup};
 
 use std::path::PathBuf;
 use std::sync::Mutex;
 
 use crate::domain::application_update::{
-    ApplicationRelease, ApplicationUpdateChannel, ApplicationUpdateError,
-    ApplicationUpdateFailureCode, is_newer_release,
+    ApplicationRelease, ApplicationUpdateChannel, ApplicationUpdateDelivery,
+    ApplicationUpdateError, ApplicationUpdateFailureCode, is_newer_release,
 };
 use crate::ports::application_updates::{
     ApplicationDownloadObserver, ApplicationUpdatePackage, ApplicationUpdateSource,
@@ -65,8 +67,12 @@ impl ApplicationUpdateSource for WindowsApplicationUpdates {
     > {
         result::take_result(&self.version)
     }
-    fn is_supported(&self) -> Result<bool, ApplicationUpdateError> {
-        Ok(self.installation.is_some())
+    fn delivery(&self) -> ApplicationUpdateDelivery {
+        if self.installation.is_some() {
+            ApplicationUpdateDelivery::Direct
+        } else {
+            ApplicationUpdateDelivery::Unavailable
+        }
     }
 
     fn check(

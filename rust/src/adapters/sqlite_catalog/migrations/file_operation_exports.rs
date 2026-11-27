@@ -1,9 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 use crate::domain::file_operation_journal::invalid;
 
-use super::{current_schema, database_error, schema_shape};
+use super::schema_shape;
 
 pub(super) const BATCHES: &str = "CREATE TABLE file_operation_exports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,25 +59,6 @@ pub(super) const OBJECTS: &[(&str, &str, &str)] = &[
     ),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 80)?;
-    for (_, _, sql) in OBJECTS {
-        transaction.execute_batch(sql).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 81; PRAGMA user_version = 81;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 81)
-}
-
 pub(super) fn validate(connection: &Connection, version: i64) -> Result<(), ScanError> {
     for (kind, name, sql) in OBJECTS {
         let expanded;
@@ -97,71 +78,4 @@ pub(super) fn validate(connection: &Connection, version: i64) -> Result<(), Scan
 }
 
 #[cfg(test)]
-pub(super) fn downgrade_for_test(connection: &Connection) {
-    super::album_year_exports::downgrade_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 81 {
-        connection
-            .execute_batch(
-                "DROP TRIGGER file_operation_exports_retained;
-            DROP TRIGGER file_operation_export_skips_retained;
-            DROP TABLE file_operation_export_skips;
-            DROP TABLE file_operation_exports;
-            UPDATE schema_info SET version = 80; PRAGMA user_version = 80;",
-            )
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::adapters::sqlite_catalog::SqliteCatalog;
-    use crate::ports::organization::OrganizationRepository;
-
-    #[test]
-    fn file_operation_exports_upgrade_rolls_back_and_preserves_existing_history() {
-        let directory = tempfile::tempdir().unwrap();
-        let path = directory.path().join("catalog.sqlite3");
-        let mut catalog = SqliteCatalog::open(path.clone()).unwrap();
-        let album = catalog
-            .create_organization_album("album", 0, "旅行", Default::default())
-            .unwrap();
-        let history = catalog.load_organization_history().unwrap();
-        downgrade_for_test(&catalog.connection);
-        catalog
-            .connection
-            .execute_batch(
-                "CREATE TRIGGER reject_export_upgrade BEFORE UPDATE OF version ON schema_info
-            WHEN NEW.version = 81 BEGIN SELECT RAISE(ABORT, 'injected'); END;",
-            )
-            .unwrap();
-        assert!(migrate(&mut catalog.connection).is_err());
-        current_schema::validate_schema_version(&catalog.connection, 80).unwrap();
-        let exists: bool = catalog
-            .connection
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'file_operation_exports')",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert!(!exists);
-        catalog
-            .connection
-            .execute_batch("DROP TRIGGER reject_export_upgrade;")
-            .unwrap();
-        drop(catalog);
-        let catalog = SqliteCatalog::open(path).unwrap();
-        assert_eq!(
-            catalog
-                .find_organization_album(&album.album_id)
-                .unwrap()
-                .unwrap()
-                .name,
-            "旅行"
-        );
-        assert_eq!(catalog.load_organization_history().unwrap(), history);
-        current_schema::validate_schema_version(&catalog.connection, super::super::SCHEMA_VERSION)
-            .unwrap();
-    }
-}
+mod tests {}

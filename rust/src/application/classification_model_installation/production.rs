@@ -60,7 +60,7 @@ pub(super) fn model_storage() -> Result<PathBuf, ScanError> {
         }
         return Ok(root.join("models"));
     }
-    directories::ProjectDirs::from("com", "Cedarflake", "Ame")
-        .map(|directories| directories.data_local_dir().join("models"))
-        .ok_or_else(|| path_error("The operating system did not provide model storage"))
+    Ok(crate::adapters::application_data::directories()?
+        .data
+        .join("models"))
 }

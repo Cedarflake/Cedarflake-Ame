@@ -1,11 +1,11 @@
 use rusqlite::Connection;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 #[test]
-fn current_v21_incomplete_terminal_media_contract_fails_closed() {
+fn current_incomplete_terminal_media_contract_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v21 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP TABLE library_terminal_media_evidence_contract;
@@ -18,7 +18,7 @@ fn current_v21_incomplete_terminal_media_contract_fails_closed() {
         )
         .expect("incomplete terminal evidence contract fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("incomplete evidence contract");
+    let error = initialize_schema(&mut connection).expect_err("incomplete evidence contract");
 
     assert_eq!(
         error.code,

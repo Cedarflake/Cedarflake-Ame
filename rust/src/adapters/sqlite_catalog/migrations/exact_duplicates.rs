@@ -1,9 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -68,53 +67,11 @@ const OBJECTS: &[(&str, &str, &str)] = &[
     ),
 ];
 
-pub(super) const LEGACY_CURSOR_INDEX: (&str, &str, &str) = (
-    "index",
-    "asset_locations_exact_cursor",
-    "CREATE INDEX asset_locations_exact_cursor
-        ON asset_locations(location_id, root_id, scan_id, file_size, source_generation)",
-);
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 39)?;
-    for (kind, name, ddl) in OBJECTS.iter().chain(std::iter::once(&LEGACY_CURSOR_INDEX)) {
-        let exists: bool = transaction
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = ?1)",
-                [name],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if exists {
-            require_object(transaction, kind, name, ddl)?;
-        } else {
-            transaction.execute_batch(ddl).map_err(database_error)?;
-        }
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 40; PRAGMA user_version = 40;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 40)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in OBJECTS {
         require_object(connection, kind, name, ddl)?;
     }
     Ok(())
-}
-
-pub(super) fn validate_legacy_cursor(connection: &Connection) -> Result<(), ScanError> {
-    let (kind, name, ddl) = LEGACY_CURSOR_INDEX;
-    require_object(connection, kind, name, ddl)
 }
 
 fn require_object(
@@ -131,49 +88,3 @@ fn require_object(
         "Content analysis requires its versioned evidence tables and bounded query indexes",
     ))
 }
-
-#[cfg(test)]
-pub(crate) fn downgrade_to_v39_for_test(connection: &Connection) {
-    super::retained_gallery_membership::downgrade_to_v44_for_test(connection);
-    let version: i64 = connection
-        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
-        .expect("exact analysis fixture version");
-    if !matches!(version, 40..=super::SCHEMA_VERSION) {
-        return;
-    }
-    let transaction = connection
-        .unchecked_transaction()
-        .expect("exact analysis fixture downgrade");
-    if version >= 44 {
-        transaction
-            .execute_batch("DROP INDEX asset_locations_pending_metadata")
-            .expect("remove pending metadata fixture index");
-    }
-    if version >= 42 {
-        transaction
-            .execute_batch("DROP TABLE exact_duplicate_decisions")
-            .expect("remove test-only duplicate choices");
-    }
-    if version >= 41 {
-        transaction
-            .execute_batch("DROP TABLE gallery_content_fingerprints")
-            .expect("remove published gallery evidence");
-    }
-    if version <= 42 {
-        transaction
-            .execute_batch("DROP INDEX asset_locations_exact_cursor")
-            .expect("remove legacy exact candidate cursor");
-    }
-    for (kind, name, _) in OBJECTS.iter().rev() {
-        transaction
-            .execute_batch(&format!("DROP {kind} {name}"))
-            .expect("remove exact analysis fixture schema");
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 39; PRAGMA user_version = 39;")
-        .expect("restore v39 fixture version");
-    transaction.commit().expect("publish v39 fixture");
-}
-
-#[cfg(test)]
-mod tests;

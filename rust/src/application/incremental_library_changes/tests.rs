@@ -13,9 +13,8 @@ use tempfile::{TempDir, tempdir, tempdir_in};
 
 use crate::adapters::{
     FileDiscovery, LocalMediaInspector, PublicationGuardedFileDiscovery, SqliteCatalog,
-    configured_root_open_count, remove_persistent_journal_v22_contract_for_test,
-    reset_configured_root_open_instrumentation, reset_source_enumeration_instrumentation,
-    source_directory_open_count, source_entry_read_count,
+    configured_root_open_count, reset_configured_root_open_instrumentation,
+    reset_source_enumeration_instrumentation, source_directory_open_count, source_entry_read_count,
 };
 use crate::adapters::{PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader};
 #[cfg(windows)]
@@ -1663,142 +1662,6 @@ fn identity_backfill_preserves_asset_continuity_for_a_later_rename() {
 
 #[cfg(windows)]
 #[test]
-fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill() {
-    let source = tempdir().expect("source directory");
-    fs::create_dir(source.path().join("album")).expect("album directory");
-    write_png(
-        &source.path().join("album").join("legacy.png"),
-        3,
-        3,
-        [14, 15, 16],
-    );
-    let fixture = seed_catalog_without_identity(source, &["album/legacy.png"]);
-    let original = fixture
-        .location("album/legacy.png")
-        .expect("legacy location");
-    let legacy_location_id = stable_location_id(&fixture.root_id, r"album\legacy.png");
-    let catalog_path = fixture._storage.path().join("catalog.sqlite3");
-    let CatalogFixture {
-        source,
-        _storage,
-        catalog,
-        root_id,
-        root_path,
-    } = fixture;
-    drop(catalog);
-    let connection = Connection::open(&catalog_path).expect("migration fixture catalog");
-    let current_version: i64 = connection
-        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
-        .expect("current schema version");
-    remove_persistent_journal_v22_contract_for_test(&connection);
-    connection
-        .execute_batch(
-            "PRAGMA foreign_keys = OFF;
-             DROP INDEX asset_locations_root_relative;
-             DROP TABLE library_change_scan_handoff_items;
-             DROP TABLE library_change_scan_handoff_lineage;
-             DROP TABLE library_change_scan_handoff_batches;
-             DROP TABLE library_change_queue_catch_up_lineage;
-             DROP TABLE library_change_preview_repair_contract;
-             DROP TABLE library_metadata_inventory_entries;
-             DROP TABLE library_metadata_inventory_runs;
-             DROP TABLE library_metadata_inventory_contract;
-             DROP TABLE library_terminal_media_evidence;
-             DROP TABLE library_terminal_media_evidence_contract;
-             DROP TABLE scan_run_catch_up_lineage;
-             DROP TABLE library_change_catch_up_handoffs;
-             DROP INDEX scan_runs_one_active_root;
-             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
-             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
-             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
-             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
-             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
-             ALTER TABLE scan_runs DROP COLUMN scan_owner;
-             ALTER TABLE library_change_queue_contract DROP COLUMN scan_ownership_complete;
-             ALTER TABLE library_change_queue_contract DROP COLUMN authoritative_recovery_complete;",
-        )
-        .expect("restore v17 table shape");
-    let updated = connection
-        .execute(
-            "UPDATE asset_locations
-             SET relative_path = 'album\\legacy.png', location_id = ?1
-             WHERE root_id = ?2 AND relative_path = ?3",
-            [
-                legacy_location_id.as_str(),
-                root_id.as_str(),
-                "album/legacy.png",
-            ],
-        )
-        .expect("restore the v17 path and location identity");
-    assert_eq!(updated, 1);
-    connection
-        .execute_batch(
-            "ALTER TABLE library_change_queue_contract DROP COLUMN scan_handoff_batch_complete;
-             ALTER TABLE library_change_queue_contract DROP COLUMN scan_catch_up_lineage_complete;
-             ALTER TABLE library_change_queue_contract DROP COLUMN change_catch_up_complete;
-             DROP TABLE library_change_catch_up_state;
-             UPDATE schema_info SET version = 17;",
-        )
-        .expect("restore v17 version");
-    drop(connection);
-    let catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate v17 catalog");
-    let mut fixture = CatalogFixture {
-        source,
-        _storage,
-        catalog,
-        root_id,
-        root_path,
-    };
-    fixture.enqueue(&[intent(&fixture.root_id, "album/legacy.png", None, 1)]);
-
-    let backfill = fixture.process();
-
-    assert_eq!(backfill.applied_mutation_count, 0);
-    assert_eq!(backfill.retried_count, 1);
-    let identified = fixture
-        .location("album/legacy.png")
-        .expect("identified location");
-    assert_eq!(identified.asset_id, original.asset_id);
-    assert_eq!(identified.location_id, legacy_location_id);
-    assert!(identified.file_identity.is_none());
-    let connection = Connection::open(catalog_path).expect("verified migration fixture catalog");
-    let (schema_version, location_count, asset_count, proof_count, failure_code): (
-        i64,
-        i64,
-        i64,
-        i64,
-        String,
-    ) = connection
-        .query_row(
-            "SELECT
-               (SELECT version FROM schema_info),
-               (SELECT COUNT(*) FROM asset_locations
-                 WHERE root_id = ?1 AND relative_path = 'album/legacy.png'),
-               (SELECT asset_count FROM scan_runs WHERE id = 'baseline-scan'),
-               (SELECT COUNT(*) FROM library_root_publication_namespaces WHERE root_id = ?1),
-               (SELECT last_failure_code FROM library_change_queue
-                WHERE root_id = ?1 AND relative_path = 'album/legacy.png')",
-            [&fixture.root_id],
-            |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                    row.get(4)?,
-                ))
-            },
-        )
-        .expect("load post-backfill counts");
-    assert_eq!(schema_version, current_version);
-    assert_eq!(location_count, 1);
-    assert_eq!(asset_count, 1);
-    assert_eq!(proof_count, 0);
-    assert_eq!(failure_code, "root_publication_namespace_unproven");
-}
-
-#[cfg(windows)]
-#[test]
 fn paired_rename_reconciles_a_replacement_at_the_previous_path() {
     let source = tempdir().expect("source directory");
     write_png(&source.path().join("old.png"), 3, 3, [21, 22, 23]);
@@ -1963,27 +1826,13 @@ fn compatible_rename_invalidates_failed_preview_source_context() {
 #[cfg(windows)]
 #[test]
 fn source_first_cross_root_move_preserves_asset_and_invalidates_preview_context() {
-    assert_cross_root_move_preserves_continuity(
-        "a-source",
-        "z-destination",
-        true,
-        false,
-        false,
-        false,
-    );
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false, false);
 }
 
 #[cfg(windows)]
 #[test]
 fn destination_first_cross_root_move_preserves_asset_and_invalidates_preview_context() {
-    assert_cross_root_move_preserves_continuity(
-        "z-source",
-        "a-destination",
-        false,
-        false,
-        false,
-        false,
-    );
+    assert_cross_root_move_preserves_continuity("z-source", "a-destination", false, false, false);
 }
 
 #[cfg(windows)]
@@ -2152,40 +2001,13 @@ fn persistent_journal_range_stays_catching_up_through_retry_until_terminal() {
 #[cfg(windows)]
 #[test]
 fn newer_watermark_keeps_an_older_cross_root_handoff_visible() {
-    assert_cross_root_move_preserves_continuity(
-        "a-source",
-        "z-destination",
-        true,
-        true,
-        false,
-        false,
-    );
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, true, false);
 }
 
 #[cfg(windows)]
 #[test]
 fn preview_cleanup_downgrades_a_bounded_handoff_before_destination_adoption() {
-    assert_cross_root_move_preserves_continuity(
-        "a-source",
-        "z-destination",
-        true,
-        false,
-        true,
-        false,
-    );
-}
-
-#[cfg(windows)]
-#[test]
-fn prerelease_preview_repair_does_not_bypass_an_unproven_namespace() {
-    assert_cross_root_move_preserves_continuity(
-        "a-source",
-        "z-destination",
-        true,
-        false,
-        false,
-        true,
-    );
+    assert_cross_root_move_preserves_continuity("a-source", "z-destination", true, false, true);
 }
 
 #[cfg(windows)]
@@ -2354,7 +2176,6 @@ fn assert_cross_root_move_preserves_continuity(
     source_first: bool,
     supersede_destination_watermark: bool,
     cleanup_after_source: bool,
-    repair_stale_handoff_preview: bool,
 ) {
     let storage = tempdir().expect("cross-root storage");
     let source_path = storage.path().join("source");
@@ -2382,7 +2203,7 @@ fn assert_cross_root_move_preserves_continuity(
         .load_incremental_location_by_relative_path(source_root_id, "old.png")
         .expect("load source location")
         .expect("source location");
-    if cleanup_after_source || repair_stale_handoff_preview {
+    if cleanup_after_source {
         original.preview_path = storage
             .path()
             .join("preview-before-cleanup.jpg")
@@ -2459,34 +2280,6 @@ fn assert_cross_root_move_preserves_continuity(
             catalog
                 .reset_all_previews_for_cleanup()
                 .expect("reset handoff preview before destination adoption");
-        } else if repair_stale_handoff_preview {
-            drop(catalog);
-            let connection = Connection::open(&catalog_path).expect("prerelease preview catalog");
-            assert_eq!(
-                connection
-                    .execute(
-                        "UPDATE preview_artifacts SET lifecycle_state = 'stale'
-                         WHERE artifact_key = 'cross-root-preview-before-cleanup'",
-                        [],
-                    )
-                    .expect("restore prerelease stale handoff preview"),
-                1
-            );
-            remove_persistent_journal_v22_contract_for_test(&connection);
-            connection
-                .execute_batch(
-                    "DROP TABLE library_change_preview_repair_contract;
-                     DROP TABLE library_metadata_inventory_entries;
-                     DROP TABLE library_metadata_inventory_runs;
-                     DROP TABLE library_metadata_inventory_contract;
-                     DROP TABLE library_terminal_media_evidence;
-                     DROP TABLE library_terminal_media_evidence_contract;
-                     UPDATE schema_info SET version = 19;",
-                )
-                .expect("restore prerelease preview repair marker");
-            drop(connection);
-            catalog = SqliteCatalog::open(catalog_path.clone())
-                .expect("repair prerelease stale handoff preview");
         }
     }
 
@@ -2513,37 +2306,7 @@ fn assert_cross_root_move_preserves_continuity(
         policy(),
     )
     .expect("publish destination handoff");
-    if repair_stale_handoff_preview {
-        assert_eq!(destination.completed_count, 0);
-        assert_eq!(destination.retried_count, 1);
-        assert!(
-            catalog
-                .load_incremental_location_by_relative_path(destination_root_id, "new.png")
-                .expect("load blocked destination location")
-                .is_none()
-        );
-        drop(catalog);
-        let connection = Connection::open(&catalog_path).expect("verify guarded preview repair");
-        let (proof_count, ready_handoff_count, failure_code): (i64, i64, String) = connection
-            .query_row(
-                "SELECT
-                   (SELECT COUNT(*) FROM library_root_publication_namespaces
-                    WHERE root_id = ?1),
-                   ((SELECT COUNT(*) FROM library_change_catch_up_handoffs
-                     WHERE preview_status = 'ready')
-                    + (SELECT COUNT(*) FROM library_change_scan_handoff_items
-                       WHERE preview_status = 'ready')),
-                   (SELECT last_failure_code FROM library_change_queue
-                    WHERE root_id = ?1 AND relative_path = 'new.png')",
-                [destination_root_id],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .expect("load guarded preview repair evidence");
-        assert_eq!(proof_count, 0);
-        assert_eq!(ready_handoff_count, 0);
-        assert_eq!(failure_code, "root_publication_namespace_unproven");
-        return;
-    }
+
     assert_eq!(destination.completed_count, 1);
     let moved = catalog
         .load_incremental_location_by_relative_path(destination_root_id, "new.png")

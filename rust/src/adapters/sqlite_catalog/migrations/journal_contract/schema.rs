@@ -274,27 +274,6 @@ pub(in super::super) const PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL: &[(&str, &s
     ),
 ];
 
-pub(in super::super) const PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL: &[(&str, &str)] = &[
-    (
-        "library_persistent_journal_source_range_id_insert",
-        r#"CREATE TRIGGER library_persistent_journal_source_range_id_insert
-          BEFORE INSERT ON library_persistent_journal_source_ranges
-          WHEN length(NEW.id) <> 64 OR NEW.id GLOB '*[^0-9a-f]*'
-          BEGIN
-            SELECT RAISE(ABORT, 'invalid persistent journal source range id');
-          END"#,
-    ),
-    (
-        "library_persistent_journal_source_range_id_update",
-        r#"CREATE TRIGGER library_persistent_journal_source_range_id_update
-          BEFORE UPDATE OF id ON library_persistent_journal_source_ranges
-          WHEN length(NEW.id) <> 64 OR NEW.id GLOB '*[^0-9a-f]*'
-          BEGIN
-            SELECT RAISE(ABORT, 'invalid persistent journal source range id');
-          END"#,
-    ),
-];
-
 pub(super) fn matches(connection: &Connection) -> Result<bool, ScanError> {
     for (name, expected) in PERSISTENT_JOURNAL_CANONICAL_TABLE_DDL {
         let Some(sql) = connection

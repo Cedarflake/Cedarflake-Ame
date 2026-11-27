@@ -1,9 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 
 const TABLE: &str = "CREATE TABLE gallery_retained_fingerprints (
     source_generation INTEGER NOT NULL CHECK(source_generation > 0),
@@ -35,25 +34,6 @@ const VIEW: &str = "CREATE VIEW gallery_display_fingerprints AS
       WHERE current.source_generation = retained.source_generation AND current.scheme = retained.scheme
     )";
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 44)?;
-    for ddl in [TABLE, INDEX, VIEW] {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 45; PRAGMA user_version = 45;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 45)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in [
         ("table", "gallery_retained_fingerprints", TABLE),
@@ -68,20 +48,6 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v44_for_test(connection: &Connection) {
-    super::metadata_fallback::downgrade_to_v45_for_test(connection);
-    if super::schema_shape::schema_version(connection).unwrap() == 45 {
-        connection
-            .execute_batch(
-                "DROP VIEW gallery_display_fingerprints;
-                 DROP TABLE gallery_retained_fingerprints;
-                 UPDATE schema_info SET version = 44; PRAGMA user_version = 44;",
-            )
-            .unwrap();
-    }
 }
 
 #[cfg(test)]

@@ -21,6 +21,7 @@ enum AmeLabel implements AmeMessage {
   updateInstallationFailure,
   updateShutdownFailure,
   updateUnavailable,
+  updateStoreOpenFailure,
   catalogCleanupAlreadyFinished,
   albumDetailsUnavailable,
   acknowledge,

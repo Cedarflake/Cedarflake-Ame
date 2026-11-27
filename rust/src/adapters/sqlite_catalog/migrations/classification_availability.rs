@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -26,28 +26,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
         ON classification_unavailable_sources(root_id, root_generation, failure_id)",
     ),
 ];
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection.transaction().map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 67)?;
-    for (_, _, statement) in OBJECTS {
-        transaction
-            .execute_batch(statement)
-            .map_err(database_error)?;
-    }
-    transaction
-        .execute_batch(
-            "UPDATE classification_work_items SET phase = 'queued', ready_unix_ms = 0 WHERE phase = 'waiting';
-             UPDATE schema_info SET version = 68; PRAGMA user_version = 68;",
-        )
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 68)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, statement) in OBJECTS {
@@ -80,20 +58,3 @@ fn invalid() -> ScanError {
         "Classification source availability records are inconsistent",
     )
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v67_for_test(connection: &Connection) {
-    super::classification_publications::downgrade_to_v68_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() != 68 {
-        return;
-    }
-    connection
-        .execute_batch(
-            "DROP TABLE classification_unavailable_sources;
-         UPDATE schema_info SET version = 67; PRAGMA user_version = 67;",
-        )
-        .unwrap();
-}
-
-#[cfg(test)]
-mod tests;

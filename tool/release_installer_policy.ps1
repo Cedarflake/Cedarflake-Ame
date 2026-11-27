@@ -56,6 +56,9 @@ function Assert-AmeInstallerPolicy {
         SetREINSTALLMODE = @('51', 'REINSTALLMODE', 'amus')
         SetAmeStartMenuChoice = @('51', 'AmeStartMenuChoice', '1')
         SetAmeDesktopChoice = @('51', 'AmeDesktopChoice', '1')
+        SetWixUI_InstallMode = @('51', 'WixUI_InstallMode', 'Remove')
+        AmePrepareUserDataRemoval = @('1', 'AmeInstallerAdmission', 'AmePrepareUserDataRemoval')
+        AmeRemoveUserData = @('1601', 'AmeInstallerAdmission', 'AmeRemoveUserData')
         AmeValidateInstallation = @('1', 'AmeInstallerAdmission', 'AmeValidateInstallation')
         AmeRequireRollback = @('19', '', $null)
         AmeRestorePreviousBroker = @('3329', 'AmeInstallerAdmission', 'AmeRestorePreviousBroker')
@@ -77,13 +80,13 @@ function Assert-AmeInstallerPolicy {
     }
     $sequence = @{}
     foreach ($row in $Model.InstallExecuteSequence) { $sequence[$row.Action] = $row }
-    $orderedActions = @('AmeValidateInstallation', 'InstallValidate', 'InstallInitialize',
+    $orderedActions = @('AmeValidateInstallation', 'InstallValidate', 'AmePrepareUserDataRemoval', 'InstallInitialize',
         'AmeRequireRollback', 'AmeRestorePreviousBroker', 'InstallExecute',
         'RemoveExistingProducts', 'ProcessComponents', 'StopServices',
         'DeleteServices', 'RemoveFiles', 'InstallFiles', 'InstallServices', 'MsiConfigureServices',
         'SetAmeVerifyInstalledService', 'AmeVerifyInstalledService',
         'SetAmeStopInstalledService', 'AmeStopInstalledService',
-        'SetAmeStartInstalledService', 'AmeStartInstalledService', 'InstallFinalize')
+        'SetAmeStartInstalledService', 'AmeStartInstalledService', 'AmeRemoveUserData', 'InstallFinalize')
     $previous = 0
     foreach ($action in $orderedActions) {
         Require ($sequence.ContainsKey($action)) "missing sequenced action $action"
@@ -97,6 +100,13 @@ function Assert-AmeInstallerPolicy {
         $sequence.AmeVerifyInstalledService.Condition -ceq '$AmeBroker = 3' -and
         $sequence.AmeStartInstalledService.Condition -ceq '$AmeBroker = 3' -and
         $sequence.AmeStopInstalledService.Condition -ceq '$AmeBroker = 3') 'admission conditions changed'
+    $dataRemovalCondition = 'Installed AND REMOVE = "ALL" AND NOT UPGRADINGPRODUCTCODE AND AME_REMOVE_USER_DATA = "1"'
+    Require ($sequence.AmePrepareUserDataRemoval.Condition -ceq $dataRemovalCondition -and
+        $sequence.AmeRemoveUserData.Condition -ceq ($dataRemovalCondition + ' AND AmeRemoveUserData')) `
+        'data cleanup must require an explicit removal choice and exclude upgrades'
+    Require (-not $properties.ContainsKey('AME_REMOVE_USER_DATA')) 'data cleanup must default to retained data'
+    Require (($properties.SecureCustomProperties -split ';') -ccontains 'AME_REMOVE_USER_DATA') `
+        'the selected data-removal choice must reach elevated execution'
     Require ($sequence.SetAMEAPPDIR.Condition -ceq 'NOT AMEAPPDIR AND AME_PREVIOUSAPPDIR' -and
         [int]$sequence.SetAMEAPPDIR.Sequence -lt [int]$sequence.CostInitialize.Sequence) 'registered location restoration changed'
     Require ([int]$sequence.SetREINSTALLMODE.Sequence -lt [int]$sequence.CostInitialize.Sequence) 'repair must reinstall owned files'

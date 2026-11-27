@@ -18,10 +18,6 @@ pub(super) mod values;
 pub(in crate::adapters::sqlite_catalog) use lineage::validate_lineage_rows;
 pub(in crate::adapters::sqlite_catalog) use payload_children::validate_payload_children;
 
-pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
-    validate_with_depth(connection, ContractValidationDepth::Full)
-}
-
 pub(super) fn validate_with_depth(
     connection: &Connection,
     depth: ContractValidationDepth,

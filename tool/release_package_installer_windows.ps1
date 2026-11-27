@@ -21,7 +21,8 @@ param(
     [string]$ModelSourceDirectory,
     [string]$PubspecPath,
     [string]$CargoManifestPath,
-    [string]$ModelMetadataDirectory
+    [string]$ModelMetadataDirectory,
+    [string]$CabinetCachePath
 )
 
 $ErrorActionPreference = "Stop"
@@ -66,6 +67,13 @@ $buildRoot = Join-Path $repository "build"
 if (-not $output.StartsWith($buildRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
     throw "Installer output must be a dedicated directory beneath repository build storage"
 }
+if (-not [string]::IsNullOrWhiteSpace($CabinetCachePath)) {
+    $CabinetCachePath = [IO.Path]::GetFullPath($CabinetCachePath)
+    if (-not $CabinetCachePath.StartsWith($buildRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Installer cabinet cache must remain beneath repository build storage"
+    }
+    Assert-AmeUnsignedBuildPath $CabinetCachePath
+}
 foreach ($path in @($bundle, $output, $CMakePath)) {
     Assert-AmeUnsignedBuildPath $path
 }
@@ -76,6 +84,9 @@ $toolLock = Enter-AmeRepositoryToolLock
 $leases = [Collections.Generic.List[IDisposable]]::new()
 try {
     [void][IO.Directory]::CreateDirectory($output)
+    if (-not [string]::IsNullOrWhiteSpace($CabinetCachePath)) {
+        [void][IO.Directory]::CreateDirectory($CabinetCachePath)
+    }
     $wix = Get-AmeInstallerWixTool -PackagePath $WixSdkPackagePath -SdkDirectory $WixSdkDirectory
     $wixUi = Get-AmeInstallerWixUi -PackagePath $WixUiPackagePath -Directory $WixUiDirectory
     foreach ($entry in $installerSource.Files) {
@@ -135,7 +146,11 @@ try {
         "-d", "BrokerPath=$(Join-Path $bundle 'cedarflake_ame_journal_broker.exe')",
         "-d", "BrokerIdentity=$identity", "-d", "AdmissionDll=$admission",
         "-d", "ApplicationIcon=$(Join-Path $repository 'windows/runner/resources/app_icon.ico')",
-        "-intermediatefolder", (Join-Path $output "intermediate"), "-out", $msi) + $sources
+        "-intermediatefolder", (Join-Path $output "intermediate"), "-out", $msi)
+    if (-not [string]::IsNullOrWhiteSpace($CabinetCachePath)) {
+        $arguments += @("-cc", $CabinetCachePath)
+    }
+    $arguments += $sources
     Invoke-AmeChecked $wix $arguments
     $receipt = [ordered]@{
         format = "cedarflake-ame-msi-v1"

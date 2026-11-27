@@ -1,8 +1,7 @@
-use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::ScanError;
 
-use super::current_schema::validate_current_schema_contract_with_source_revision_rows;
 use super::database_error;
 use super::schema_shape::schema_object_sql_matches;
 
@@ -50,76 +49,6 @@ pub(super) fn metadata_contract_is_complete(connection: &Connection) -> Result<b
         .optional()
         .map(|value| value.unwrap_or(false))
         .map_err(database_error)
-}
-
-pub(super) fn invalidate_precontract_metadata(
-    transaction: &Transaction<'_>,
-) -> Result<(), ScanError> {
-    transaction
-        .execute_batch(
-            "DELETE FROM preview_artifact_locations;
-             UPDATE preview_artifacts SET lifecycle_state = 'evictable';
-             UPDATE asset_locations
-             SET preview_path = '', preview_status = 'pending',
-                 preview_issue_code = NULL, preview_issue_message = NULL,
-                 metadata_engine_id = 'ame-invalidated-media-metadata',
-                 metadata_engine_version = '0',
-                 capture_local_time = NULL, capture_offset_minutes = NULL,
-                 capture_time_source = NULL, capture_raw_value = NULL;",
-        )
-        .map_err(database_error)
-}
-
-pub(super) fn create_metadata_contract(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    transaction
-        .execute_batch(SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL)
-        .map_err(database_error)?;
-    transaction
-        .execute(
-            "INSERT INTO library_source_revision_metadata_contract(
-               singleton, contract_version, complete
-             ) VALUES (1, 1, 1)",
-            [],
-        )
-        .map_err(database_error)?;
-    Ok(())
-}
-
-pub(super) fn repair_precontract_metadata(connection: &mut Connection) -> Result<(), ScanError> {
-    let marker_sql = connection
-        .query_row(
-            "SELECT sql FROM sqlite_master
-             WHERE type = 'table'
-               AND name = 'library_source_revision_metadata_contract'",
-            [],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()
-        .map_err(database_error)?;
-    if marker_sql.is_some() {
-        if metadata_contract_is_complete(connection)? {
-            return Ok(());
-        }
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog cannot prove that legacy source metadata was invalidated",
-        ));
-    }
-
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
-    invalidate_precontract_metadata(&transaction)?;
-    create_metadata_contract(&transaction)?;
-    if !metadata_contract_is_complete(&transaction)? {
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog could not record its source metadata invalidation",
-        ));
-    }
-    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
-    transaction.commit().map_err(database_error)
 }
 
 pub(super) fn validate_structure(connection: &Connection) -> Result<(), ScanError> {

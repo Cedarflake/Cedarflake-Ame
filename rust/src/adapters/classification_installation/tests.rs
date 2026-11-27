@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn concurrent_startup_preserves_legacy_selection_and_pending_download() {
+fn concurrent_startup_preserves_selection_and_pending_download() {
     use crate::ports::classification_acceleration::ClassificationAccelerationRepository;
     use std::sync::Barrier;
 
@@ -15,16 +15,9 @@ fn concurrent_startup_preserves_legacy_selection_and_pending_download() {
         generation: 7,
         package: "retained-model".into(),
     };
-    let connection = Connection::open(&path).unwrap();
+    let connection = open(&path).unwrap();
     connection
-        .execute_batch(
-            "CREATE TABLE installation (id INTEGER PRIMARY KEY, models TEXT, runtime TEXT);
-             CREATE TABLE download_intent (
-                id INTEGER PRIMARY KEY, generation INTEGER, package TEXT, pending INTEGER
-             );
-             INSERT INTO download_intent VALUES (1, 7, 'retained-model', 1);
-             PRAGMA user_version = 2;",
-        )
+        .execute_batch("INSERT INTO download_intent VALUES (1, 7, 'retained-model', 1);")
         .unwrap();
     write_installation(&connection, &selected).unwrap();
     drop(connection);

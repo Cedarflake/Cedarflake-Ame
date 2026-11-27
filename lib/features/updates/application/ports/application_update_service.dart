@@ -1,7 +1,9 @@
 import "../../domain/application_update.dart";
 
 abstract interface class ApplicationUpdateService {
-  Future<bool> isSupported();
+  Future<ApplicationUpdateDelivery> delivery();
+
+  Future<void> openStore();
 
   Future<ApplicationUpdateResult?> takeResult();
 

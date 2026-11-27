@@ -59,3 +59,4 @@ Recorded decisions:
 - [ADR 0042: Execute authorized file operations through Windows APIs](0042-windows-file-operations.md)
 - [ADR 0043: Coordinate application updates outside the catalog](0043-application-update-coordination.md)
 - [ADR 0044: Export bounded local diagnostics independently of catalog startup](0044-local-diagnostic-export.md)
+- [ADR 0045: Microsoft Store owns packaged deployment and updates](0045-microsoft-store-distribution.md)

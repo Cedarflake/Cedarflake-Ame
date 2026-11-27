@@ -3,6 +3,13 @@ use std::cmp::Ordering;
 use semver::Version;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ApplicationUpdateDelivery {
+    Unavailable,
+    Direct,
+    MicrosoftStore,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ApplicationUpdateChannel {
     Stable,
     Preview,
@@ -31,6 +38,7 @@ pub struct ApplicationRelease {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ApplicationUpdateFailureCode {
+    Store,
     Unavailable,
     Network,
     InvalidRelease,

@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:io";
 
 import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -23,7 +24,8 @@ import "diagnostic_error_projection.dart";
 import "diagnostic_library_snapshot.dart";
 
 class DiagnosticsBindings implements DiagnosticCollector {
-  DiagnosticsBindings() {
+  DiagnosticsBindings({Future<Directory> Function()? directory})
+    : _journal = PlatformDiagnosticJournal(directory: directory) {
     controller = DiagnosticsController(
       collector: this,
       platform: const PlatformDiagnosticExport(),
@@ -36,7 +38,7 @@ class DiagnosticsBindings implements DiagnosticCollector {
     _record(DiagnosticComponent.startup, "starting");
   }
 
-  final _journal = PlatformDiagnosticJournal();
+  final PlatformDiagnosticJournal _journal;
   late final Future<void> _initializing;
   late final DiagnosticsController controller;
   final _subscriptions = <ProviderSubscription<Object?>>[];

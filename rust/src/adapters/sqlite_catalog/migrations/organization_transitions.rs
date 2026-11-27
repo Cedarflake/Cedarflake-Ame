@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape::schema_object_sql_matches};
+use super::{database_error, schema_shape::schema_object_sql_matches};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     ("table", "organization_record_groups", "CREATE TABLE organization_record_groups (
@@ -46,27 +46,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
         FOREIGN KEY(operation_id) REFERENCES organization_operations(operation_id) ON DELETE CASCADE
     )"),
 ];
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 47)?;
-    for (_, _, ddl) in OBJECTS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction.execute_batch(
-        "INSERT INTO organization_record_groups SELECT record_id, record_id FROM organization_records;
-         INSERT INTO organization_operation_targets SELECT operation_id, record_id, field FROM organization_operation_changes;
-         UPDATE schema_info SET version = 48; PRAGMA user_version = 48;"
-    ).map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 48)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in OBJECTS {
@@ -125,21 +104,3 @@ fn invalid() -> ScanError {
         "Organization groups and operation history require complete, non-cyclic durable relationships",
     )
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v47_for_test(connection: &Connection) {
-    super::organization_reconciliation::downgrade_to_v48_for_test(connection);
-    if super::schema_shape::schema_version(connection).unwrap() == 48 {
-        for (kind, name, _) in OBJECTS.iter().rev() {
-            connection
-                .execute_batch(&format!("DROP {kind} {name}"))
-                .unwrap();
-        }
-        connection
-            .execute_batch("UPDATE schema_info SET version = 47; PRAGMA user_version = 47;")
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests;

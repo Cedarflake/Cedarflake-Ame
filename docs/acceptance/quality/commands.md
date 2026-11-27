@@ -45,6 +45,8 @@ admission module with warnings denied, verifies the emitted MSI's native service
 upgrade, action-ordering, native options and maintenance-dialog tables, and emits one embedded-payload
 MSI plus its receipt, and a Burn setup executable that opens the MSI interface after early elevation.
 Supply the bootstrapper inputs through `-WixBootstrapperPackagePath` and `-WixBootstrapperDirectory`.
+For repeated lifecycle package builds, optional `-CabinetCachePath <directory-under-build>` reuses
+WiX cabinet compression; input and emitted-package validation remain unchanged.
 For a completed release-candidate gate, replace `-BundlePath` and `-UnsignedEvidencePath` with
 `-CandidateRoot <manifest-and-payload-directory>` and `-SourceCommit <verified-source-sha>`.
 The builder reverifies that immutable candidate before packaging; the input modes cannot be mixed.
@@ -58,6 +60,16 @@ It also runs the rejecting database-policy cases against modified in-memory mode
 uses isolated MSI sessions for costing, exact property initialization and native condition evaluation
 across all four incoming shortcut states and four checkbox combinations. It never executes the
 installation sequence; native dialog interaction and installed shortcuts retain separate checks.
+
+The parallel Store package is built by `./tool/release_package_msix_windows.ps1 -Tag <tag>
+-ReleaseRoot <verified-release-directory> -UnsignedEvidencePath <quality-evidence.json>
+-OutputDirectory <unused-repository-build-directory>`. Alternatively supply `-CandidateRoot` and
+`-SourceCommit` for an admitted candidate; do not mix source modes. Windows SDK 10.0.26100.0 supplies
+MakeAppx. The builder leases and verifies the admitted payload, excludes direct-update and MSI
+service helpers, emits the reserved Store identity and verifies the resulting unsigned archive.
+It performs no installation, signing or submission. Local signing and trust stay in disposable
+verification environments. `release_test_msix_payload.ps1` covers version, capability and archive
+admission in Static and release-tooling checks.
 It does not install the package or establish lifecycle acceptance. The compiler-free
 `./tool/release_test_installer_payload.ps1` covers version limits, stable product/component
 identities, unsafe payload paths, shortcut ownership and complete file/directory ACL generation.

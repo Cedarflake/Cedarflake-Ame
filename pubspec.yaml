@@ -27,6 +27,7 @@ dependencies:
     path: rust_builder
   screen_retriever: ^0.2.2
   shared_preferences: ^2.5.6
+  shared_preferences_windows: ^2.4.1
   window_manager: ^0.5.2
 
 dev_dependencies:

@@ -1,13 +1,13 @@
 use rusqlite::Connection;
 use tempfile::NamedTempFile;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 pub(in super::super) fn current_terminal_inventory_authority_catalog() -> NamedTempFile {
     let catalog = NamedTempFile::new().expect("current terminal inventory catalog");
     let mut connection =
         Connection::open(catalog.path()).expect("open current terminal inventory catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)

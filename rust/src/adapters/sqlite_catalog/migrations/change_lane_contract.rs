@@ -12,10 +12,6 @@ use super::{
     CHANGE_LANE_UPDATE_GUARD_DDL, database_error,
 };
 
-pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
-    validate_with_depth(connection, ContractValidationDepth::Full)
-}
-
 pub(super) fn validate_with_depth(
     connection: &Connection,
     depth: ContractValidationDepth,

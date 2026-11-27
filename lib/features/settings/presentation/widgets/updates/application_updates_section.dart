@@ -29,6 +29,7 @@ class ApplicationUpdatesSection extends ConsumerWidget {
         final ready = state.phase == ApplicationUpdatePhase.ready;
         final checking = state.phase == ApplicationUpdatePhase.checking;
         final actionLabel = switch (state.phase) {
+          _ when state.storeManaged => strings.updateOpenStore,
           ApplicationUpdatePhase.ready => strings.updateRestart,
           _ when state.release != null => strings.updateView,
           ApplicationUpdatePhase.checking => strings.updateChecking,
@@ -40,12 +41,20 @@ class ApplicationUpdatesSection extends ConsumerWidget {
             SettingsRow(
               icon: Symbols.info_rounded,
               title: strings.settingsVersion,
-              subtitle: Text(build.applicationLabel),
+              subtitle: Text(
+                state.storeManaged
+                    ? "${build.applicationLabel}\n${strings.updateStoreManaged}"
+                    : build.applicationLabel,
+              ),
               trailing: FilledButton.tonal(
                 key: const Key("application-update-check"),
                 onPressed: state.phase == ApplicationUpdatePhase.restarting
                     ? null
                     : () {
+                        if (state.storeManaged) {
+                          unawaited(controller.openStore());
+                          return;
+                        }
                         if (ready) {
                           unawaited(controller.restart());
                           return;
@@ -60,18 +69,19 @@ class ApplicationUpdatesSection extends ConsumerWidget {
                 child: Text(actionLabel),
               ),
             ),
-            SettingsRow(
-              icon: Symbols.update_rounded,
-              title: strings.updateSettings,
-              subtitle: Text(
-                "${updateChannelLabel(strings, state.preferences.channel)} · ${updatePolicyLabel(strings, state.preferences.policy)}",
+            if (!state.storeManaged)
+              SettingsRow(
+                icon: Symbols.update_rounded,
+                title: strings.updateSettings,
+                subtitle: Text(
+                  "${updateChannelLabel(strings, state.preferences.channel)} · ${updatePolicyLabel(strings, state.preferences.policy)}",
+                ),
+                trailing: const Icon(Symbols.chevron_right_rounded),
+                onTap: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => const ApplicationUpdateSettings(),
+                ),
               ),
-              trailing: const Icon(Symbols.chevron_right_rounded),
-              onTap: () => showDialog<void>(
-                context: context,
-                builder: (_) => const ApplicationUpdateSettings(),
-              ),
-            ),
             SettingsRow(
               key: const Key("open-source-notices-setting"),
               icon: Symbols.code_rounded,

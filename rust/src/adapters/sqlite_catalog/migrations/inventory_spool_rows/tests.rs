@@ -5,7 +5,7 @@ use std::sync::{
 
 use rusqlite::{Connection, params};
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 use super::validate;
 
 pub(in crate::adapters::sqlite_catalog) fn fixture(
@@ -16,7 +16,7 @@ pub(in crate::adapters::sqlite_catalog) fn fixture(
     connection
         .execute_batch("PRAGMA foreign_keys = ON")
         .expect("foreign keys");
-    migrate_schema(&mut connection).expect("production schema");
+    initialize_schema(&mut connection).expect("production schema");
     let transaction = connection.transaction().expect("fixture transaction");
     for (run_id, authority_id) in [("run-a", 1), ("run-b", 2)] {
         transaction

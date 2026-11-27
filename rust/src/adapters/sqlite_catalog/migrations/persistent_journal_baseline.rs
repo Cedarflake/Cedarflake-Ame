@@ -13,6 +13,7 @@ use super::{
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
 pub(super) fn validate_persistent_journal_baseline_contract(
     connection: &Connection,
 ) -> Result<(), ScanError> {

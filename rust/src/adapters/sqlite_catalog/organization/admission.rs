@@ -44,22 +44,6 @@ pub(in crate::adapters::sqlite_catalog) fn publish_generation(
     publish_batch(connection)
 }
 
-pub(in crate::adapters::sqlite_catalog) fn seed_current_catalog(
-    connection: &Connection,
-) -> Result<(), ScanError> {
-    prepare_batch(connection)?;
-    connection
-        .execute(
-            &format!(
-                "INSERT INTO temp.organization_admission_batch
-                 SELECT DISTINCT location.source_generation FROM {CURRENT_VERSIONS}"
-            ),
-            [],
-        )
-        .map_err(database_error)?;
-    publish_batch(connection)
-}
-
 fn prepare_batch(connection: &Connection) -> Result<(), ScanError> {
     connection
         .execute_batch(

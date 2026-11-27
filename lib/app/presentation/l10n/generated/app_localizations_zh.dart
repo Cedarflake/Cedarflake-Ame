@@ -119,6 +119,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateUnavailable => '请使用安装版或便携版检查更新。';
 
   @override
+  String get updateOpenStore => '打开 Microsoft Store';
+
+  @override
+  String get updateStoreManaged => '更新由 Microsoft Store 管理。';
+
+  @override
+  String get updateStoreOpenFailure => '无法打开 Microsoft Store，请稍后重试。';
+
+  @override
   String get updateNetworkFailure => '暂时无法检查或下载更新，请稍后重试。';
 
   @override
@@ -251,7 +260,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get diagnosticsCopied => '诊断信息已复制';
 
   @override
-  String get startupUnsupportedCatalog => '图库数据来自不受支持的版本，无法安全打开。请导出诊断信息以便排查。';
+  String get startupUnsupportedCatalog => '当前版本不支持这份图库数据。请导出诊断信息以便排查。';
 
   @override
   String get startupDatabaseError =>
@@ -3433,6 +3442,159 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get categoryOther => '其他';
+
+  @override
+  String get categoryCatsPhoto => '猫咪';
+
+  @override
+  String get categoryCatsMeme => '猫咪表情';
+
+  @override
+  String get categoryDogsPhoto => '狗狗';
+
+  @override
+  String get categoryDogsMeme => '狗狗表情';
+
+  @override
+  String get categoryRabbitsPhoto => '兔子';
+
+  @override
+  String get categoryBirdsPhoto => '鸟类';
+
+  @override
+  String get categoryWildlifePhoto => '野生动物';
+
+  @override
+  String get categoryAnimalCharactersIllustration => '动物角色插画';
+
+  @override
+  String get categoryAnimalCharactersMeme => '动物角色表情';
+
+  @override
+  String get categoryAnimalEaredCharactersIllustration => '兽耳角色插画';
+
+  @override
+  String get categoryAnimalEaredCharactersMeme => '兽耳角色表情';
+
+  @override
+  String get categoryPortraitsPhoto => '人物肖像';
+
+  @override
+  String get categoryGroupsPhoto => '多人合影';
+
+  @override
+  String get categoryCostumesPhoto => '角色扮演';
+
+  @override
+  String get categoryPerformancesPhoto => '舞台表演';
+
+  @override
+  String get categorySportsPhoto => '体育运动';
+
+  @override
+  String get categoryChildrenPlayingPhoto => '儿童游玩';
+
+  @override
+  String get categoryToysPhoto => '玩具手办';
+
+  @override
+  String get categoryToysMeme => '玩偶表情';
+
+  @override
+  String get categoryFoodPhoto => '餐饮美食';
+
+  @override
+  String get categoryMountainsPhoto => '山野风光';
+
+  @override
+  String get categoryMountainsIllustration => '山野插画';
+
+  @override
+  String get categoryCoastPhoto => '海滨风光';
+
+  @override
+  String get categoryCoastIllustration => '海滨插画';
+
+  @override
+  String get categoryForestsPhoto => '树林';
+
+  @override
+  String get categoryForestsIllustration => '森林插画';
+
+  @override
+  String get categoryFlowersPhoto => '花草';
+
+  @override
+  String get categoryCityArchitecturePhoto => '城市与建筑';
+
+  @override
+  String get categoryCityArchitectureIllustration => '建筑插画';
+
+  @override
+  String get categoryInteriorsPhoto => '室内空间';
+
+  @override
+  String get categoryConstructionPhoto => '建筑施工';
+
+  @override
+  String get categoryVehiclesPhoto => '车辆';
+
+  @override
+  String get categoryProgrammingScreenshot => '代码截图';
+
+  @override
+  String get categoryMessagingScreenshot => '聊天记录';
+
+  @override
+  String get categoryGamingScreenshot => '游戏截图';
+
+  @override
+  String get categoryDocumentReadingScreenshot => '文档阅读截图';
+
+  @override
+  String get categoryDocumentReadingOther => '文档资料';
+
+  @override
+  String get categoryApplicationInterfacesScreenshot => '应用界面';
+
+  @override
+  String get categoryMapsScreenshot => '地图导航截图';
+
+  @override
+  String get categoryMapsOther => '地图资料';
+
+  @override
+  String get categoryTablesChartsScreenshot => '图表截图';
+
+  @override
+  String get categoryTablesChartsOther => '图表资料';
+
+  @override
+  String get categoryNotesOther => '手写笔记';
+
+  @override
+  String get categoryMathematicsOther => '数学资料';
+
+  @override
+  String get categoryMusicOther => '乐谱';
+
+  @override
+  String get categoryShoppingScreenshot => '购物页面';
+
+  @override
+  String get categoryReceiptsOther => '票据';
+
+  @override
+  String get categoryInterfaceDesignOther => '界面设计';
+
+  @override
+  String get categoryLogosOther => '标志与图标';
+
+  @override
+  String get categoryFilmScreenshot => '影视画面';
+
+  @override
+  String get categoryFilmMeme => '影视表情';
 
   @override
   String modelDownloadProgress(int percent, double received, double total) {

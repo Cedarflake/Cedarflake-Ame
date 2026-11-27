@@ -344,3 +344,17 @@ snapshot, root-removal position, native snapshot and query-index files contain 3
 lines. The changes retain existing query, geometry and publication owners.
 The interaction and viewport-feedback owners contain 163 and 284 production lines; their dedicated
 interaction, resize and pending-navigation checks contain 319, 1,332 and 458 lines, without inline tests.
+
+## Name sorting and scroll endpoints, 2026-11-27
+
+The first name section excludes decorative gallery padding from its scroll origin. Twelve focused
+projection checks passed, including ascending/descending name endpoints, date geometry and
+new-arrival boundaries. The existing preference workflow also verifies that switching to Name
+selects ascending order, manual descending survives reselecting Name, and switching to a date
+source restores newest-first order. Focused static analysis passed.
+
+The Windows Release client showed the retained descending name order, then Date taken descending
+and Name ascending through the real sort menu. The name rail aligned with the first marker at the
+top and the endpoint after dragging to the bottom. The query owner contains 470 production lines;
+the screen facade only replaces its sort transformation and gains no state. Hosted verification
+of these additions is pending.

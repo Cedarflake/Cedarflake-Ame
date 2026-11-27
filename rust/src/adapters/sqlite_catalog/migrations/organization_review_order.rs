@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const OBJECTS: &[(&str, &str)] = &[
     (
@@ -26,31 +26,6 @@ const OBJECTS: &[(&str, &str)] = &[
          )",
     ),
 ];
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 56)?;
-    for (_, ddl) in OBJECTS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch(
-            "INSERT INTO organization_review_sort
-           SELECT slot, 'library_admission', 'descending' FROM organization_review_scopes;
-         INSERT INTO organization_review_cursor
-           SELECT singleton, 0, '', admission_id FROM organization_review_bookmark;
-         UPDATE schema_info SET version = 57; PRAGMA user_version = 57;",
-        )
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 57)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (name, ddl) in OBJECTS {
@@ -93,21 +68,3 @@ fn invalid() -> ScanError {
         "Organization ordering requires valid saved scopes and cursors",
     )
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v56_for_test(connection: &Connection) {
-    super::sidebar_order::downgrade_to_v57_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 57 {
-        for (name, _) in OBJECTS.iter().rev() {
-            connection
-                .execute_batch(&format!("DROP TABLE {name}"))
-                .unwrap();
-        }
-        connection
-            .execute_batch("UPDATE schema_info SET version = 56; PRAGMA user_version = 56;")
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests;

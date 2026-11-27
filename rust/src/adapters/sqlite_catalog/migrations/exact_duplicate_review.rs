@@ -1,9 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 
 // User choices deliberately have no cascading relationship to derived evidence or locations.
 const TABLE: &str = "CREATE TABLE exact_duplicate_decisions (
@@ -18,34 +17,6 @@ const TABLE: &str = "CREATE TABLE exact_duplicate_decisions (
     PRIMARY KEY(scheme, digest, byte_length)
 )";
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 41)?;
-    let exists: bool = transaction
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'exact_duplicate_decisions')",
-            [],
-            |row| row.get(0),
-        )
-        .map_err(database_error)?;
-    if exists {
-        validate(transaction)?;
-    } else {
-        transaction.execute_batch(TABLE).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 42; PRAGMA user_version = 42;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 42)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     if schema_object_sql_matches(connection, "table", "exact_duplicate_decisions", TABLE)? {
         return Ok(());
@@ -55,6 +26,3 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
         "Exact duplicate choices require their durable content-keyed table",
     ))
 }
-
-#[cfg(test)]
-mod tests;

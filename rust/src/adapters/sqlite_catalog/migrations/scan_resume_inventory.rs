@@ -1,9 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
+use super::database_error;
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -51,34 +51,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
     ),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    super::prerelease_journal_repair::repair_range_id_triggers(connection)?;
-    super::prerelease_journal_repair::repair_recovery_window(connection)?;
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::terminal_inventory_repair::apply(transaction, 32)?;
-    super::retired_live_gap_repair::apply(transaction, 32)?;
-    super::retired_root_authority::repair_for_schema(transaction, 32)?;
-    current_schema::validate_schema_version(transaction, 32)?;
-    if !super::source_revision_contract::metadata_contract_is_complete(transaction)? {
-        super::source_revision_contract::invalidate_precontract_metadata(transaction)?;
-        super::source_revision_contract::create_metadata_contract(transaction)?;
-    }
-    for (_, _, ddl) in OBJECTS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 33; PRAGMA user_version = 33;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 33)
-}
-
 pub(super) fn validate_structure(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in OBJECTS {
         if !schema_object_sql_matches(connection, kind, name, ddl)? {
@@ -117,21 +89,6 @@ fn invalid_contract() -> ScanError {
         "catalog_scan_resume_inventory_unverifiable",
         "The catalog cannot prove retained first-import membership and publication isolation",
     )
-}
-
-#[cfg(test)]
-pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v32_for_test(
-    connection: &Connection,
-) {
-    super::foreground_queue_index::downgrade_to_v33_for_test(connection);
-    for (kind, name, _) in OBJECTS.iter().rev() {
-        connection
-            .execute_batch(&format!("DROP {kind} {name}"))
-            .expect("remove v33 fixture schema");
-    }
-    connection
-        .execute_batch("UPDATE schema_info SET version = 32; PRAGMA user_version = 32;")
-        .expect("retain a v32 fixture");
 }
 
 #[cfg(test)]

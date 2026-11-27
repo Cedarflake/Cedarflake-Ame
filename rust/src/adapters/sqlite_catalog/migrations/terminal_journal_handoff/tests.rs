@@ -1,6 +1,5 @@
 use crate::domain::JournalScopeRecoveryOutcome;
 
-use super::super::classification_merge::downgrade_to_v72_for_test;
 use super::super::current_schema::validate_current_schema_contract;
 
 mod fixture;
@@ -68,18 +67,6 @@ fn retained_scoped_recovery_handoff_is_repaired_idempotently() {
     assert_eq!(handoffs(&fixture.catalog.connection), 0);
     fixture.reopen().expect("recovery is idempotent");
     assert_eq!(handoffs(&fixture.catalog.connection), 0);
-}
-
-#[test]
-fn retained_scoped_recovery_is_repaired_before_schema_upgrade() {
-    let mut fixture = RecoveryFixture::new();
-    fixture.retain_legacy_completion();
-    downgrade_to_v72_for_test(&fixture.catalog.connection);
-    fixture
-        .reopen()
-        .expect("repair precedes upgrade validation");
-    assert_eq!(handoffs(&fixture.catalog.connection), 0);
-    validate_current_schema_contract(&fixture.catalog.connection).unwrap();
 }
 
 #[test]

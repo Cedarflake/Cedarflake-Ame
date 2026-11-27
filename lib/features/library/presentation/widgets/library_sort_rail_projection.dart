@@ -33,6 +33,14 @@ class LibrarySortRailProjection {
       return ordinal / summary.totalItems * maximumOffset;
     }
 
+    double sectionStart(LibraryScrollSection section) {
+      if (section.kind == LibraryScrollSectionKind.name &&
+          section.startOrdinal == 0) {
+        return 0;
+      }
+      return offset(section.startOrdinal);
+    }
+
     double sectionEnd(LibraryScrollSection section) {
       final endOrdinal = section.startOrdinal + section.itemCount;
       final layout = metrics;
@@ -67,9 +75,11 @@ class LibrarySortRailProjection {
           },
           highlighted: section.kind == LibraryScrollSectionKind.newArrivals,
           year: null,
-          scrollOffset: offset(section.startOrdinal),
-          contentExtent: (sectionEnd(section) - offset(section.startOrdinal))
-              .clamp(0.0, double.infinity),
+          scrollOffset: sectionStart(section),
+          contentExtent: (sectionEnd(section) - sectionStart(section)).clamp(
+            0.0,
+            double.infinity,
+          ),
         ),
     ];
   }
