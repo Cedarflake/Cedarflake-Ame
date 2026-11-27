@@ -72,7 +72,7 @@ The broad current-schema run and these focused reruns cover current validation, 
 admission and handoff fixtures retained after removal of historical downgrade setup.
 
 Logs under ignored `build/prerelease-compatibility` retain the failed attempts and focused reruns.
-Scoped Rust formatting and diff checks passed. Final-head hosted verification is pending.
+Scoped Rust formatting and diff checks passed.
 
 Independent review of `2da71f0f` identified an existing connection-order side effect: opening a
 DELETE-journal database switched its persistent mode to WAL before format rejection. WAL activation
@@ -81,6 +81,28 @@ open path and compare complete fixture bytes before and after rejection. All fou
 cases passed for this correction. The first invocation failed to create the default temporary
 directories; the same compiled binary passed in the repository's leased scratch directory, which
 was then retired. No record or validation assertion was removed.
+
+### Hosted cleanup follow-up — 2026-11-27
+
+The [full CI run for `5425a7c9`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45953339140)
+failed in Static and the catalog/schema test jobs. Three remaining fixtures still required retired
+v16, v17 or v23 migration behavior; those migration-only cases are removed under the supported
+baseline decision. Current queue restart and generation-authority checks, payload-bound cross-root
+lineage rejection, and byte-preserving unsupported-format rejection remain covered.
+
+The query-plan failure came from SQLite choosing the equivalent classification-publication index
+for a root/scan/source-generation lookup. The assertion now checks the indexed search and complete
+key predicates, requires a covering index for the root keyset query, and continues rejecting a
+table scan or temporary sorting tree. Queries and indexes are unchanged. The Static findings were
+an empty line after an attribute and four single-element loops; both forms are removed without
+changing validation assertions.
+
+The scoped follow-up passed all-target/all-feature Clippy with warnings denied and 13 focused
+tests covering repair admission, indexed keyset reads, initialization/rejection, current queue
+restart and lineage ownership. Tests ran serially in the repository's leased scratch directory;
+the lease was retired afterward. `ci-followup-clippy.log` and `ci-followup-focused-tests.log` retain
+the results under the existing ignored evidence directory. Hosted verification of the correction
+remains pending.
 
 ## Implementation review boundary
 
@@ -94,3 +116,6 @@ The affected `sqlite_catalog.rs` owner retains 2,534 production/structural lines
 lines, with no inline test cases. Its main dedicated test owner spans 36 files and 10,546 lines.
 The former migration facade contained 4,212 production and 2,290 inline-test lines; current
 validation and recovery remain in their existing scoped owners.
+The hosted follow-up leaves `persistent_journal.rs` at 1,316 production and 2,825 inline-test lines;
+the dedicated change-queue test owner is 6,032 lines. These two owners only lose the three retired
+migration fixtures described above.
