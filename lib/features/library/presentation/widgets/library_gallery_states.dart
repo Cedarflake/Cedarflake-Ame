@@ -29,6 +29,16 @@ class EmptyLibraryGallery extends StatelessWidget {
       return const GalleryLoadingState();
     }
     if (_isAwaitingPublishedDisplay) {
+      final scan = state.primaryScanSnapshot;
+      if (scan.status == LibraryStatus.refreshing) {
+        return _PendingLibraryGallery(
+          "library-publication-loading-state",
+          title: scan.publication == LibraryScanPublication.confirmationPending
+              ? context.l10n.readingScanResult
+              : context.l10n.loadingPhotos,
+          detail: null,
+        );
+      }
       if (state.primaryScanSnapshot.publication ==
           LibraryScanPublication.confirmationPending) {
         return _PendingLibraryGallery(
