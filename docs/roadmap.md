@@ -77,6 +77,8 @@ artifacts and entry-point limits; hosted verification is running. The common dir
 directly; legacy-data migration and a new backup/restore feature remain outside this scope.
 MSI/portable delivery and R10-05's separate
 candidate work retain their existing scope. Store submission and publication are not yet authorized.
+The user-facing MSIX upload package will be generated with the Beta release; interim local packages
+remain verification artifacts.
 
 The selected [distribution follow-up](plans/store-msix.md#store-signed-github-release-asset) retrieves
 the matching Store-signed package after Store publication and attaches it to the same GitHub Release.
