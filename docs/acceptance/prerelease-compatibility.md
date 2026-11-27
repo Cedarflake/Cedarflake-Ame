@@ -101,8 +101,9 @@ The scoped follow-up passed all-target/all-feature Clippy with warnings denied a
 tests covering repair admission, indexed keyset reads, initialization/rejection, current queue
 restart and lineage ownership. Tests ran serially in the repository's leased scratch directory;
 the lease was retired afterward. `ci-followup-clippy.log` and `ci-followup-focused-tests.log` retain
-the results under the existing ignored evidence directory. Hosted verification of the correction
-remains pending.
+the results under the existing ignored evidence directory. Final-head hosted checks passed with
+PR 76; the [Store integration record](store-msix.md#hosted-verification) retains the exact source
+revision, CI run and merge-tree comparison.
 
 ## Implementation review boundary
 

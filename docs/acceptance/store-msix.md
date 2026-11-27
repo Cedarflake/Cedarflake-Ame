@@ -130,8 +130,14 @@ targets `eb54aa3a`. Its Remaining component rejected four stale production-facto
 new preferences-directory query missing from the dependency inventory. The retained composition
 policy now names the exact shared-directory and distribution-adapter factories under ADR 0045;
 the immutable legacy inventory and dependency rules are unchanged. The focused boundary suite
-passed all 26 cases, including rejecting parser fixtures. Final-head hosted verification remains
-pending with the compatibility cleanup.
+passed all 26 cases, including rejecting parser fixtures.
+
+[Quality run 46003864327](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/46003864327)
+passed for final PR head `7879e3c043b4e569f8512fa9893d162596cc0436`: Static, all four Rust groups,
+Flutter tests, Windows scan, accessibility, production-bundle verification and the aggregate Windows
+Gate. [PR 76](https://github.com/Cedarflake/Cedarflake-Ame/pull/76) was squash-merged on 2026-11-27 as
+`76f9a154d59e7a9264ee3a7775f3b76f8095fe1f`. The merge tree matches the tested PR head exactly.
+Store submission and published-package qualification retain the separate boundary below.
 
 ## Review boundaries
 

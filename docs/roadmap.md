@@ -68,12 +68,13 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Microsoft Store distribution
 
-MSIX implementation is on `codex/store-msix`, following the
+MSIX distribution was integrated through [PR 76](https://github.com/Cedarflake/Cedarflake-Ame/pull/76)
+on 2026-11-27, following the
 [Store distribution plan](plans/store-msix.md) and
 [ADR 0045](architecture/0045-microsoft-store-distribution.md). Package construction, Store-managed
 updates, shared data across MSI/portable/MSIX and the MSI uninstall data-removal choice have passed
 their isolated lifecycle checks. The [acceptance record](acceptance/store-msix.md) owns exact
-artifacts and entry-point limits; hosted verification is running. The common directory is used
+artifacts, hosted verification and entry-point limits. The common directory is used
 directly; legacy-data migration and a new backup/restore feature remain outside this scope.
 MSI/portable delivery and R10-05's separate
 candidate work retain their existing scope. Store submission and publication are not yet authorized.
@@ -90,8 +91,8 @@ client credentials. Actual submission and attachment publication remain separate
 
 ### Prerelease compatibility cleanup
 
-The requested [compatibility cleanup](plans/prerelease-compatibility.md) is implemented after
-the Store MSIX delivery, with final-head hosted verification pending. It uses current data contracts
+The requested [compatibility cleanup](plans/prerelease-compatibility.md) was integrated with
+the Store MSIX delivery through PR 76. It uses current data contracts
 directly, retires obsolete Alpha migration paths and updates their messages and guidance.
 Preserve current user decisions, normal upgrade retention, source
 safety and active operational recovery. The authorized workstation relocation is a one-time local

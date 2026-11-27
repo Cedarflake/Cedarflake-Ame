@@ -87,6 +87,6 @@ verified the shared-directory lifecycle for both administrator and ordinary-user
 ordinary-user result is the applicable permission evidence. The direct-directory client passed
 startup, custom-catalog selection, fixture import and uninstall with external files retained.
 The MSI lifecycle matrix and Setup's visible data-removal choice have passed, including repair,
-major upgrade, cancellation, alternate-account rejection and external-file retention. Hosted checks
-are running for the implementation commit. The
-[MSIX acceptance record](../acceptance/store-msix.md) owns measurements and probe limitations.
+major upgrade, cancellation, alternate-account rejection and external-file retention. The
+[MSIX acceptance record](../acceptance/store-msix.md#hosted-verification) owns integration, hosted
+verification, measurements and probe limitations.
