@@ -19,6 +19,7 @@ mod maintenance;
 mod merging;
 mod navigation;
 mod retirement;
+mod terms;
 
 impl ClassificationConfigurationRepository for SqliteCatalog {
     fn load_classification_configuration(

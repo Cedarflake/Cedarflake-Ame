@@ -7,6 +7,7 @@ import "../../../../app/presentation/ame_localizations.dart";
 import "../../../../app/presentation/ame_message_text.dart";
 import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../../../app/presentation/ame_tray.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
@@ -42,12 +43,8 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   LibraryOrganizationRequest Function(LibraryProgressAction)?
   progressRequestFactory,
   LibraryProgressControls? progressControls,
-}) => showModalBottomSheet<LibraryAlbumChoice>(
+}) => showAmeTray<LibraryAlbumChoice>(
   context: context,
-  showDragHandle: true,
-  isScrollControlled: true,
-  useSafeArea: true,
-  enableDrag: false,
   builder: (_) => LibraryAlbumPicker(
     actionLabel: actionLabel,
     actionIcon: actionIcon,
@@ -226,232 +223,209 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) _cancel();
       },
-      child: SafeArea(
-        child: Padding(
-          key: const Key("library-album-picker"),
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * .8,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: AmeTray(
+        key: const Key("library-album-picker"),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Text(
-                      context.l10n.chooseAlbum,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(width: 12),
-                    AmeLoadingProgress(
-                      active: page.isLoading && page.hasValue,
-                      size: 24,
-                      semanticsLabel: context.l10n.updatingAlbums,
-                    ),
-                  ],
+                Text(
+                  context.l10n.chooseAlbum,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: 16),
-                Flexible(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: AmeScrollMotion(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (widget.explanation case final explanation?)
-                              Text(explanation),
-                            if (widget.conflictTarget case final target?)
-                              LibraryConflictAlbumsView(target: target),
-                            if (_error case final error?)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Text(
-                                  error.resolve(context.l10n),
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                                ),
-                              ),
-                            page.when(
-                              skipLoadingOnRefresh: true,
-                              skipLoadingOnReload: true,
-                              data: (value) => ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 360,
-                                ),
-                                child: value.albums.isEmpty
-                                    ? Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 24,
-                                        ),
-                                        child: Text(
-                                          context.l10n.createFirstAlbum,
-                                        ),
-                                      )
-                                    : AmeScrollMotion(
-                                        child: SingleChildScrollView(
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              for (final album in value.albums)
-                                                CheckboxListTile(
-                                                  key: ValueKey(
-                                                    "album-choice-${album.id}",
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  value:
-                                                      _selected?.id == album.id,
-                                                  controlAffinity:
-                                                      ListTileControlAffinity
-                                                          .trailing,
-                                                  secondary: Icon(
-                                                    libraryAlbumIcon(
-                                                      album.icon,
-                                                    ),
-                                                  ),
-                                                  onChanged: busy
-                                                      ? null
-                                                      : (checked) => setState(
-                                                          () {
-                                                            _selected =
-                                                                checked == true
-                                                                ? album
-                                                                : null;
-                                                          },
-                                                        ),
-                                                  title: Text(album.name),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                              loading: () => Padding(
-                                padding: EdgeInsets.symmetric(vertical: 24),
-                                child: Center(
-                                  child: AmeLoadingProgress(
-                                    semanticsLabel: context.l10n.loadingAlbums,
-                                  ),
-                                ),
-                              ),
-                              error: (error, stack) => Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(context.l10n.albumsLoadFailed),
-                                  TextButton(
-                                    onPressed: () => ref.invalidate(
-                                      libraryAlbumPageProvider(_after),
-                                    ),
-                                    child: Text(context.l10n.retry),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (page.value case final value?)
-                              if (_previous.isNotEmpty ||
-                                  value.nextAlbumId != null)
-                                Row(
-                                  children: [
-                                    TextButton(
-                                      onPressed:
-                                          _previous.isEmpty ||
-                                              page.isLoading ||
-                                              _saving
-                                          ? null
-                                          : () => setState(
-                                              () => _after = _previous
-                                                  .removeLast(),
-                                            ),
-                                      child: Text(context.l10n.previousPage),
-                                    ),
-                                    const Spacer(),
-                                    TextButton(
-                                      onPressed:
-                                          value.nextAlbumId == null ||
-                                              page.isLoading ||
-                                              _saving
-                                          ? null
-                                          : () => setState(() {
-                                              _previous.add(_after);
-                                              _after = value.nextAlbumId;
-                                            }),
-                                      child: Text(context.l10n.nextPage),
-                                    ),
-                                  ],
-                                ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    if (_progress != null && controls != null) ...[
-                      TextButton.icon(
-                        key: const Key("library-album-ignore"),
-                        onPressed: busy || !controls.ignore.enabled
-                            ? null
-                            : () => _saveProgress(controls.ignore.action),
-                        icon: Icon(controls.ignore.icon, size: 20),
-                        label: Text(controls.ignore.label),
-                      ),
-                      TextButton.icon(
-                        key: const Key("library-album-defer"),
-                        onPressed: busy || !controls.defer.enabled
-                            ? null
-                            : () => _saveProgress(controls.defer.action),
-                        icon: Icon(controls.defer.icon, size: 20),
-                        label: Text(controls.defer.label),
-                      ),
-                    ],
-                    TextButton.icon(
-                      key: const Key("library-album-create"),
-                      onPressed: busy || page.isLoading || page.value == null
-                          ? null
-                          : () => _create(page.value!.revision),
-                      icon: const Icon(Symbols.add_rounded, size: 20),
-                      label: Text(context.l10n.createAlbum),
-                    ),
-                    if (widget.clearLabel case final label?)
-                      TextButton.icon(
-                        onPressed: busy
-                            ? null
-                            : () => _confirm(const LibraryAlbumChoice(null)),
-                        icon: Icon(widget.clearIcon, size: 20),
-                        label: Text(label),
-                      ),
-                    FilledButton.icon(
-                      key: const Key("library-album-confirm"),
-                      onPressed:
-                          busy ||
-                              _selected == null ||
-                              _selected?.id == widget.currentAlbum?.id ||
-                              page.isLoading ||
-                              page.hasError
-                          ? null
-                          : () => _confirm(LibraryAlbumChoice(_selected)),
-                      icon: Icon(widget.actionIcon, size: 20),
-                      label: Text(saveLabel),
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                AmeLoadingProgress(
+                  active: page.isLoading && page.hasValue,
+                  size: 24,
+                  semanticsLabel: context.l10n.updatingAlbums,
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SizedBox(
+                width: double.infinity,
+                child: AmeScrollMotion(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.explanation case final explanation?)
+                          Text(explanation),
+                        if (widget.conflictTarget case final target?)
+                          LibraryConflictAlbumsView(target: target),
+                        if (_error case final error?)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Text(
+                              error.resolve(context.l10n),
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        page.when(
+                          skipLoadingOnRefresh: true,
+                          skipLoadingOnReload: true,
+                          data: (value) => ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 360),
+                            child: value.albums.isEmpty
+                                ? Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 24),
+                                    child: Text(context.l10n.createFirstAlbum),
+                                  )
+                                : AmeScrollMotion(
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          for (final album in value.albums)
+                                            CheckboxListTile(
+                                              key: ValueKey(
+                                                "album-choice-${album.id}",
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              value: _selected?.id == album.id,
+                                              controlAffinity:
+                                                  ListTileControlAffinity
+                                                      .trailing,
+                                              secondary: Icon(
+                                                libraryAlbumIcon(album.icon),
+                                              ),
+                                              onChanged: busy
+                                                  ? null
+                                                  : (checked) => setState(() {
+                                                      _selected =
+                                                          checked == true
+                                                          ? album
+                                                          : null;
+                                                    }),
+                                              title: Text(album.name),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          loading: () => Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Center(
+                              child: AmeLoadingProgress(
+                                semanticsLabel: context.l10n.loadingAlbums,
+                              ),
+                            ),
+                          ),
+                          error: (error, stack) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(context.l10n.albumsLoadFailed),
+                              TextButton(
+                                onPressed: () => ref.invalidate(
+                                  libraryAlbumPageProvider(_after),
+                                ),
+                                child: Text(context.l10n.retry),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (page.value case final value?)
+                          if (_previous.isNotEmpty || value.nextAlbumId != null)
+                            Row(
+                              children: [
+                                TextButton(
+                                  onPressed:
+                                      _previous.isEmpty ||
+                                          page.isLoading ||
+                                          _saving
+                                      ? null
+                                      : () => setState(
+                                          () => _after = _previous.removeLast(),
+                                        ),
+                                  child: Text(context.l10n.previousPage),
+                                ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed:
+                                      value.nextAlbumId == null ||
+                                          page.isLoading ||
+                                          _saving
+                                      ? null
+                                      : () => setState(() {
+                                          _previous.add(_after);
+                                          _after = value.nextAlbumId;
+                                        }),
+                                  child: Text(context.l10n.nextPage),
+                                ),
+                              ],
+                            ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                if (_progress != null && controls != null) ...[
+                  TextButton.icon(
+                    key: const Key("library-album-ignore"),
+                    onPressed: busy || !controls.ignore.enabled
+                        ? null
+                        : () => _saveProgress(controls.ignore.action),
+                    icon: Icon(controls.ignore.icon, size: 20),
+                    label: Text(controls.ignore.label),
+                  ),
+                  TextButton.icon(
+                    key: const Key("library-album-defer"),
+                    onPressed: busy || !controls.defer.enabled
+                        ? null
+                        : () => _saveProgress(controls.defer.action),
+                    icon: Icon(controls.defer.icon, size: 20),
+                    label: Text(controls.defer.label),
+                  ),
+                ],
+                TextButton.icon(
+                  key: const Key("library-album-create"),
+                  onPressed: busy || page.isLoading || page.value == null
+                      ? null
+                      : () => _create(page.value!.revision),
+                  icon: const Icon(Symbols.add_rounded, size: 20),
+                  label: Text(context.l10n.createAlbum),
+                ),
+                if (widget.clearLabel case final label?)
+                  TextButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _confirm(const LibraryAlbumChoice(null)),
+                    icon: Icon(widget.clearIcon, size: 20),
+                    label: Text(label),
+                  ),
+                FilledButton.icon(
+                  key: const Key("library-album-confirm"),
+                  onPressed:
+                      busy ||
+                          _selected == null ||
+                          _selected?.id == widget.currentAlbum?.id ||
+                          page.isLoading ||
+                          page.hasError
+                      ? null
+                      : () => _confirm(LibraryAlbumChoice(_selected)),
+                  icon: Icon(widget.actionIcon, size: 20),
+                  label: Text(saveLabel),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

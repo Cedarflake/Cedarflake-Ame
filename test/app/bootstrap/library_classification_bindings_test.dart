@@ -3,6 +3,8 @@ import "package:cedarflake_ame/app/bootstrap/library_classification_bindings.dar
 import "package:cedarflake_ame/app/window/ame_shutdown_coordinator.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_classification.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_classification_configuration.dart";
+import "package:cedarflake_ame/features/library/adapters/rust/rust_library_classification_terms.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_terms.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_classification_review.dart";
 import "package:cedarflake_ame/features/library/adapters/rust/rust_library_model_installation.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
@@ -35,6 +37,10 @@ void main() {
         isA<RustLibraryClassificationConfiguration>(),
       );
       expect(services.installation, isA<RustLibraryModelInstallation>());
+      expect(
+        container.read(libraryClassificationTermsServiceProvider),
+        isA<RustLibraryClassificationTerms>(),
+      );
       expect(
         container.read(libraryClassificationReviewServiceProvider),
         isA<RustLibraryClassificationReview>(),

@@ -66,6 +66,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### Smart-album term editing
+
+The approved [term-editing plan](plans/smart-album-terms.md) is implemented on
+`codex/smart-album-terms`: a sidebar edit action, an album-style tray, separate definition dialogs
+and per-term persistence with retained manual protection. Focused local and native-client evidence
+is recorded in [smart-album terms](acceptance/smart-album-terms.md); hosted checks and integration
+remain pending. This independent scope does not change the R10-05 release gate or authorize Beta
+publication.
+
 ### Microsoft Store distribution
 
 MSIX distribution was integrated through [PR 76](https://github.com/Cedarflake/Cedarflake-Ame/pull/76)

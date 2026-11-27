@@ -16,6 +16,7 @@ mod coverage;
 mod maintenance;
 mod merging;
 mod retirement;
+mod terms;
 
 fn request(
     catalog: &SqliteCatalog,

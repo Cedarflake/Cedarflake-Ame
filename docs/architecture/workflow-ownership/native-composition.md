@@ -209,11 +209,17 @@ bounded concept reads retain the existing vocabulary contract. `CategoryDiscover
 typed constructor and the expansion, merge and retirement repository ports. Its notification-scoped
 reconciliation, sampling, reduction and completion state stays together in the existing owner.
 
+`classification_configuration/defaults` reuses the same constructor and bundled naming policy to
+derive canonical term defaults and display labels. It retains immutable Ame category definitions in
+a process-scoped `OnceLock`; the vocabulary instance is released after that bounded load. Loading
+these bundled definitions opens no model or source media and grants no classification work.
+
 Vocabulary/context loading remains lazy within the admitted pass. Changed-authority handling,
 completion and explicit release retire those resources without admitting a new pass for the same
 notification. The dispatcher releases maintenance resources and retires its executor before returning
 a plan. Replacing the vocabulary selection or repository implementations preserves that lifecycle,
-catalog revision, cancellation, bounded sampling and the existing prepared-plan publication rules.
+canonical term defaults, catalog revision, cancellation, bounded sampling and the existing
+prepared-plan publication rules.
 
 ## Classification installation resources
 

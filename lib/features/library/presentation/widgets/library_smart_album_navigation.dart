@@ -8,11 +8,13 @@ import "../../../../app/presentation/ame_progress.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/presentation/ame_workbench_surfaces.dart";
 import "../../application/library_classification_settings.dart";
+import "../../application/library_classification_terms.dart";
 import "../../application/library_model_installation.dart";
 import "../../domain/library_classification_configuration.dart";
 import "../../domain/library_gallery_collection.dart";
 import "../library_category_label.dart";
 import "library_model_setup.dart";
+import "library_classification_terms_sheet.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_section_toggle.dart";
 import "library_workbench_metrics.dart";
@@ -55,6 +57,21 @@ class _LibrarySmartAlbumNavigationState
           count: settings.hasValue
               ? settings.value?.visibleCategories.length ?? 0
               : null,
+          action: IconButton(
+            key: const Key("library-smart-albums-edit"),
+            tooltip: context.l10n.editSmartAlbumTerms,
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(36),
+              iconSize: 20,
+              padding: const EdgeInsets.all(8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed:
+                ref.watch(libraryClassificationTermsServiceProvider) == null
+                ? null
+                : () => showLibraryClassificationTerms(context),
+            icon: const Icon(Symbols.edit_rounded),
+          ),
           trailing: LibrarySidebarSectionToggle(
             key: const Key("library-sidebar-smart-expand"),
             label: context.l10n.smartAlbums,

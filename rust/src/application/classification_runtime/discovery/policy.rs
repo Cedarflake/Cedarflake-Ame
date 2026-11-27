@@ -137,5 +137,10 @@ fn invalid(error: impl std::fmt::Display) -> ScanError {
     ScanError::new("classification_discovery_policy_invalid", error.to_string())
 }
 
+pub(crate) fn bundled_naming() -> Result<Vec<CategoryNaming>, ScanError> {
+    let baseline = classification_candidate::initial_categories().map_err(invalid)?;
+    Ok(ManagedDiscoveryPolicy::for_taxonomy(&baseline)?.naming)
+}
+
 #[cfg(test)]
 mod tests;

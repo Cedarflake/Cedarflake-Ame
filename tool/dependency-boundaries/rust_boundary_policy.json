@@ -153,12 +153,13 @@
     },
     "classification-vocabulary-composition": {
       "responsibility": "Select the bundled managed classification vocabulary through its Ame contract",
-      "reason": "The factory owns the concrete vocabulary selection; discovery consumes repository ports and the vocabulary metadata/read contract.",
-      "lifetime": "The stateless factory runs only when the current pass needs vocabulary; the pass retains its vocabulary and naming contexts until invalidation, completion or release.",
-      "replacement": "Replace this factory and managed vocabulary implementation while preserving catalog revisions, naming contexts, cancellation and the notification-scoped pass lifecycle.",
+      "reason": "The factory owns the concrete vocabulary selection; discovery and classification defaults consume its Ame metadata/read contract.",
+      "lifetime": "Discovery lazily retains vocabulary and naming contexts for its current pass. Classification defaults load bundled definitions once and retain immutable Ame definitions for the process; neither path reads source media.",
+      "replacement": "Replace this factory and managed vocabulary implementation while preserving catalog revisions, naming contexts, canonical term defaults, cancellation and the notification-scoped pass lifecycle.",
       "decision": "docs/architecture/workflow-ownership/native-composition.md#classification-discovery-resources",
       "coverage": [
         "rust/src/adapters/classification_vocabulary/curated/tests.rs",
+        "rust/src/application/classification_configuration/terms/tests.rs",
         "rust/src/application/classification_discovery/tests/preparation.rs",
         "rust/src/adapters/sqlite_catalog/classification/tests/work/dispatch/maintenance.rs"
       ]

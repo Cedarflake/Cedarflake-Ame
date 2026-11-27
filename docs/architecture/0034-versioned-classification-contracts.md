@@ -29,15 +29,22 @@ descriptions of at most 1,024 characters. These are resource/admission limits, n
 count. Exact duplicate descriptions within a category and duplicate category IDs are rejected.
 Shared descriptions across different categories are allowed and can produce an ambiguous tie.
 
-Current definitions are added or retired by admitted managed-maintenance plans. The desktop exposes
-no definition creation, editing, or removal; existing user-authored definitions remain compatible.
+Current definitions are added or retired by admitted managed-maintenance plans or explicit term
+commands. The desktop term editor compares the reviewed definition inside the write transaction,
+merges unchanged unrelated definitions and current dispatch state, then uses the existing versioned
+configuration transaction. It never replaces the taxonomy from a stale whole-list UI snapshot.
+User-created IDs occupy the custom namespace. Bundled defaults come from the admitted starter and
+curated naming owners. Reset retains manual protection; only custom definitions may be deleted in
+this editor. A previously unconfigured catalog initializes the full starter set on its first edit.
+Name-only changes retain the active run, encoder and calibration; semantic changes retire live
+classification sessions and reuse compatible image features. No persistence migration is required.
 Retirement removes a definition from future matching; persistence retains its identity and description
 history for saved human choices. Refreshing the active taxonomy never remaps a retired human choice.
 The current desktop has no manual category-decision commands, under the
 [scope amendment](0035-classification-decision-authority.md#desktop-scope-amendment--2026-11-01).
 An empty active scheme has no classifier and produces no invented `其他` result.
 
-The application owns a finite curated topic catalog and category maintenance. Each topic declares
+The application owns a finite curated topic catalog and automatic category maintenance. Each topic declares
 its permitted broad purposes and complete visible names. SigLIP supplies image/text compatibility;
 its matching adapter does not generate category names or expand that catalog. The scoped
 [discovery evidence](../acceptance/r5-category-discovery.md) records the naming probes separately from

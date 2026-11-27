@@ -63,7 +63,7 @@ pub(super) fn encoder_factory(
     .with_gpu_preference(paths.gpu_enabled)
 }
 
-pub(super) fn vocabulary(
+pub(crate) fn vocabulary(
     cancelled: &AtomicBool,
 ) -> Result<impl ManagedClassificationVocabulary + use<>, ScanError> {
     crate::adapters::CuratedClassificationVocabulary::bundled(cancelled)

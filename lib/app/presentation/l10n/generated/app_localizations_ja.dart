@@ -3681,4 +3681,70 @@ class AppLocalizationsJa extends AppLocalizations {
 
     return '$dateString $timeString';
   }
+
+  @override
+  String get smartAlbumTerms => 'スマートアルバムの分類項目';
+
+  @override
+  String get editSmartAlbumTerms => '分類項目を編集';
+
+  @override
+  String get addSmartAlbumTerm => '項目を追加';
+
+  @override
+  String get editSmartAlbumTerm => '項目を編集';
+
+  @override
+  String get deleteSmartAlbumTerm => '項目を削除';
+
+  @override
+  String get restoreSmartAlbumTerm => '既定に戻す';
+
+  @override
+  String get smartAlbumTermName => '名前';
+
+  @override
+  String get smartAlbumTermDescriptions => '画像の特徴';
+
+  @override
+  String get smartAlbumTermEnglishHint =>
+      '短い英語の説明をおすすめします。例：a photo of a cat sleeping on a sofa';
+
+  @override
+  String smartAlbumTermDescription(int number) {
+    return '説明 $number';
+  }
+
+  @override
+  String get addSmartAlbumDescription => '説明を追加';
+
+  @override
+  String get removeSmartAlbumDescription => '説明を削除';
+
+  @override
+  String get smartAlbumTermsLoadFailed => '分類項目を読み込めませんでした。再試行してください。';
+
+  @override
+  String get smartAlbumTermSaveFailed => '分類項目を保存できませんでした。再試行してください。';
+
+  @override
+  String get smartAlbumTermChanged => 'この項目は変更されました。ダイアログを閉じ、開き直して編集してください。';
+
+  @override
+  String get smartAlbumTermInvalid => '名前と説明を確認して再試行してください。';
+
+  @override
+  String get smartAlbumTermFieldRequired => '内容を入力してください。';
+
+  @override
+  String smartAlbumTermFieldInvalid(int limit) {
+    return '$limit 文字以内の1行で入力してください。';
+  }
+
+  @override
+  String get smartAlbumTermDescriptionDuplicate => '異なる説明を入力してください。';
+
+  @override
+  String get deleteSmartAlbumTermImpact =>
+      'この分類項目をスマートアルバムから削除します。画像はライブラリに残ります。';
 }

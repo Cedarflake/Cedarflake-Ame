@@ -27,8 +27,10 @@ mod scheduling;
 mod semantic;
 mod setup;
 pub use control::ClassificationRuntimeControl;
+pub(crate) use discovery::policy::bundled_naming;
 use executor::NativeExecutor;
 pub use maintenance::{PreparedCategoryMaintenance, commit_category_maintenance};
+pub(crate) use production::vocabulary;
 
 pub(crate) fn while_retired<T>(
     change: impl FnOnce() -> Result<T, ScanError>,

@@ -3,7 +3,7 @@ use crate::domain::classification::{
     CategoryDefinition, CategoryId, ClassificationError, ClassificationRecordId, Taxonomy,
 };
 use crate::domain::classification_configuration::{
-    ClassificationCategoryInput, ClassificationConfigurationAction,
+    ClassificationCategory, ClassificationCategoryInput, ClassificationConfigurationAction,
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
     ClassificationControlAction, ClassificationSettings,
 };
@@ -22,7 +22,9 @@ use super::classification_model_installation::production::{
 use super::classification_runtime::while_retired;
 use super::storage::{StoragePaths, storage_paths};
 
+mod defaults;
 mod navigation;
+pub(crate) mod terms;
 pub(crate) use navigation::load_navigation;
 
 pub(crate) fn load() -> Result<ClassificationSettings, ScanError> {
@@ -117,11 +119,25 @@ fn settings(
     snapshot: ClassificationConfigurationSnapshot,
     storage: &StoragePaths,
 ) -> Result<ClassificationSettings, ScanError> {
+    let defaults = defaults::categories()?;
     let categories = snapshot
         .catalog
         .taxonomy
         .as_ref()
-        .map(category_inputs)
+        .map(|taxonomy| {
+            taxonomy
+                .categories()
+                .iter()
+                .map(|category| ClassificationCategory {
+                    id: category.id().as_str().into(),
+                    label: category.label().into(),
+                    descriptions: category.descriptions().to_vec(),
+                    default_label: defaults
+                        .get(category.id())
+                        .map(|default| default.label().into()),
+                })
+                .collect()
+        })
         .unwrap_or_default();
     Ok(ClassificationSettings {
         revision: snapshot.catalog.revision,

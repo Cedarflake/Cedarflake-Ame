@@ -2344,5 +2344,27 @@
         "format": "jms"
       }
     }
-  }
+  },
+  "smartAlbumTerms": "智能相册词条",
+  "editSmartAlbumTerms": "编辑智能相册词条",
+  "addSmartAlbumTerm": "添加词条",
+  "editSmartAlbumTerm": "编辑词条",
+  "deleteSmartAlbumTerm": "删除词条",
+  "restoreSmartAlbumTerm": "恢复默认",
+  "smartAlbumTermName": "名称",
+  "smartAlbumTermDescriptions": "特征描述",
+  "smartAlbumTermEnglishHint": "建议使用简短的英语描述图片内容，例如：a photo of a cat sleeping on a sofa",
+  "smartAlbumTermDescription": "描述 {number}",
+  "addSmartAlbumDescription": "添加描述",
+  "removeSmartAlbumDescription": "移除描述",
+  "smartAlbumTermsLoadFailed": "无法读取词条，请重试。",
+  "smartAlbumTermSaveFailed": "无法保存词条，请重试。",
+  "smartAlbumTermChanged": "这个词条已更改。请关闭弹窗，重新打开后再编辑。",
+  "smartAlbumTermInvalid": "请检查名称和描述后重试。",
+  "smartAlbumTermFieldRequired": "请填写内容。",
+  "smartAlbumTermFieldInvalid": "请使用单行文本，最多 {limit} 个字符。",
+  "smartAlbumTermDescriptionDuplicate": "请填写不同的描述。",
+  "deleteSmartAlbumTermImpact": "将从智能相册中移除这个词条，图片仍保留在图库中。",
+  "@smartAlbumTermDescription": {"placeholders": {"number": {"type": "int"}}},
+  "@smartAlbumTermFieldInvalid": {"placeholders": {"limit": {"type": "int"}}}
 }

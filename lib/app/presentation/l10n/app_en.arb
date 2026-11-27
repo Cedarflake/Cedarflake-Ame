@@ -1015,5 +1015,39 @@
   "categoryFilmScreenshot": "Film and TV stills",
   "categoryFilmMeme": "Film and TV memes",
   "modelDownloadProgress": "{percent}% · {received} / {total} MB",
-  "photoTimestamp": "{date} {time}"
+  "photoTimestamp": "{date} {time}",
+  "smartAlbumTerms": "Smart album terms",
+  "editSmartAlbumTerms": "Edit smart album terms",
+  "addSmartAlbumTerm": "Add term",
+  "editSmartAlbumTerm": "Edit term",
+  "deleteSmartAlbumTerm": "Delete term",
+  "restoreSmartAlbumTerm": "Restore defaults",
+  "smartAlbumTermName": "Name",
+  "smartAlbumTermDescriptions": "Feature descriptions",
+  "smartAlbumTermEnglishHint": "Short English descriptions work best as a starting point. For example: a photo of a cat sleeping on a sofa.",
+  "smartAlbumTermDescription": "Description {number}",
+  "addSmartAlbumDescription": "Add description",
+  "removeSmartAlbumDescription": "Remove description",
+  "smartAlbumTermsLoadFailed": "Couldn't load terms. Try again.",
+  "smartAlbumTermSaveFailed": "Couldn't save the term. Try again.",
+  "smartAlbumTermChanged": "This term has changed. Close this dialog and reopen it to edit the latest version.",
+  "smartAlbumTermInvalid": "Check the name and descriptions, then try again.",
+  "smartAlbumTermFieldRequired": "Enter a value.",
+  "smartAlbumTermFieldInvalid": "Use a single line of up to {limit} characters.",
+  "smartAlbumTermDescriptionDuplicate": "Use a different description.",
+  "deleteSmartAlbumTermImpact": "This removes the term from smart albums. Its pictures stay in your library.",
+  "@smartAlbumTermDescription": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@smartAlbumTermFieldInvalid": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  }
 }

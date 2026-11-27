@@ -1,6 +1,9 @@
 import "package:flutter_riverpod/misc.dart";
 
 import "../../features/library/adapters/rust/rust_library_classification.dart";
+import "../../features/library/adapters/rust/rust_library_classification_terms.dart";
+import "../../features/library/application/library_classification_terms.dart";
+import "../../features/library/application/ports/library_classification_terms.dart";
 import "../../features/library/adapters/rust/rust_library_semantic_search.dart";
 import "../../features/library/application/library_semantic_search.dart";
 import "../../features/library/application/library_semantic_recovery.dart";
@@ -27,6 +30,7 @@ class LibraryClassificationServices {
     required this.review,
     required this.installation,
     this.search,
+    this.terms,
   });
 
   const LibraryClassificationServices.production()
@@ -34,15 +38,18 @@ class LibraryClassificationServices {
       configuration = const RustLibraryClassificationConfiguration(),
       review = const RustLibraryClassificationReview(),
       installation = const RustLibraryModelInstallation(),
-      search = const RustLibrarySemanticSearch();
+      search = const RustLibrarySemanticSearch(),
+      terms = const RustLibraryClassificationTerms();
 
   final LibraryClassification classification;
   final LibraryClassificationConfigurationService configuration;
   final LibraryClassificationReviewService review;
   final LibraryModelInstallationService installation;
   final LibrarySemanticSearch? search;
+  final LibraryClassificationTermsService? terms;
 
   List<Override> get overrides => [
+    libraryClassificationTermsServiceProvider.overrideWithValue(terms),
     librarySemanticSearchProvider.overrideWithValue(search),
     libraryClassificationReviewServiceProvider.overrideWithValue(review),
   ];
@@ -73,6 +80,9 @@ class LibraryClassificationBindings {
   late final LibraryModelInstallation modelInstallation;
 
   List<Override> get overrides => [
+    libraryClassificationTermsServiceProvider.overrideWithValue(
+      _services.terms,
+    ),
     libraryClassificationReviewServiceProvider.overrideWithValue(
       _services.review,
     ),
@@ -90,6 +100,7 @@ class LibraryClassificationBindings {
 }
 
 final libraryClassificationRequirements = <ProviderListenable<Object?>>[
+  libraryClassificationTermsServiceProvider,
   librarySemanticSearchProvider,
   libraryClassificationReviewServiceProvider,
   libraryClassificationLifecycleProvider,

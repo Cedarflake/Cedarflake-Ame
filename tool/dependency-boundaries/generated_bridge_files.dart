@@ -8,6 +8,7 @@ const generatedBridgeFiles = <String>{
   "lib/src/rust/api/classification_retry.dart",
   "lib/src/rust/api/classification_review.dart",
   "lib/src/rust/api/classification_settings.dart",
+  "lib/src/rust/api/classification_terms.dart",
   "lib/src/rust/api/diagnostics.dart",
   "lib/src/rust/api/exact_duplicate_review.dart",
   "lib/src/rust/api/exact_duplicates.dart",

@@ -219,6 +219,10 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   process's runner HWND, without changing the computer's power state. It observes owned worker
   retirement and verifies the framework memory-pressure cooldown. Logs and catalogs remain outside
   the fixture. This opt-in model workflow adds no hosted model download.
+  `-Scenario terms` selects the term-management forms instead: create, edit, reset and delete
+  through the native bridge, semantic rematching with retained feature payloads, and unchanged
+  fixture bytes after worker retirement. The default `runtime` scenario retains the power and
+  memory-pressure workflow above.
 - `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
   cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
   Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an

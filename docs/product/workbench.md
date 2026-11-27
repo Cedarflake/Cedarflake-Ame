@@ -187,7 +187,8 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 - Smart-album/category predicates compose with ordinary metadata filters. Their
   authority remains a derived `EffectiveCategory` projection over trustworthy catalog state,
   compatible model evidence, and durable user decisions, not editable album membership.
-- Do not let users create, delete, rename, add to, or remove from a smart album result group.
+- Smart-album membership remains derived. The term editor may change definitions or remove custom
+  terms; it does not add or remove individual images from a result group.
 - Preserve existing category `UserOverride` records and their effective projection during reanalysis
   and restoration; the current desktop has no manual category-confirmation or correction entrypoint.
 - Do not record a high-confidence model prediction as user-confirmed or completed review.

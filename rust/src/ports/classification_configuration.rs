@@ -1,7 +1,7 @@
 use crate::domain::ScanError;
 use crate::domain::classification_configuration::{
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
-    ClassificationNavigationSnapshot,
+    ClassificationNavigationSnapshot, ClassificationTermChange,
 };
 
 mod maintenance;
@@ -24,4 +24,11 @@ pub trait ClassificationConfigurationRepository {
 pub trait ClassificationNavigationRepository {
     fn load_classification_navigation(&self)
     -> Result<ClassificationNavigationSnapshot, ScanError>;
+}
+
+pub trait ClassificationTermRepository {
+    fn save_classification_term(
+        &mut self,
+        change: &ClassificationTermChange,
+    ) -> Result<ClassificationConfigurationSnapshot, ScanError>;
 }

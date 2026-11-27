@@ -11,6 +11,7 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
     required this.title,
     this.count,
     this.trailing,
+    this.action,
     this.createLabel,
     this.createKey,
     this.onCreate,
@@ -26,6 +27,7 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
   final String title;
   final int? count;
   final Widget? trailing;
+  final Widget? action;
   final String? createLabel;
   final Key? createKey;
   final VoidCallback? onCreate;
@@ -138,6 +140,7 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
               ),
             ),
           ),
+        if (action != null) SizedBox(width: 40, child: Center(child: action)),
         if (trailing != null)
           SizedBox(width: 40, child: Center(child: trailing)),
       ],

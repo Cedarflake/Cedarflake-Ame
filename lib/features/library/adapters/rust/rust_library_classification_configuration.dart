@@ -34,20 +34,26 @@ class RustLibraryClassificationConfiguration
 
   @override
   Future<LibraryClassificationSettings> load() => invokeClassificationBridge(
-    () async => _settings(await native.loadClassificationSettings()),
+    () async => classificationSettingsFromRust(
+      await native.loadClassificationSettings(),
+    ),
   );
 
   @override
   Future<LibraryClassificationSettings> loadNavigation() =>
       invokeClassificationBridge(
-        () async => _settings(await native.loadClassificationNavigation()),
+        () async => classificationSettingsFromRust(
+          await native.loadClassificationNavigation(),
+        ),
       );
 
   @override
   Future<List<LibraryClassificationCategory>> initialCategories() =>
       invokeClassificationBridge(
         () async => List.unmodifiable(
-          (await native.initialClassificationCategories()).map(_category),
+          (await native.initialClassificationCategories()).map(
+            classificationInputFromRust,
+          ),
         ),
       );
 
@@ -58,7 +64,7 @@ class RustLibraryClassificationConfiguration
     required List<LibraryClassificationCategory> categories,
     required LibraryClassificationConfigurationAction action,
   }) => invokeClassificationBridge(
-    () async => _settings(
+    () async => classificationSettingsFromRust(
       await native.saveClassificationSettings(
         operationId: operationId,
         expectedCatalogRevision: observed.revision,
@@ -87,7 +93,7 @@ class RustLibraryClassificationConfiguration
     required BigInt expectedRevision,
     required LibraryClassificationControl action,
   }) => invokeClassificationBridge(
-    () async => _settings(
+    () async => classificationSettingsFromRust(
       await native.changeClassificationControl(
         expectedRevision: expectedRevision,
         action: switch (action) {
@@ -105,7 +111,7 @@ class RustLibraryClassificationConfiguration
   );
 }
 
-LibraryClassificationCategory _category(
+LibraryClassificationCategory classificationInputFromRust(
   contract.ClassificationCategoryInput category,
 ) => LibraryClassificationCategory(
   id: category.id,
@@ -113,7 +119,7 @@ LibraryClassificationCategory _category(
   descriptions: List.unmodifiable(category.descriptions),
 );
 
-LibraryClassificationSettings _settings(
+LibraryClassificationSettings classificationSettingsFromRust(
   contract.ClassificationSettings settings,
 ) => LibraryClassificationSettings(
   revision: settings.revision,
@@ -127,7 +133,16 @@ LibraryClassificationSettings _settings(
     work.ClassificationDispatchMode.stopped =>
       LibraryClassificationMode.stopped,
   },
-  categories: List.unmodifiable(settings.categories.map(_category)),
+  categories: List.unmodifiable(
+    settings.categories.map(
+      (category) => LibraryClassificationCategory(
+        id: category.id,
+        label: category.label,
+        descriptions: List.unmodifiable(category.descriptions),
+        defaultLabel: category.defaultLabel,
+      ),
+    ),
+  ),
   runId: settings.runId,
   installationSelected: settings.installationSelected,
 );

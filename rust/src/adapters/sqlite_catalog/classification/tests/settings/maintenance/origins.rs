@@ -1,4 +1,8 @@
 use crate::domain::classification::maintenance::ManagedCategoryOrigin;
+use crate::domain::classification_configuration::ClassificationTermChange;
+use crate::ports::classification_configuration::{
+    CategoryRetirementRepository, ClassificationTermRepository,
+};
 use crate::ports::organization_archive::OrganizationArchiveRepository;
 
 use super::*;
@@ -115,6 +119,58 @@ fn explicit_edits_and_retirement_remain_protected_after_reverting_wording() {
             .unwrap();
         assert!(origin(&catalog, &identity).protected);
     }
+}
+
+#[test]
+fn single_term_reset_retains_manual_protection_from_automatic_maintenance() {
+    let (_directory, mut catalog) = super::super::super::fixture();
+    start(&mut catalog);
+    let plan = plan(&catalog, &evidence(&catalog));
+    catalog
+        .apply_category_expansion(&plan, &Arc::new(AtomicBool::new(false)))
+        .unwrap();
+    let identity = plan.additions()[0].clone();
+    let current = catalog
+        .load_classification_configuration()
+        .unwrap()
+        .catalog
+        .taxonomy
+        .unwrap();
+    let original = current
+        .categories()
+        .iter()
+        .find(|category| category.id() == &identity)
+        .unwrap()
+        .clone();
+    let renamed = original.renamed("My architecture".into()).unwrap();
+    let edit = ClassificationTermChange {
+        expected: Some(original.clone()),
+        replacement: Some(renamed.clone()),
+        baseline: request(
+            &catalog,
+            "term-edit",
+            current.clone(),
+            ClassificationConfigurationAction::Save,
+        )
+        .setup,
+    };
+    catalog.save_classification_term(&edit).unwrap();
+    assert!(origin(&catalog, &identity).protected);
+    let reset = ClassificationTermChange {
+        expected: Some(renamed),
+        replacement: Some(original),
+        baseline: request(
+            &catalog,
+            "term-reset",
+            current,
+            ClassificationConfigurationAction::Save,
+        )
+        .setup,
+    };
+    catalog.save_classification_term(&reset).unwrap();
+    assert!(origin(&catalog, &identity).protected);
+    let protected = catalog.load_category_retirement_snapshot().unwrap();
+    assert!(protected.protects(&reset.replacement.unwrap()));
 }
 
 #[test]

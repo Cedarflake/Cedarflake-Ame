@@ -10,25 +10,43 @@ shared principles; the roadmap owns current delivery order and acceptance status
 R5 uses the existing desktop shell, Material components, photo wall, viewer, and feedback templates.
 The visible section name is `智能相册`. Keep the primary `图库`, `相册`, `去重` order and place the
 section below manual albums in Albums' secondary sidebar. Use the same compact section-heading
-alignment as manual albums, with a trailing expand/collapse arrow. The heading is plain text with
+alignment as manual albums, with an edit action before the trailing expand/collapse arrow. The heading is plain text with
 no click target, hover treatment or navigation action; only the arrow expands or collapses the list.
 Category rows open the corresponding derived results.
 The built-in `other` purpose has no smart-album row or viewer label. Its stored evidence remains
 available internally and its images remain in Library; concrete supported categories stay visible.
-Category rows show application-managed categories with current results, using one coherent bounded
+Category rows show configured categories with current results, using one coherent bounded
 presence snapshot with the gallery's membership rules. An empty category remains configured but has
 no sidebar row; an already-open category retains its title and browsing scope. First use relies on
-the existing setup and empty-state surfaces without a category-definition form. The Settings canvas has no smart-album
+the existing setup and empty-state surfaces without requiring a category definition. The Settings canvas has no smart-album
 section or status-only dialog. Missing-model setup uses a download icon with the `下载模型` tooltip
 in the smart-album empty row. Keep the adjacent empty-state text on one line; the confirmation states
 the download size and starts the existing installation feedback.
 Restored categories without a local model retain the same download action below their rows.
 Installed models remove that action and add no status explanation. The sidebar heading's trailing
-action remains collapse. Smart albums reuse the ordinary gallery More menu, with no settings,
-pause, continue, stop or disable-analysis actions. There are no category creation, editing, removal,
-or comparison-description forms.
+actions are edit and collapse. Smart albums reuse the ordinary gallery More menu, with no settings,
+pause, continue, stop or disable-analysis actions.
 Model/runtime directory selection stays outside normal setup. Existing definitions remain preserved
 and retain their authority independently of the application's curated topic catalog.
+
+The edit action opens the shared album-style bottom tray. It lists all configured terms, including
+empty categories, with their names and a one-line description; the internal `other` purpose remains
+hidden. Clicking a row opens a separate dialog with a name and one to eight feature descriptions.
+The tray has Add term and Close actions, no selection checkboxes or second Apply action. Saving
+returns to the same list position and updates the affected row. Cancelling preserves the stored term.
+The name is display-only and accepts any supported text. Recommend short English descriptions with
+an example; do not require English or translate user descriptions automatically.
+
+Built-in terms offer Restore defaults; user-created terms offer Delete with confirmation. Reset
+restores the bundled definition while retaining manual protection. Delete removes the term and its
+derived membership without deleting images. Same-term conflicts are explained in the dialog while
+retaining its draft; unrelated catalog updates do not cancel edits. Saving serializes only the
+affected classification change, not ordinary browsing. Name-only edits retain the active analysis;
+semantic changes reuse compatible features and preserve usable results during matching.
+
+Before any taxonomy is configured, the tray displays the bundled starting definitions. Its first
+save initializes that complete set atomically. Existing taxonomies never regain absent terms merely
+because the editor opens. Model installation is not required to edit definitions.
 When expanded without categories, use the same static icon-and-text empty row as the Library's
 folder list, with `还没有分类结果`. Hide it when collapsed or when category rows become available;
 keep loading and failure separate. Do not substitute evaluation categories or add a setup paragraph
