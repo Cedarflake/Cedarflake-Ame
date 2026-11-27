@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-11-20
+- Last amended: 2026-11-27
 
 ## Context and decision drivers
 
@@ -29,7 +29,8 @@ The x64 upgrade identity is `C284E6B0-1484-4926-A94B-C3EC3840DBBD`. The ARM64 pr
 `293D2430-983F-5117-BB52-64978D653436`. Each family owns its product codes. Both packages
 use the same fixed broker service name and check the other family's Windows Installer registration
 before mutation. A fresh install requires the native machine architecture. Switching from an
-emulated x64 installation requires uninstalling it first, which retains the user's catalog.
+emulated x64 installation requires uninstalling it first with data removal left unchecked to retain
+the user's catalog.
 Same-architecture upgrades and repairs use the existing transactional lifecycle. The release tag and application
 retain their full semantic version, including prerelease identifiers. MSI `ProductVersion` uses
 `major.minor.build`, with the positive numeric build suffix from Flutter's `pubspec.yaml` as its
@@ -61,10 +62,25 @@ the remaining incoming installation script. The former `afterInstallInitialize` 
 prior script-generating actions and cannot queue that recovery; a late `InstallExecute` would expose
 two registered products to the published Alpha 3 admission, which correctly rejects ambiguity.
 Reject downgrades and disabled rollback. Repair reinstalls owned components and revalidates
-service configuration and protected ACLs. The package owns only its installed files, service,
-product registration and shortcut. It never owns source directories, catalogs, previews, settings,
-user decisions or operation history. Removal of unknown files or recursive deletion of the
-installation directory is not part of uninstall.
+service configuration and protected ACLs. The package owns its installed files, service,
+product registration and shortcuts. Source directories and original media never belong to uninstall.
+Removal of unknown files or recursive deletion of the installation directory is not part of uninstall.
+
+Interactive removal also offers an initially unchecked option to delete the current account's
+default Ame data, shared across distributions under ADR 0045. Explicitly selected external catalog
+and cache directories, along with earlier default directories outside the shared root, remain
+untouched. Silent removal retains data unless the option is explicitly supplied. Repair and major
+upgrade preserve unified data and exclude cleanup even when that property is present.
+
+A separate native owner validates the request and current-account SID before uninstall starts,
+then revalidates the SID and acquires the application's per-user single-instance mutex at commit.
+Resolve only the fixed default root from the operating system's KnownFolder path; no installer
+property may supply a deletion path. Pin ancestors and entries against replacement and refuse
+reparse traversal. Cleanup runs with the calling user's identity, never as LocalSystem. Cancellation
+and rollback before commit retain data. Cleanup failure after commit reports remaining data and
+does not roll back an uninstall after data have already been removed. Elevation using another
+account is rejected by comparing the effective token with both MSI's user SID and the interactive
+session account before cleanup is admitted.
 
 Keep the broker beneath the native process's `FOLDERID_ProgramFiles` in fixed `Cedarflake Ame/Journal Broker`
 directories. The application defaults to the sibling `Application` directory and may use another

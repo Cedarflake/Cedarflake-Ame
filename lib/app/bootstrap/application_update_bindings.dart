@@ -1,5 +1,6 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_riverpod/misc.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 import "../../features/updates/adapters/platform/shared_preferences_update_store.dart";
 import "../../features/updates/adapters/rust/rust_application_updates.dart";
@@ -16,6 +17,7 @@ class ApplicationUpdateBindings {
   ApplicationUpdateBindings({
     required ApplicationUpdateRestarter restarter,
     AmeBuildIdentity identity = const AmeBuildIdentity.current(),
+    SharedPreferencesAsync? preferences,
   }) {
     service = RustApplicationUpdates(
       version: identity.name,
@@ -23,7 +25,7 @@ class ApplicationUpdateBindings {
     );
     controller = ApplicationUpdateController(
       service: service,
-      preferences: SharedPreferencesUpdateStore(),
+      preferences: SharedPreferencesUpdateStore(preferences: preferences),
       restarter: restarter,
       defaultChannel: (identity.name?.contains("-") ?? true)
           ? ApplicationUpdateChannel.preview

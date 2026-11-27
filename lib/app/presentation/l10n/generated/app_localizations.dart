@@ -318,6 +318,24 @@ abstract class AppLocalizations {
   /// **'请使用安装版或便携版检查更新。'**
   String get updateUnavailable;
 
+  /// No description provided for @updateOpenStore.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开 Microsoft Store'**
+  String get updateOpenStore;
+
+  /// No description provided for @updateStoreManaged.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新由 Microsoft Store 管理。'**
+  String get updateStoreManaged;
+
+  /// No description provided for @updateStoreOpenFailure.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法打开 Microsoft Store，请稍后重试。'**
+  String get updateStoreOpenFailure;
+
   /// No description provided for @updateNetworkFailure.
   ///
   /// In zh, this message translates to:

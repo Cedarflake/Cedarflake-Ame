@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../domain/application_update.dart";
 import "application_update_state.dart";
+import "application_update_environment.dart";
 import "ports/application_update_service.dart";
 
 final applicationUpdateControllerProvider =
@@ -34,6 +35,7 @@ class ApplicationUpdateController extends ChangeNotifier {
   Future<void>? _initialization;
   Future<void>? _checking;
   Future<void>? _transfer;
+  Future<void>? _storeOpening;
   Timer? _automaticCheck;
   Timer? _progressTimer;
   int _generation = 0;
@@ -45,17 +47,18 @@ class ApplicationUpdateController extends ChangeNotifier {
 
   Future<void> _initialize() async {
     try {
-      final preferences = await _preferences.load(
+      final environment = await ApplicationUpdateEnvironment.load(
+        service: _service,
+        preferences: _preferences,
         defaultChannel: _state.preferences.channel,
       );
-      final supported = await _service.isSupported();
-      lastResult = await _service.takeResult();
+      lastResult = environment.result;
       if (_closed) return;
       _publish(
         ApplicationUpdateState(
-          preferences: preferences,
+          preferences: environment.preferences,
           phase: ApplicationUpdatePhase.idle,
-          supported: supported,
+          delivery: environment.delivery,
         ),
       );
       _scheduleAutomaticCheck(const Duration(milliseconds: 500));
@@ -67,7 +70,11 @@ class ApplicationUpdateController extends ChangeNotifier {
 
   Future<void> setPreferences(ApplicationUpdatePreferences preferences) async {
     await initialize();
-    if (_closed || _state.phase == ApplicationUpdatePhase.restarting) return;
+    if (_closed ||
+        !_state.supported ||
+        _state.phase == ApplicationUpdatePhase.restarting) {
+      return;
+    }
     await _preferences.save(preferences);
     if (_closed) return;
     final channelChanged = preferences.channel != _state.preferences.channel;
@@ -80,7 +87,7 @@ class ApplicationUpdateController extends ChangeNotifier {
         ApplicationUpdateState(
           preferences: preferences,
           phase: ApplicationUpdatePhase.idle,
-          supported: _state.supported,
+          delivery: _state.delivery,
         ),
       );
       await _transfer;
@@ -90,7 +97,7 @@ class ApplicationUpdateController extends ChangeNotifier {
         ApplicationUpdateState(
           preferences: preferences,
           phase: _state.phase,
-          supported: _state.supported,
+          delivery: _state.delivery,
           release: _state.release,
           progress: _state.progress,
           failure: _state.failure,
@@ -114,6 +121,27 @@ class ApplicationUpdateController extends ChangeNotifier {
     await operation.whenComplete(() {
       if (identical(_checking, operation)) _checking = null;
     });
+  }
+
+  Future<void> openStore() {
+    final pending = _storeOpening;
+    if (pending != null) return pending;
+    final operation = _openStore();
+    _storeOpening = operation;
+    return operation.whenComplete(() {
+      if (identical(_storeOpening, operation)) _storeOpening = null;
+    });
+  }
+
+  Future<void> _openStore() async {
+    await initialize();
+    if (_closed || !_state.storeManaged) return;
+    try {
+      await _service.openStore();
+      if (!_closed) _setPhase(ApplicationUpdatePhase.idle);
+    } on ApplicationUpdateFailure catch (failure) {
+      if (!_closed) _setPhase(ApplicationUpdatePhase.failed, failure: failure);
+    }
   }
 
   Future<void> _checkRelease() async {
@@ -268,7 +296,7 @@ class ApplicationUpdateController extends ChangeNotifier {
   }) => _publish(
     ApplicationUpdateState(
       preferences: _state.preferences,
-      supported: _state.supported,
+      delivery: _state.delivery,
       phase: phase,
       release: _download?.release,
       progress: progress,
@@ -292,6 +320,7 @@ class ApplicationUpdateController extends ChangeNotifier {
     await _initialization;
     await _checking;
     await _transfer;
+    await _storeOpening;
     await _download?.close();
     _download = null;
   }

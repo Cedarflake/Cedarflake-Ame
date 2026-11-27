@@ -1,5 +1,6 @@
 #[cfg(windows)]
 mod analysis_source;
+pub(crate) mod application_data;
 mod catalog_capacity;
 pub(crate) use catalog_capacity::LocalCatalogCapacity;
 mod classification_feature_cache;
@@ -151,3 +152,5 @@ pub(crate) fn production_library_change_source_factory() -> crate::ports::Librar
 pub(crate) mod analysis_capacity;
 #[cfg(windows)]
 pub(crate) mod application_updates;
+#[cfg(windows)]
+pub(crate) mod windows_package_identity;

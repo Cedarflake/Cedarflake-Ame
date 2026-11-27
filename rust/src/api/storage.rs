@@ -9,6 +9,10 @@ use crate::domain::{
 };
 use crate::frb_generated::StreamSink;
 
+pub fn application_preferences_directory() -> Result<String, ScanError> {
+    crate::application::application_data::preferences_directory()
+}
+
 pub fn load_storage_status() -> Result<StorageStatus, ScanError> {
     load_status()
 }

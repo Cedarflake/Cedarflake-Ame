@@ -18,7 +18,7 @@ class ApplicationUpdateState {
   const ApplicationUpdateState({
     required this.preferences,
     this.phase = ApplicationUpdatePhase.initializing,
-    this.supported = false,
+    this.delivery = ApplicationUpdateDelivery.unavailable,
     this.release,
     this.progress,
     this.failure,
@@ -26,7 +26,9 @@ class ApplicationUpdateState {
 
   final ApplicationUpdatePreferences preferences;
   final ApplicationUpdatePhase phase;
-  final bool supported;
+  final ApplicationUpdateDelivery delivery;
+  bool get supported => delivery == ApplicationUpdateDelivery.direct;
+  bool get storeManaged => delivery == ApplicationUpdateDelivery.microsoftStore;
   final ApplicationRelease? release;
   final ApplicationDownloadProgress? progress;
   final ApplicationUpdateFailure? failure;

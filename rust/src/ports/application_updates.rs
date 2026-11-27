@@ -1,9 +1,16 @@
 use crate::domain::application_update::{
-    ApplicationRelease, ApplicationUpdateChannel, ApplicationUpdateError, ApplicationUpdateResult,
+    ApplicationRelease, ApplicationUpdateChannel, ApplicationUpdateDelivery,
+    ApplicationUpdateError, ApplicationUpdateFailureCode, ApplicationUpdateResult,
 };
 
 pub(crate) trait ApplicationUpdateSource: Send + Sync {
-    fn is_supported(&self) -> Result<bool, ApplicationUpdateError>;
+    fn delivery(&self) -> ApplicationUpdateDelivery;
+    fn open_store(&self) -> Result<(), ApplicationUpdateError> {
+        Err(ApplicationUpdateError::new(
+            ApplicationUpdateFailureCode::Unavailable,
+            "This installation does not use Microsoft Store updates",
+        ))
+    }
     fn take_result(&self) -> Result<Option<ApplicationUpdateResult>, ApplicationUpdateError>;
 
     fn check(

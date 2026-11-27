@@ -9,7 +9,7 @@ function Assert-AmeInstallerUi {
     }
 
     $optionsDialog = 'AmeInstallOptionsDlg'
-    foreach ($dialog in @($optionsDialog, 'BrowseDlg', 'MaintenanceWelcomeDlg',
+    foreach ($dialog in @($optionsDialog, 'AmeRemoveOptionsDlg', 'BrowseDlg', 'MaintenanceWelcomeDlg',
             'MaintenanceTypeDlg', 'VerifyReadyDlg', 'ProgressDlg', 'ExitDialog')) {
         Require (@($Model.Dialog | Where-Object { $_.Dialog -ceq $dialog }).Count -eq 1) `
             "missing normal workflow dialog $dialog"
@@ -105,11 +105,23 @@ function Assert-AmeInstallerUi {
         }).Count -eq 1) 'directory browsing or return to selected options is disconnected'
     }
     foreach ($mode in @('Repair', 'Remove')) {
+        $destination = if ($mode -ceq 'Remove') { 'AmeRemoveOptionsDlg' } else { 'VerifyReadyDlg' }
         Require (@($Model.ControlEvent | Where-Object {
             $_.Dialog_ -ceq 'MaintenanceTypeDlg' -and $_.Control_ -ceq ($mode + 'Button') -and
-            $_.Event -ceq 'NewDialog' -and $_.Argument -ceq 'VerifyReadyDlg' -and $_.Condition -ceq '1'
+            $_.Event -ceq 'NewDialog' -and $_.Argument -ceq $destination -and $_.Condition -ceq '1'
         }).Count -eq 1) "maintenance action $mode is disconnected"
     }
+    Require (@($Model.Control | Where-Object {
+        $_.Dialog_ -ceq 'AmeRemoveOptionsDlg' -and $_.Control -ceq 'RemoveData' -and
+        $_.Type -ceq 'CheckBox' -and $_.Property -ceq 'AME_REMOVE_USER_DATA'
+    }).Count -eq 1) 'uninstall must expose the optional current-account data choice'
+    Require (@($Model.CheckBox | Where-Object {
+        $_.Property -ceq 'AME_REMOVE_USER_DATA' -and $_.Value -ceq '1'
+    }).Count -eq 1) 'uninstall data choice is not connected'
+    Require (@($Model.ControlEvent | Where-Object {
+        $_.Dialog_ -ceq 'AmeRemoveOptionsDlg' -and $_.Control_ -ceq 'Next' -and
+        $_.Event -ceq 'NewDialog' -and $_.Argument -ceq 'VerifyReadyDlg'
+    }).Count -eq 1) 'uninstall data choice cannot reach confirmation'
     Require (@($Model.ControlEvent | Where-Object {
         $_.Dialog_ -ceq 'VerifyReadyDlg' -and $_.Control_ -ceq 'Repair' -and
         $_.Event -ceq 'Reinstall' -and $_.Argument -ceq 'All'

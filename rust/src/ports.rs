@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+pub(crate) mod application_data;
 pub(crate) mod application_updates;
 pub(crate) mod catalog_capacity;
 pub(crate) mod catalog_reader;

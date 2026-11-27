@@ -119,6 +119,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateUnavailable => '请使用安装版或便携版检查更新。';
 
   @override
+  String get updateOpenStore => '打开 Microsoft Store';
+
+  @override
+  String get updateStoreManaged => '更新由 Microsoft Store 管理。';
+
+  @override
+  String get updateStoreOpenFailure => '无法打开 Microsoft Store，请稍后重试。';
+
+  @override
   String get updateNetworkFailure => '暂时无法检查或下载更新，请稍后重试。';
 
   @override

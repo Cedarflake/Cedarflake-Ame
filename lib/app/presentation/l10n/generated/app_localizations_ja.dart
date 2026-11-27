@@ -119,6 +119,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateUnavailable => 'インストール版またはポータブル版で更新を確認してください。';
 
   @override
+  String get updateOpenStore => 'Microsoft Store を開く';
+
+  @override
+  String get updateStoreManaged => '更新は Microsoft Store で管理されます。';
+
+  @override
+  String get updateStoreOpenFailure =>
+      'Microsoft Store を開けません。しばらくしてから再試行してください。';
+
+  @override
   String get updateNetworkFailure =>
       '更新を確認またはダウンロードできませんでした。しばらくしてから再試行してください。';
 

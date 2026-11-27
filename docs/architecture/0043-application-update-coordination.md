@@ -46,8 +46,14 @@ Restart is an explicit action on a verified package. The restart adapter joins t
 file-operation and shutdown owners before handing control to a replacement process. A download or
 check cannot invoke shutdown. Updating never moves source files or replaces the catalog, preferences,
 organization decisions or operation history.
+Normal upgrades preserve the unified data layout and configured custom locations. ADR 0045 owns
+the Alpha transition to common defaults; update engines do not import earlier data directories.
 
 ### Installed and portable replacement
+
+This engine selection applies to unpackaged MSI and portable execution. Packaged Store execution
+uses the separate source and lifecycle in [ADR 0045](0045-microsoft-store-distribution.md); it never
+enters these replacement engines or their startup hooks.
 
 Retain ADR 0027's WiX transaction for the installed application and service. Download the matching
 architecture's MSI, then use a shipped, unelevated native handoff helper to wait for the application

@@ -120,6 +120,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use an installed or portable release to check for updates.';
 
   @override
+  String get updateOpenStore => 'Open Microsoft Store';
+
+  @override
+  String get updateStoreManaged => 'Updates are managed by Microsoft Store.';
+
+  @override
+  String get updateStoreOpenFailure =>
+      'Could not open Microsoft Store. Try again later.';
+
+  @override
   String get updateNetworkFailure =>
       'Could not check for or download updates. Try again later.';
 

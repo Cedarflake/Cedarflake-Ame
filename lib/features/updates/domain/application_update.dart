@@ -1,5 +1,7 @@
 enum ApplicationUpdateChannel { stable, preview }
 
+enum ApplicationUpdateDelivery { unavailable, direct, microsoftStore }
+
 enum ApplicationUpdateOutcome { updated, cancelled, failed }
 
 class ApplicationUpdateResult {
@@ -43,6 +45,7 @@ class ApplicationRelease {
 }
 
 enum ApplicationUpdateFailureCode {
+  store,
   unavailable,
   network,
   invalidRelease,

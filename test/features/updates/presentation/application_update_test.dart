@@ -220,7 +220,11 @@ class _Fixture
   int totalBytes = 64 * 1024 * 1024;
   ApplicationUpdatePreferences? saved;
   @override
-  Future<bool> isSupported() async => true;
+  Future<ApplicationUpdateDelivery> delivery() async =>
+      ApplicationUpdateDelivery.direct;
+  @override
+  Future<void> openStore() =>
+      throw StateError("Store navigation is not part of this fixture");
   @override
   Future<ApplicationUpdateResult?> takeResult() async => null;
   @override

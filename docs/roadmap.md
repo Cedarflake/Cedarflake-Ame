@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-26
+Last planning update: 2026-11-27
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -65,6 +65,25 @@ archive compatibility and authorized model-installation recovery. The
 Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
 
 ## Current execution queue
+
+### Microsoft Store distribution
+
+MSIX implementation is active on `codex/store-msix`, following the
+[Store distribution plan](plans/store-msix.md) and
+[ADR 0045](architecture/0045-microsoft-store-distribution.md). Deliver package construction,
+Store-managed updates, shared data across MSI/portable/MSIX, an opt-in MSI uninstall data-removal
+choice and isolated Windows lifecycle verification. Use the common directory directly; legacy-data
+migration and a new backup/restore feature are outside this scope.
+MSI/portable delivery and R10-05's separate
+candidate work retain their existing scope. Store submission and publication are not yet authorized.
+
+### Prerelease compatibility cleanup
+
+The requested [compatibility cleanup](plans/prerelease-compatibility.md) follows the Store MSIX
+delivery. Use current data contracts directly, retire obsolete Alpha migration paths and update
+their messages and guidance. Preserve current user decisions, normal upgrade retention, source
+safety and active operational recovery. The authorized workstation relocation is a one-time local
+operation and is not a product compatibility feature.
 
 ### Diagnostics and recovery guidance
 

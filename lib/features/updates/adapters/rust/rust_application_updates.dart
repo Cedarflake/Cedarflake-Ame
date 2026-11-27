@@ -27,9 +27,31 @@ class RustApplicationUpdates implements ApplicationUpdateService {
   }
 
   @override
-  Future<bool> isSupported() async {
+  Future<ApplicationUpdateDelivery> delivery() async {
     try {
-      return (await _open())?.isSupported() ?? false;
+      return switch ((await _open())?.delivery()) {
+        dto.ApplicationUpdateDelivery.direct =>
+          ApplicationUpdateDelivery.direct,
+        dto.ApplicationUpdateDelivery.microsoftStore =>
+          ApplicationUpdateDelivery.microsoftStore,
+        _ => ApplicationUpdateDelivery.unavailable,
+      };
+    } on Object catch (error) {
+      throw _failure(error);
+    }
+  }
+
+  @override
+  Future<void> openStore() async {
+    try {
+      final service = await _open();
+      if (service == null) {
+        throw const ApplicationUpdateFailure(
+          ApplicationUpdateFailureCode.store,
+          "Store delivery is unavailable",
+        );
+      }
+      await service.openStore();
     } on Object catch (error) {
       throw _failure(error);
     }
@@ -141,6 +163,8 @@ ApplicationUpdateFailure _failure(Object error) {
   if (error is ApplicationUpdateFailure) return error;
   if (error is dto.ApplicationUpdateError) {
     final code = switch (error.code) {
+      dto.ApplicationUpdateFailureCode.store =>
+        ApplicationUpdateFailureCode.store,
       dto.ApplicationUpdateFailureCode.unavailable ||
       dto.ApplicationUpdateFailureCode.cancelled =>
         ApplicationUpdateFailureCode.unavailable,
