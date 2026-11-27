@@ -2,8 +2,6 @@
 
 Last updated: 2026-11-27
 
-[简体中文](PRIVACY.zh-Hans.md)
-
 This statement describes how Cedarflake Ame ("Ame"), published by Cedarflake and maintained by
 the Cedarflake Ame contributors, handles information. It covers the Microsoft Store, MSI and
 portable editions. Ame is a local image library application and does not require an Ame account.

@@ -10,7 +10,7 @@ only the contracts, execution details, and evidence that own the task.
 | What stage is active, what blocks it, and what comes next? | [Roadmap](roadmap.md), the sole active stage and priority index |
 | What changed in a release, and where is its GitHub Release text maintained? | [Versioned release notes](releases/README.md) |
 | How are security issues reported, and which versions receive fixes? | [Security policy](../SECURITY.md) |
-| What information does Ame process, share and retain? | [Privacy Statement](../PRIVACY.md), [简体中文](../PRIVACY.zh-Hans.md) |
+| What information does Ame process, share and retain? | [Privacy Statement](../PRIVACY.md) |
 | Which assets, trust boundaries, attack scenarios and residual risks matter? | [Threat model](architecture/threat-model.md) |
 | What is the product and which concepts or capabilities are in scope? | [Workbench contract](product/workbench.md) and [organization workflows](product/organization-workflows.md) |
 | What are R4's album, favorite, organization-progress, and recovery rules? | [R4 requirements](product/r4-organization.md); control placement remains in the [gallery UI contract](product/gallery/organization.md#review-workflow) |
