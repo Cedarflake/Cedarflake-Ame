@@ -17,6 +17,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [Unsigned Windows publication](unsigned-windows-release.md) | Candidate admission, workflow outputs and optional signing integration checks |
 | [Application updates](application-updates.md) | Update settings, verified packages, joined restart, installed handoff and portable recovery |
 | [Microsoft Store packages](store-msix.md) | MSIX admission, package identity, shared-data lifecycle and isolated installation/removal checks |
+| [Smart-album terms](smart-album-terms.md) | Per-term concurrency, manual protection, shared tray behavior and real-model rematching |
 | [Prerelease compatibility](prerelease-compatibility.md) | Current schema baseline, retired Alpha upgrades and preserved operational recovery |
 | [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
 | [Completed maintenance](completed-maintenance.md) | Delivered outcomes, accepted limitations and post-R2c roadmap provenance |

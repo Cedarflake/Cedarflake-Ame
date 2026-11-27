@@ -14,6 +14,7 @@ import 'api/classification_maintenance.dart';
 import 'api/classification_retry.dart';
 import 'api/classification_review.dart';
 import 'api/classification_settings.dart';
+import 'api/classification_terms.dart';
 import 'api/diagnostics.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
@@ -481,6 +482,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationCategoryInput
+  dco_decode_box_autoadd_classification_category_input(dynamic raw);
+
+  @protected
   ClassificationDeviceStatus
   dco_decode_box_autoadd_classification_device_status(dynamic raw);
 
@@ -767,6 +772,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ClassificationAnnotation dco_decode_classification_annotation(dynamic raw);
 
   @protected
+  ClassificationCategory dco_decode_classification_category(dynamic raw);
+
+  @protected
   ClassificationCategoryInput dco_decode_classification_category_input(
     dynamic raw,
   );
@@ -818,6 +826,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationSettings dco_decode_classification_settings(dynamic raw);
+
+  @protected
+  ClassificationTerm dco_decode_classification_term(dynamic raw);
 
   @protected
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
@@ -1146,6 +1157,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<ClassificationCategory> dco_decode_list_classification_category(
+    dynamic raw,
+  );
+
+  @protected
   List<ClassificationCategoryInput>
   dco_decode_list_classification_category_input(dynamic raw);
 
@@ -1153,6 +1169,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<ClassificationItemState> dco_decode_list_classification_item_state(
     dynamic raw,
   );
+
+  @protected
+  List<ClassificationTerm> dco_decode_list_classification_term(dynamic raw);
 
   @protected
   List<ConsolidatedLibraryRoot> dco_decode_list_consolidated_library_root(
@@ -1322,6 +1341,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   dco_decode_opt_box_autoadd_catalog_read_retry_details(dynamic raw);
+
+  @protected
+  ClassificationCategoryInput?
+  dco_decode_opt_box_autoadd_classification_category_input(dynamic raw);
 
   @protected
   ClassificationDeviceStatus?
@@ -2132,6 +2155,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationCategoryInput
+  sse_decode_box_autoadd_classification_category_input(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationDeviceStatus
   sse_decode_box_autoadd_classification_device_status(
     SseDeserializer deserializer,
@@ -2504,6 +2533,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  ClassificationCategory sse_decode_classification_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ClassificationCategoryInput sse_decode_classification_category_input(
     SseDeserializer deserializer,
   );
@@ -2559,6 +2593,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationSettings sse_decode_classification_settings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationTerm sse_decode_classification_term(
     SseDeserializer deserializer,
   );
 
@@ -2995,11 +3034,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<ClassificationCategory> sse_decode_list_classification_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<ClassificationCategoryInput>
   sse_decode_list_classification_category_input(SseDeserializer deserializer);
 
   @protected
   List<ClassificationItemState> sse_decode_list_classification_item_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ClassificationTerm> sse_decode_list_classification_term(
     SseDeserializer deserializer,
   );
 
@@ -3201,6 +3250,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   sse_decode_opt_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationCategoryInput?
+  sse_decode_opt_box_autoadd_classification_category_input(
     SseDeserializer deserializer,
   );
 
@@ -4207,6 +4262,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_classification_category_input(
+    ClassificationCategoryInput self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_classification_device_status(
     ClassificationDeviceStatus self,
     SseSerializer serializer,
@@ -4651,6 +4712,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_category(
+    ClassificationCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_classification_category_input(
     ClassificationCategoryInput self,
     SseSerializer serializer,
@@ -4719,6 +4786,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_classification_settings(
     ClassificationSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_term(
+    ClassificationTerm self,
     SseSerializer serializer,
   );
 
@@ -5263,6 +5336,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_classification_category(
+    List<ClassificationCategory> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_classification_category_input(
     List<ClassificationCategoryInput> self,
     SseSerializer serializer,
@@ -5271,6 +5350,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_classification_item_state(
     List<ClassificationItemState> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_classification_term(
+    List<ClassificationTerm> self,
     SseSerializer serializer,
   );
 
@@ -5518,6 +5603,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_classification_category_input(
+    ClassificationCategoryInput? self,
     SseSerializer serializer,
   );
 

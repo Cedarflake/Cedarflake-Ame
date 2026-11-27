@@ -88,11 +88,13 @@ per-batch issue, and the task resumes according to an explicit retry policy.
 
 ### Supported prerelease baseline
 
-Fresh catalogs are created directly at schema 83 in one transaction, with the current tables,
-indexes, triggers and initial singleton state. Current catalogs retain their data, structural
-validation and operational recovery. Earlier Alpha schemas and future unsupported versions are
-rejected without upgrading, resetting or deleting the stored data. No historical migration chain
-or migration-backup mechanism runs at startup.
+Fresh catalogs are created at schema 84 in one transaction, with the current tables, indexes,
+triggers and initial singleton state. Schema 83 remains the supported prerelease baseline and
+upgrades transactionally to 84's classification display evidence under
+[ADR 0034](0034-versioned-classification-contracts.md#category-contract). The upgrade validates the
+baseline before changing it and preserves catalogs, user decisions and operation history.
+Earlier Alpha schemas and future unsupported versions are rejected without resetting or deleting
+the stored data. No retired historical migration chain or migration-backup mechanism runs at startup.
 
 This deliberate Alpha reset retires upgrade paths for development formats before the supported
 baseline. It does not retire recovery for interrupted current operations, organization archives,
@@ -104,8 +106,8 @@ remains outside application startup.
 Validate the fresh schema and initial records against an independently created pre-change current
 catalog. Preserve current-format reopen, rejection without mutation, transaction rollback and
 retained user-decision coverage. Historical migration evidence below remains provenance for the
-retired chain. Rollback may restore that chain without converting current data, since the baseline
-does not change schema 83's storage contract.
+retired chain. An executable that only supports schema 83 rejects an upgraded catalog without
+changing it; rolling back the display behavior must keep schema 84 support.
 
 ### Catalog connection and checkpoint policy
 

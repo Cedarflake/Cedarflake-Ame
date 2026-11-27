@@ -6191,6 +6191,174 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{date} {time}'**
   String photoTimestamp(DateTime date, DateTime time);
+
+  /// No description provided for @smartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'智能相册词条'**
+  String get smartAlbumTerms;
+
+  /// No description provided for @editSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑智能相册词条'**
+  String get editSmartAlbumTerms;
+
+  /// No description provided for @addSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加词条'**
+  String get addSmartAlbumTerm;
+
+  /// No description provided for @editSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑词条'**
+  String get editSmartAlbumTerm;
+
+  /// No description provided for @deleteSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除词条'**
+  String get deleteSmartAlbumTerm;
+
+  /// No description provided for @restoreSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复默认'**
+  String get restoreSmartAlbumTerm;
+
+  /// No description provided for @allSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get allSmartAlbumTerms;
+
+  /// No description provided for @builtInSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'内置'**
+  String get builtInSmartAlbumTerm;
+
+  /// No description provided for @customSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义'**
+  String get customSmartAlbumTerm;
+
+  /// No description provided for @noMatchingSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有符合条件的词条'**
+  String get noMatchingSmartAlbumTerms;
+
+  /// No description provided for @restoreAllSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复全部内置词条'**
+  String get restoreAllSmartAlbumTerms;
+
+  /// No description provided for @restoreAllSmartAlbumTermsImpact.
+  ///
+  /// In zh, this message translates to:
+  /// **'将所有内置词条的名称和特征描述恢复为默认内容。自定义词条和启用状态保持不变。'**
+  String get restoreAllSmartAlbumTermsImpact;
+
+  /// No description provided for @smartAlbumTermsChanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'部分词条已更新，请关闭此弹窗后重试。'**
+  String get smartAlbumTermsChanged;
+
+  /// No description provided for @smartAlbumTermsRestoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法恢复内置词条，请重试。'**
+  String get smartAlbumTermsRestoreFailed;
+
+  /// No description provided for @smartAlbumTermName.
+  ///
+  /// In zh, this message translates to:
+  /// **'名称'**
+  String get smartAlbumTermName;
+
+  /// No description provided for @smartAlbumTermDescriptions.
+  ///
+  /// In zh, this message translates to:
+  /// **'特征描述'**
+  String get smartAlbumTermDescriptions;
+
+  /// No description provided for @smartAlbumTermEnglishHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'建议使用简短的英语描述图片内容。'**
+  String get smartAlbumTermEnglishHint;
+
+  /// No description provided for @smartAlbumTermDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'描述 {number}'**
+  String smartAlbumTermDescription(int number);
+
+  /// No description provided for @addSmartAlbumDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加描述'**
+  String get addSmartAlbumDescription;
+
+  /// No description provided for @removeSmartAlbumDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除描述'**
+  String get removeSmartAlbumDescription;
+
+  /// No description provided for @smartAlbumTermsLoadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法读取词条，请重试。'**
+  String get smartAlbumTermsLoadFailed;
+
+  /// No description provided for @smartAlbumTermSaveFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法保存词条，请重试。'**
+  String get smartAlbumTermSaveFailed;
+
+  /// No description provided for @smartAlbumTermChanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个词条已更改。请关闭弹窗，重新打开后再编辑。'**
+  String get smartAlbumTermChanged;
+
+  /// No description provided for @smartAlbumTermInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请检查名称和描述后重试。'**
+  String get smartAlbumTermInvalid;
+
+  /// No description provided for @smartAlbumTermFieldRequired.
+  ///
+  /// In zh, this message translates to:
+  /// **'请填写内容。'**
+  String get smartAlbumTermFieldRequired;
+
+  /// No description provided for @smartAlbumTermFieldInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'请使用单行文本，最多 {limit} 个字符。'**
+  String smartAlbumTermFieldInvalid(int limit);
+
+  /// No description provided for @smartAlbumTermDescriptionDuplicate.
+  ///
+  /// In zh, this message translates to:
+  /// **'请填写不同的描述。'**
+  String get smartAlbumTermDescriptionDuplicate;
+
+  /// No description provided for @deleteSmartAlbumTermImpact.
+  ///
+  /// In zh, this message translates to:
+  /// **'将从智能相册中移除这个词条，图片仍保留在图库中。'**
+  String get deleteSmartAlbumTermImpact;
 }
 
 class _AppLocalizationsDelegate

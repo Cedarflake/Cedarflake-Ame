@@ -7,6 +7,37 @@ import '../frb_generated.dart';
 import 'classification/work.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+class ClassificationCategory {
+  final String id;
+  final String label;
+  final List<String> descriptions;
+  final String? defaultLabel;
+
+  const ClassificationCategory({
+    required this.id,
+    required this.label,
+    required this.descriptions,
+    this.defaultLabel,
+  });
+
+  @override
+  int get hashCode =>
+      id.hashCode ^
+      label.hashCode ^
+      descriptions.hashCode ^
+      defaultLabel.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClassificationCategory &&
+          runtimeType == other.runtimeType &&
+          id == other.id &&
+          label == other.label &&
+          descriptions == other.descriptions &&
+          defaultLabel == other.defaultLabel;
+}
+
 class ClassificationCategoryInput {
   final String id;
   final String label;
@@ -39,7 +70,7 @@ class ClassificationSettings {
   final BigInt revision;
   final BigInt dispatchRevision;
   final ClassificationDispatchMode mode;
-  final List<ClassificationCategoryInput> categories;
+  final List<ClassificationCategory> categories;
   final String? runId;
   final bool installationSelected;
 
@@ -72,4 +103,35 @@ class ClassificationSettings {
           categories == other.categories &&
           runId == other.runId &&
           installationSelected == other.installationSelected;
+}
+
+class ClassificationTerm {
+  final ClassificationCategoryInput category;
+  final ClassificationCategoryInput? defaultCategory;
+  final bool isCustom;
+  final bool isConfigured;
+
+  const ClassificationTerm({
+    required this.category,
+    this.defaultCategory,
+    required this.isCustom,
+    required this.isConfigured,
+  });
+
+  @override
+  int get hashCode =>
+      category.hashCode ^
+      defaultCategory.hashCode ^
+      isCustom.hashCode ^
+      isConfigured.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClassificationTerm &&
+          runtimeType == other.runtimeType &&
+          category == other.category &&
+          defaultCategory == other.defaultCategory &&
+          isCustom == other.isCustom &&
+          isConfigured == other.isConfigured;
 }

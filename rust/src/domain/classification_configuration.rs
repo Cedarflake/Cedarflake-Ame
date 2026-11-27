@@ -4,6 +4,11 @@ use super::classification::work::{ClassificationDispatchMode, ClassificationDisp
 use super::classification::{CategoryId, ClassificationAnalysisSetup, ClassificationRecordId};
 use super::classification_catalog::ClassificationCatalogState;
 
+mod terms;
+pub use terms::ClassificationTermChange;
+mod terms_reset;
+pub use terms_reset::ClassificationTermsReset;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClassificationConfigurationAction {
     Save,
@@ -26,11 +31,27 @@ pub struct ClassificationCategoryInput {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassificationCategory {
+    pub id: String,
+    pub label: String,
+    pub descriptions: Vec<String>,
+    pub default_label: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassificationTerm {
+    pub category: ClassificationCategoryInput,
+    pub default_category: Option<ClassificationCategoryInput>,
+    pub is_custom: bool,
+    pub is_configured: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ClassificationSettings {
     pub revision: u64,
     pub dispatch_revision: u64,
     pub mode: ClassificationDispatchMode,
-    pub categories: Vec<ClassificationCategoryInput>,
+    pub categories: Vec<ClassificationCategory>,
     pub run_id: Option<String>,
     pub installation_selected: bool,
 }

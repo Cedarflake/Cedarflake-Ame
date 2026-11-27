@@ -1,7 +1,7 @@
 use super::*;
 use crate::domain::classification::work::ClassificationDispatchMode;
 
-fn storage(root: &std::path::Path) -> StoragePaths {
+pub(super) fn storage(root: &std::path::Path) -> StoragePaths {
     StoragePaths {
         catalog_path: root.join("catalog.sqlite3"),
         preview_root: root.join("previews"),
@@ -10,7 +10,9 @@ fn storage(root: &std::path::Path) -> StoragePaths {
     }
 }
 
-fn change(action: ClassificationConfigurationAction) -> ClassificationConfigurationChange {
+pub(super) fn change(
+    action: ClassificationConfigurationAction,
+) -> ClassificationConfigurationChange {
     let id = ClassificationRecordId::new("configure".into()).unwrap();
     ClassificationConfigurationChange {
         operation_id: id.clone(),

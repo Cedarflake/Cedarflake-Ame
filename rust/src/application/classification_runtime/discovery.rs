@@ -21,7 +21,7 @@ use super::super::classification_dispatch::{
 };
 use super::executor::NativeExecutor;
 
-mod policy;
+pub(super) mod policy;
 use policy::ManagedDiscoveryPolicy;
 
 enum Pass {

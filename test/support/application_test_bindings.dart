@@ -11,6 +11,7 @@ import "package:cedarflake_ame/app/bootstrap/storage_bindings.dart";
 import "package:cedarflake_ame/app/bootstrap/workbench_presentation_bindings.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_lifecycle.dart";
+import "package:cedarflake_ame/features/library/application/library_classification_terms.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
@@ -74,6 +75,7 @@ List<Override> applicationTestOverrides([List<Override> overrides = const []]) {
     ...const LibraryClassificationServices.production().overrides,
     librarySemanticSearchProvider.overrideWithValue(null),
     libraryClassificationConfigurationProvider.overrideWithValue(null),
+    libraryClassificationTermsServiceProvider.overrideWithValue(null),
     libraryClassificationLifecycleProvider.overrideWith((ref) => null),
     libraryModelInstallationProvider.overrideWith((ref) => null),
     ...libraryOrganizationBindings(),

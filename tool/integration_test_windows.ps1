@@ -1,6 +1,8 @@
 [CmdletBinding()]
 param(
     [ValidateRange(60, 1800)]
+    [int]$BuildTimeoutSeconds = 900,
+    [ValidateRange(60, 1800)]
     [int]$TimeoutSeconds = 900
 )
 
@@ -12,5 +14,6 @@ $toolchain = Get-AmeToolchain
 $outcome = Invoke-AmeWindowsScanRun `
     -RepositoryRoot (Get-AmeRepositoryRoot) `
     -FlutterPath $toolchain.Flutter `
+    -BuildTimeoutSeconds $BuildTimeoutSeconds `
     -TimeoutSeconds $TimeoutSeconds
 Complete-AmeWindowsScanRun -Outcome $outcome

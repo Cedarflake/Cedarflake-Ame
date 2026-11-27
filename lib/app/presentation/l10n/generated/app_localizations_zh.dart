@@ -3623,6 +3623,95 @@ class AppLocalizationsZh extends AppLocalizations {
 
     return '$dateString $timeString';
   }
+
+  @override
+  String get smartAlbumTerms => '智能相册词条';
+
+  @override
+  String get editSmartAlbumTerms => '编辑智能相册词条';
+
+  @override
+  String get addSmartAlbumTerm => '添加词条';
+
+  @override
+  String get editSmartAlbumTerm => '编辑词条';
+
+  @override
+  String get deleteSmartAlbumTerm => '删除词条';
+
+  @override
+  String get restoreSmartAlbumTerm => '恢复默认';
+
+  @override
+  String get allSmartAlbumTerms => '全部';
+
+  @override
+  String get builtInSmartAlbumTerm => '内置';
+
+  @override
+  String get customSmartAlbumTerm => '自定义';
+
+  @override
+  String get noMatchingSmartAlbumTerms => '没有符合条件的词条';
+
+  @override
+  String get restoreAllSmartAlbumTerms => '恢复全部内置词条';
+
+  @override
+  String get restoreAllSmartAlbumTermsImpact =>
+      '将所有内置词条的名称和特征描述恢复为默认内容。自定义词条和启用状态保持不变。';
+
+  @override
+  String get smartAlbumTermsChanged => '部分词条已更新，请关闭此弹窗后重试。';
+
+  @override
+  String get smartAlbumTermsRestoreFailed => '无法恢复内置词条，请重试。';
+
+  @override
+  String get smartAlbumTermName => '名称';
+
+  @override
+  String get smartAlbumTermDescriptions => '特征描述';
+
+  @override
+  String get smartAlbumTermEnglishHint => '建议使用简短的英语描述图片内容。';
+
+  @override
+  String smartAlbumTermDescription(int number) {
+    return '描述 $number';
+  }
+
+  @override
+  String get addSmartAlbumDescription => '添加描述';
+
+  @override
+  String get removeSmartAlbumDescription => '移除描述';
+
+  @override
+  String get smartAlbumTermsLoadFailed => '无法读取词条，请重试。';
+
+  @override
+  String get smartAlbumTermSaveFailed => '无法保存词条，请重试。';
+
+  @override
+  String get smartAlbumTermChanged => '这个词条已更改。请关闭弹窗，重新打开后再编辑。';
+
+  @override
+  String get smartAlbumTermInvalid => '请检查名称和描述后重试。';
+
+  @override
+  String get smartAlbumTermFieldRequired => '请填写内容。';
+
+  @override
+  String smartAlbumTermFieldInvalid(int limit) {
+    return '请使用单行文本，最多 $limit 个字符。';
+  }
+
+  @override
+  String get smartAlbumTermDescriptionDuplicate => '请填写不同的描述。';
+
+  @override
+  String get deleteSmartAlbumTermImpact => '将从智能相册中移除这个词条，图片仍保留在图库中。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).

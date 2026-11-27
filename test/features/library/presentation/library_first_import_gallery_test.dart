@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -82,7 +84,24 @@ void main() {
     expect(find.text(testChinese.firstImportPausedDetail), findsNothing);
 
     fixture.catalog.didPublish = true;
+    final read = Completer<LibrarySnapshot>();
+    fixture.catalog.pendingLoad = read;
     fixture.scanner.completeScan(retainedScanCheckpoint.scanId);
+    await tester.pump();
+    await tester.pump();
+    expect(
+      fixture.container.read(libraryControllerProvider).status,
+      LibraryStatus.refreshing,
+    );
+    expect(
+      find.byKey(const Key("library-publication-loading-state")),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key("library-published-reload-state")),
+      findsNothing,
+    );
+    read.complete(fixture.catalog.snapshot(const LibraryGalleryQuery()));
     await tester.pump();
     await tester.pump();
     expect(find.byKey(const Key("library-first-import-state")), findsNothing);

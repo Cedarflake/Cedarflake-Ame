@@ -34,7 +34,7 @@ fn smart_album_rejects_organization_queue_and_invalid_category() {
     }
 }
 
-fn query(category: Option<&str>, review: ClassificationReviewFilter) -> GalleryQuery {
+pub(super) fn query(category: Option<&str>, review: ClassificationReviewFilter) -> GalleryQuery {
     GalleryQuery {
         collection: GalleryCollection::SmartAlbum {
             category_id: category.map(str::to_owned),
@@ -46,7 +46,7 @@ fn query(category: Option<&str>, review: ClassificationReviewFilter) -> GalleryQ
     }
 }
 
-fn publish_group(catalog: &mut SqliteCatalog, names: &[&str], digest: char) {
+pub(super) fn publish_group(catalog: &mut SqliteCatalog, names: &[&str], digest: char) {
     for name in names {
         publish(catalog, name, digest);
     }
@@ -59,7 +59,7 @@ fn publish_group(catalog: &mut SqliteCatalog, names: &[&str], digest: char) {
         .unwrap();
 }
 
-fn ids(catalog: &mut SqliteCatalog, query: &GalleryQuery) -> Vec<String> {
+pub(super) fn ids(catalog: &mut SqliteCatalog, query: &GalleryQuery) -> Vec<String> {
     let snapshot = catalog
         .load_query_snapshot(20, query, "classification", None)
         .unwrap();

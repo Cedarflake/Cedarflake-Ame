@@ -30,7 +30,7 @@ impl ClassificationNavigationRepository for SqliteCatalog {
         let mut populated_categories = BTreeSet::new();
         let (has_choices, has_predictions): (bool, bool) = transaction.query_row(
             "SELECT EXISTS (SELECT 1 FROM classification_decisions WHERE category_id IS NOT NULL),
-                    EXISTS (SELECT 1 FROM classification_prediction_projection)",
+                    EXISTS (SELECT 1 FROM classification_display_projection)",
             [], |row| Ok((row.get(0)?, row.get(1)?)),
         ).map_err(database_error)?;
         if !active.is_empty() && (has_choices || has_predictions) {

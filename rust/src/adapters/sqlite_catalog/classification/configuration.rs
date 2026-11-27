@@ -92,6 +92,7 @@ pub(super) fn apply_rules(
 ) -> Result<bool, ScanError> {
     let changed = previous.taxonomy.as_ref() != Some(taxonomy);
     if changed {
+        super::display::retire_categories(connection, previous.taxonomy.as_ref(), taxonomy)?;
         save_rules(connection, taxonomy, revision, true)?;
         let semantic_change =
             previous.taxonomy.as_ref().map(Taxonomy::revision) != Some(taxonomy.revision());

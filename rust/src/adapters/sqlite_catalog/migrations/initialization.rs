@@ -31,6 +31,10 @@ pub(super) fn initialize(connection: &mut Connection) -> Result<(), ScanError> {
             transaction
                 .execute_batch(include_str!("initialization.sql"))
                 .map_err(database_error)?;
+            super::classification_display::create(&transaction)?;
+            transaction
+                .execute("UPDATE schema_info SET version = ?1", [SCHEMA_VERSION])
+                .map_err(database_error)?;
             transaction
                 .pragma_update(None, "application_id", SQLITE_APPLICATION_ID)
                 .map_err(database_error)?;
@@ -48,7 +52,9 @@ pub(super) fn initialize(connection: &mut Connection) -> Result<(), ScanError> {
         .map_err(database_error)?
         .collect::<Result<Vec<_>, _>>()
         .map_err(database_error)?;
-    if versions != [SCHEMA_VERSION] {
+    if versions == [83] {
+        super::classification_display::upgrade(connection)?;
+    } else if versions != [SCHEMA_VERSION] {
         return Err(ScanError::new(
             "catalog_schema_unsupported",
             format!("Expected catalog schema {SCHEMA_VERSION}, found {versions:?}"),

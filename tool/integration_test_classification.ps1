@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)] [string]$ModelDirectory,
     [Parameter(Mandatory = $true)] [string]$RuntimeDirectory,
     [Parameter(Mandatory = $true)] [string]$PythonPath,
-    [string]$FixturePath = "build/test/metadata"
+    [string]$FixturePath = "build/test/metadata",
+    [ValidateSet("runtime", "terms")] [string]$Scenario = "runtime"
 )
 
 $ErrorActionPreference = "Stop"
@@ -47,8 +48,9 @@ try {
     [IO.File]::WriteAllText($stderr, "", $utf8)
     Initialize-AmeWindowsAccessibilityProcessJob
     $job = [AmeWindowsAccessibilityProcessJob]::new()
-    $command = ('"{0}" test "integration_test\classification_runtime_test.dart" ' +
-        '-d windows --no-pub --reporter expanded 1>"{1}" 2>"{2}"') -f $toolchain.Flutter, $stdout, $stderr
+    $testPath = "integration_test\classification_${Scenario}_test.dart"
+    $command = ('"{0}" test "{3}" ' +
+        '-d windows --no-pub --reporter expanded 1>"{1}" 2>"{2}"') -f $toolchain.Flutter, $stdout, $stderr, $testPath
     $cmd = Join-Path ([Environment]::GetFolderPath("System")) "cmd.exe"
     $clock = [Diagnostics.Stopwatch]::StartNew()
     Write-Output "Classification client evidence: $storage"

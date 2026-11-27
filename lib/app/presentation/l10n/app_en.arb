@@ -1015,5 +1015,47 @@
   "categoryFilmScreenshot": "Film and TV stills",
   "categoryFilmMeme": "Film and TV memes",
   "modelDownloadProgress": "{percent}% · {received} / {total} MB",
-  "photoTimestamp": "{date} {time}"
+  "photoTimestamp": "{date} {time}",
+  "smartAlbumTerms": "Smart album terms",
+  "editSmartAlbumTerms": "Edit smart album terms",
+  "addSmartAlbumTerm": "Add term",
+  "editSmartAlbumTerm": "Edit term",
+  "deleteSmartAlbumTerm": "Delete term",
+  "restoreSmartAlbumTerm": "Restore defaults",
+  "allSmartAlbumTerms": "All",
+  "builtInSmartAlbumTerm": "Built-in",
+  "customSmartAlbumTerm": "Custom",
+  "noMatchingSmartAlbumTerms": "No terms to show.",
+  "restoreAllSmartAlbumTerms": "Restore all built-in terms",
+  "restoreAllSmartAlbumTermsImpact": "Restore the default names and feature descriptions of all built-in terms. Custom terms and which terms are enabled will stay the same.",
+  "smartAlbumTermsChanged": "Some terms have changed. Close this dialog and try again.",
+  "smartAlbumTermsRestoreFailed": "Couldn't restore built-in terms. Try again.",
+  "smartAlbumTermName": "Name",
+  "smartAlbumTermDescriptions": "Feature descriptions",
+  "smartAlbumTermEnglishHint": "Short English descriptions are recommended.",
+  "smartAlbumTermDescription": "Description {number}",
+  "addSmartAlbumDescription": "Add description",
+  "removeSmartAlbumDescription": "Remove description",
+  "smartAlbumTermsLoadFailed": "Couldn't load terms. Try again.",
+  "smartAlbumTermSaveFailed": "Couldn't save the term. Try again.",
+  "smartAlbumTermChanged": "This term has changed. Close this dialog and reopen it to edit the latest version.",
+  "smartAlbumTermInvalid": "Check the name and descriptions, then try again.",
+  "smartAlbumTermFieldRequired": "Enter a value.",
+  "smartAlbumTermFieldInvalid": "Use a single line of up to {limit} characters.",
+  "smartAlbumTermDescriptionDuplicate": "Use a different description.",
+  "deleteSmartAlbumTermImpact": "This removes the term from smart albums. Its pictures stay in your library.",
+  "@smartAlbumTermDescription": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@smartAlbumTermFieldInvalid": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  }
 }

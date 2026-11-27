@@ -41,19 +41,61 @@ $observed = $null
 try { Complete-AmeWindowsScanRun $missing } catch { $observed = $_.Exception }
 Assert-AmeScanGuardrail ($null -ne $observed) "Missing process result passed"
 
+$sharedClock = [pscustomobject]@{ Elapsed = [TimeSpan]::FromSeconds(1799) }
+$sharedProcess = [pscustomobject]@{ HasExited = $true }
+$sharedJob = [pscustomobject]@{ PrimaryExitCode = 0 }
+$exitCode = Wait-AmeWindowsScanProcess $sharedProcess $sharedJob $sharedClock 1800
+Assert-AmeScanGuardrail ($exitCode -eq 0) "The shared positional timeout path required scan progress"
+$sharedJob.PrimaryExitCode = 7
+$exitCode = Wait-AmeWindowsScanProcess $sharedProcess $sharedJob $sharedClock 1800
+Assert-AmeScanGuardrail ($exitCode -eq 7) "The shared waiter lost a nonzero exit code"
+$sharedClock.Elapsed = [TimeSpan]::FromSeconds(1800)
+$observed = $null
+try { Wait-AmeWindowsScanProcess $sharedProcess $sharedJob $sharedClock 1800 } catch { $observed = $_.Exception }
+Assert-AmeScanGuardrail ($observed -is [TimeoutException]) "A completed shared process escaped its parent deadline"
+$sharedProcess.HasExited = $false
+$sharedProcess | Add-Member -MemberType ScriptMethod -Name WaitForExit -Value {
+    throw "An expired shared process received another wait"
+}
+$observed = $null
+try { Wait-AmeWindowsScanProcess $sharedProcess $sharedJob $sharedClock 1800 } catch { $observed = $_.Exception }
+Assert-AmeScanGuardrail ($observed -is [TimeoutException]) "The shared waiter lost its active-process deadline"
+
+$startedEvent = '[{"event":"test.startedProcess","params":{"vmServiceUri":"http://127.0.0.1:1234/"}}]' + "`n"
+function New-AmeScanProgressFixture {
+    param([string]$Text = "")
+    New-AmeWindowsScanProgress ([IO.StringReader]::new($Text))
+}
+
 $clock = [pscustomobject]@{ Elapsed = [TimeSpan]::FromSeconds(60) }
 $process = [pscustomobject]@{ HasExited = $false }
 $job = [pscustomobject]@{ PrimaryExitCode = 0 }
+$progress = New-AmeScanProgressFixture
 $observed = $null
-try { Wait-AmeWindowsScanProcess $process $job $clock 60 } catch { $observed = $_.Exception }
-Assert-AmeScanGuardrail ($observed -is [TimeoutException]) "A native hang was not rejected by its parent deadline"
+try { Wait-AmeWindowsScanTestProcess $process $job $clock $progress 60 900 } catch { $observed = $_.Exception }
+Assert-AmeScanGuardrail (
+    $observed -is [TimeoutException] -and $observed.Message.Contains("build/startup")
+) "A build hang was not rejected by its own deadline"
 $process.HasExited = $true
+$progress = New-AmeScanProgressFixture $startedEvent
 $observed = $null
-try { Wait-AmeWindowsScanProcess $process $job $clock 60 } catch { $observed = $_.Exception }
+try { Wait-AmeWindowsScanTestProcess $process $job $clock $progress 60 900 } catch { $observed = $_.Exception }
 Assert-AmeScanGuardrail ($observed -is [TimeoutException]) "A process finishing after the deadline passed"
+Assert-AmeScanGuardrail ($null -eq $progress.ExecutionStartedMilliseconds) "A late start event extended the build deadline"
 $clock.Elapsed = [TimeSpan]::FromSeconds(59)
-$exitCode = Wait-AmeWindowsScanProcess $process $job $clock 60
+$progress = New-AmeScanProgressFixture $startedEvent
+$exitCode = Wait-AmeWindowsScanTestProcess $process $job $clock $progress 60 900
 Assert-AmeScanGuardrail ($exitCode -eq 0) "A timely owned process failed"
+$progress = New-AmeScanProgressFixture
+$observed = $null
+try { Wait-AmeWindowsScanTestProcess $process $job $clock $progress 60 900 } catch { $observed = $_.Exception }
+Assert-AmeScanGuardrail (
+    $null -ne $observed -and $observed.Message.Contains("without its Flutter test.startedProcess event")
+) "Zero exit without a started test process passed"
+$job.PrimaryExitCode = 7
+$exitCode = Wait-AmeWindowsScanTestProcess $process $job $clock $progress 60 900
+Assert-AmeScanGuardrail ($exitCode -eq 7) "An early Flutter failure lost its exit code"
+$job.PrimaryExitCode = 0
 $advancing = [pscustomobject]@{
     HasExited = $false
     Clock = [pscustomobject]@{ Elapsed = [TimeSpan]::Zero }
@@ -67,10 +109,57 @@ $advancing | Add-Member -MemberType ScriptMethod -Name WaitForExit -Value {
     return $false
 }
 $observed = $null
-try { Wait-AmeWindowsScanProcess $advancing $job $advancing.Clock 60 } catch { $observed = $_.Exception }
+try {
+    Wait-AmeWindowsScanTestProcess $advancing $job $advancing.Clock (New-AmeScanProgressFixture) 60 900
+} catch { $observed = $_.Exception }
 Assert-AmeScanGuardrail (
     $observed -is [TimeoutException] -and $advancing.Waits -eq 1
 ) "The parent did not enforce its deadline while the native process remained active"
+
+$progress = New-AmeScanProgressFixture
+Add-AmeWindowsScanOutput $progress $startedEvent ([TimeSpan]::FromSeconds(890))
+$clock.Elapsed = [TimeSpan]::FromSeconds(1789)
+$exitCode = Wait-AmeWindowsScanTestProcess $process $job $clock $progress 900 900
+Assert-AmeScanGuardrail ($exitCode -eq 0) "Build time consumed the independent execution budget"
+$clock.Elapsed = [TimeSpan]::FromSeconds(1790)
+$observed = $null
+try { Wait-AmeWindowsScanTestProcess $process $job $clock $progress 900 900 } catch { $observed = $_.Exception }
+Assert-AmeScanGuardrail (
+    $observed -is [TimeoutException] -and $observed.Message.Contains("900-second execution")
+) "Execution exceeded its original 900-second bound"
+
+$partial = New-AmeScanProgressFixture
+$split = 20
+Add-AmeWindowsScanOutput $partial $startedEvent.Substring(0, $split) ([TimeSpan]::FromSeconds(850))
+Assert-AmeScanGuardrail ($null -eq $partial.ExecutionStartedMilliseconds) "An incomplete event started execution"
+Add-AmeWindowsScanOutput $partial $startedEvent.Substring($split) ([TimeSpan]::FromSeconds(851))
+Assert-AmeScanGuardrail ($partial.ExecutionStartedMilliseconds -eq 851000) "A fragmented event was lost"
+$observed = $null
+try { Add-AmeWindowsScanOutput $partial $startedEvent ([TimeSpan]::FromSeconds(852)) } catch { $observed = $_.Exception }
+Assert-AmeScanGuardrail (
+    $null -ne $observed -and $partial.ExecutionStartedMilliseconds -eq 851000
+) "A duplicate event renewed the execution budget"
+
+$noise = New-AmeScanProgressFixture
+foreach ($line in @(
+    '{"type":"testStart","test":{"name":"loading integration_test"}}'
+    '{"type":"print","message":"test.startedProcess"}'
+    '[{"event":"test.other"}]'
+    '[not-json]'
+)) {
+    Add-AmeWindowsScanOutput $noise "$line`n" ([TimeSpan]::FromSeconds(1))
+}
+Assert-AmeScanGuardrail ($null -eq $noise.ExecutionStartedMilliseconds) "Loading or printed text replaced the device-start event"
+$bounded = New-AmeScanProgressFixture (("x" * 70000) + "`n" + $startedEvent)
+$drained = Read-AmeWindowsScanProgress $bounded ([TimeSpan]::FromSeconds(1))
+Assert-AmeScanGuardrail (
+    -not $drained -and $null -eq $bounded.ExecutionStartedMilliseconds -and
+    $bounded.PendingLine.Length -le 16384
+) "A progress poll exceeded its read or pending-line bound"
+$drained = Read-AmeWindowsScanProgress $bounded ([TimeSpan]::FromSeconds(2))
+Assert-AmeScanGuardrail (
+    $drained -and $bounded.ExecutionStartedMilliseconds -eq 2000
+) "Incremental reads lost the event after a discarded oversized line"
 
 $retained = New-AmeWindowsScanOutcome
 $retained.ExitCode = 0
@@ -177,6 +266,7 @@ Assert-AmeWindowsScanDirectoryChain (Get-AmeRepositoryRoot)
 $paths = @(
     (Join-Path $PSScriptRoot "integration_test_windows.ps1")
     (Join-Path $PSScriptRoot "integration_windows_scan_run.ps1")
+    (Join-Path $PSScriptRoot "integration_windows_scan_progress.ps1")
 )
 Invoke-AmePowerShellSyntaxCheck $paths
 $commands = @(

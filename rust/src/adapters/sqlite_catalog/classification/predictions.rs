@@ -56,6 +56,7 @@ pub(super) fn begin(
         "UPDATE classification_state SET revision = ?1, active_run_id = ?2, configuration_revision = ?3 WHERE singleton = 1",
         params![revision, run.id().as_str(), codec::revision(run.configuration())],
     ).map_err(database_error)?;
+    super::display::begin(connection, run)?;
     operations::publish_catalog(connection)
 }
 
@@ -129,6 +130,7 @@ pub(super) fn publish(
             ],
         )
         .map_err(database_error)?;
+    super::display::publish(connection, connection.last_insert_rowid())?;
     operations::publish_catalog(connection)?;
     Ok(true)
 }

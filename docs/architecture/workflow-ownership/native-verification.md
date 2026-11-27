@@ -52,6 +52,16 @@ The output owner requires exclusive log access after job closure and uses the re
 budget to wait for asynchronous writer-handle release. Persistent sharing violations preserve the
 raw output; they cannot be replaced with a partial read while a writer remains active.
 
+`integration_windows_scan_progress.ps1` owns bounded incremental Flutter machine-output reading and
+the scan runner's separate build/startup and execution deadlines. The pinned Flutter test watcher
+emits `test.startedProcess` after device launch and VM-service readiness, before the test harness
+runs. That structured event switches the single invocation to its execution budget exactly once;
+loading events and ordinary output grant no transition. Duplicate events fail, and a zero exit
+without the event cannot establish execution. Reads retain one bounded partial line and never
+reread the complete log. The scan runner retains the Job Object, output handles, environment,
+repository lock, independent cleanup and phase timings; a parser or deadline failure grants no
+additional termination or storage-deletion authority.
+
 Probe completion belongs to the evidence owner. Standalone probes require identity, process exit,
 complete status and cleanup. The integrated canary retains one owned MTA probe process after runtime
 preparation: each phase uses a fresh sequenced request, result and parent-owned completion event.

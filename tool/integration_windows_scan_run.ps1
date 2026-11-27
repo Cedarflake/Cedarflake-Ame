@@ -1,5 +1,6 @@
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_process.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_scan_progress.ps1")
 
 function Assert-AmeWindowsScanDirectoryChain {
     param([Parameter(Mandatory = $true)] [string]$Path)
@@ -40,6 +41,9 @@ function New-AmeWindowsScanOutcome {
         StorageRoot = $null
         ExitCode = $null
         ElapsedMilliseconds = 0L
+        BuildElapsedMilliseconds = 0L
+        ExecutionElapsedMilliseconds = 0L
+        LastPhase = "setup"
         RunFailure = $null
         CleanupFailures = [Collections.Generic.List[object]]::new()
     }
@@ -90,6 +94,7 @@ function Invoke-AmeWindowsScanRun {
     param(
         [Parameter(Mandatory = $true)] [string]$RepositoryRoot,
         [Parameter(Mandatory = $true)] [string]$FlutterPath,
+        [ValidateRange(60, 1800)] [int]$BuildTimeoutSeconds = 900,
         [ValidateRange(60, 1800)] [int]$TimeoutSeconds = 900
     )
 
@@ -97,6 +102,9 @@ function Invoke-AmeWindowsScanRun {
     $lock = $null
     $job = $null
     $process = $null
+    $stdoutStream = $null
+    $stdoutReader = $null
+    $progress = $null
     $previousStorage = [Environment]::GetEnvironmentVariable("CEDARFLAKE_AME_TEST_STORAGE_ROOT", "Process")
     $clock = [Diagnostics.Stopwatch]::new()
     try {
@@ -114,25 +122,44 @@ function Invoke-AmeWindowsScanRun {
         $utf8 = [Text.UTF8Encoding]::new($false)
         [IO.File]::WriteAllText($stdout, "", $utf8)
         [IO.File]::WriteAllText($stderr, "", $utf8)
+        $stdoutStream = [IO.FileStream]::new(
+            $stdout, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite
+        )
+        $stdoutReader = [IO.StreamReader]::new($stdoutStream, $utf8, $false, 4096, $true)
+        $progress = New-AmeWindowsScanProgress $stdoutReader
         [Environment]::SetEnvironmentVariable(
             "CEDARFLAKE_AME_TEST_STORAGE_ROOT", $outcome.StorageRoot, "Process"
         )
         Initialize-AmeWindowsAccessibilityProcessJob
         $job = [AmeWindowsAccessibilityProcessJob]::new()
         $command = (
-            '"{0}" test "integration_test\scan_workflow_test.dart" -d windows ' +
+            '"{0}" test "integration_test\scan_workflow_test.dart" -d windows --machine ' +
             '1>"{1}" 2>"{2}"'
         ) -f $FlutterPath, $stdout, $stderr
         $cmd = Join-Path ([Environment]::GetFolderPath("System")) "cmd.exe"
         $clock.Start()
         $process = $job.Start($cmd, "/d /v:off /s /c `"$command`"", $RepositoryRoot)
-        $outcome.ExitCode = Wait-AmeWindowsScanProcess $process $job $clock $TimeoutSeconds
+        $outcome.ExitCode = Wait-AmeWindowsScanTestProcess `
+            -Process $process -Job $job -Clock $clock -Progress $progress `
+            -BuildTimeoutSeconds $BuildTimeoutSeconds -TimeoutSeconds $TimeoutSeconds
         if ($outcome.ExitCode -ne 0) {
             throw "Windows scan integration failed with exit code $($outcome.ExitCode)"
         }
     } catch {
         $outcome.RunFailure = $_.Exception
     } finally {
+        if ($null -ne $progress) {
+            if ($null -eq $progress.ExecutionStartedMilliseconds) {
+                $outcome.LastPhase = "build/startup"
+                $outcome.BuildElapsedMilliseconds = [long]$clock.Elapsed.TotalMilliseconds
+            } else {
+                $outcome.LastPhase = "execution"
+                $outcome.BuildElapsedMilliseconds = [long]$progress.ExecutionStartedMilliseconds
+                $outcome.ExecutionElapsedMilliseconds = [long](
+                    $clock.Elapsed.TotalMilliseconds - $progress.ExecutionStartedMilliseconds
+                )
+            }
+        }
         if ($null -ne $job) {
             Invoke-AmeWindowsScanCleanup $outcome "close-owned-job" { $job.Dispose() }
         }
@@ -143,6 +170,12 @@ function Invoke-AmeWindowsScanRun {
                 }
             }
             Invoke-AmeWindowsScanCleanup $outcome "dispose-owned-process" { $process.Dispose() }
+        }
+        if ($null -ne $stdoutReader) {
+            Invoke-AmeWindowsScanCleanup $outcome "dispose-output-reader" { $stdoutReader.Dispose() }
+        }
+        if ($null -ne $stdoutStream) {
+            Invoke-AmeWindowsScanCleanup $outcome "dispose-output-stream" { $stdoutStream.Dispose() }
         }
         Invoke-AmeWindowsScanCleanup $outcome "restore-environment" {
             Restore-AmeWindowsScanEnvironment $previousStorage
@@ -166,6 +199,9 @@ function Get-AmeWindowsScanCompletion {
         completedUtc = [DateTime]::UtcNow.ToString("o")
         exitCode = $Outcome.ExitCode
         elapsedMilliseconds = $Outcome.ElapsedMilliseconds
+        buildElapsedMilliseconds = $Outcome.BuildElapsedMilliseconds
+        executionElapsedMilliseconds = $Outcome.ExecutionElapsedMilliseconds
+        lastPhase = $Outcome.LastPhase
         status = $(if ($Outcome.ExitCode -ne 0 -or $null -ne $Outcome.RunFailure -or $Outcome.CleanupFailures.Count -gt 0) { "failed" } else { "passed" })
         runFailure = $(if ($null -ne $Outcome.RunFailure) { $Outcome.RunFailure.Message } else { $null })
         cleanupFailures = @($Outcome.CleanupFailures | ForEach-Object {

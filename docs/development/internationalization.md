@@ -30,8 +30,11 @@ Preserve filenames, paths, metadata and user-entered album names verbatim. Autom
 names follow the active language through their stable category IDs in the
 [display-label resolver](../../lib/features/library/presentation/library_category_label.dart).
 This covers the six broad purposes and every supported topic/purpose pair in the
-[curated catalog](../../resources/classification/curated-topics.json). Smart albums are
-application-managed and have no rename action. An unknown category ID displays its returned label.
+[curated catalog](../../resources/classification/curated-topics.json). The adapter supplies the bundled
+default label alongside each category. Localize a built-in name only while its stored name equals
+that default; edited names and custom terms retain their original text. An unknown category ID
+displays its returned label. Opening and saving an unchanged localized name preserves the stored
+default rather than converting the current interface language into a user rename.
 
 Keep the static display-ID mapping aligned with the curated catalog. Its concept IDs come from
 [`resource::identity`](../../rust/src/adapters/classification_vocabulary/resource.rs), using

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../domain/library_classification_configuration.dart";
 import "../domain/library_model_installation.dart";
 import "library_classification_configuration.dart";
+import "library_classification_terms.dart";
 import "library_classification_navigation_reader.dart";
 import "library_controller.dart";
 import "library_foreground_reads.dart";
@@ -25,6 +26,10 @@ final libraryClassificationNavigationProvider =
       );
       ref.onDispose(reader.close);
       ref.listen(
+        libraryClassificationTermsRevisionProvider,
+        (_, _) => reader.refresh(),
+      );
+      ref.listen(
         libraryControllerProvider.select((state) => state.catalogRevision),
         (_, _) => reader.refresh(),
       );
@@ -42,6 +47,7 @@ final libraryClassificationNavigationProvider =
     });
 
 void _watchClassificationChanges(Ref ref) {
+  ref.watch(libraryClassificationTermsRevisionProvider);
   ref.watch(
     libraryModelInstallationProvider.select(
       (installation) =>

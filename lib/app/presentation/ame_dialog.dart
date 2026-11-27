@@ -11,6 +11,7 @@ class AmeDialog extends StatelessWidget {
     required this.actions,
     this.loadingLabel,
     this.isLoading = false,
+    this.scrollable = true,
     super.key,
   });
 
@@ -19,11 +20,12 @@ class AmeDialog extends StatelessWidget {
   final List<Widget> actions;
   final String? loadingLabel;
   final bool isLoading;
+  final bool scrollable;
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: Text(title),
-    scrollable: true,
+    scrollable: scrollable,
     content: SizedBox(
       width: 440,
       child: loadingLabel == null

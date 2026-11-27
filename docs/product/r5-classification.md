@@ -42,22 +42,24 @@ Use `智能相册` for the visible entry and sidebar section. Its category resul
 A group can appear in the `动漫／插画` smart album, the user's `壁纸` album, and Favorites together.
 It still has only one manual-album assignment. Smart albums are not destinations in the album tray
 and have no add/remove membership commands. Their names and availability follow application-managed
-category definitions independently of manual-album management.
+category definitions independently of manual-album membership management.
 
 ## Primary taxonomy and result quality
 
-Categories are application-managed flat definitions with stable identities, display names, and
+Categories are flat definitions with stable identities, display names, and
 classification descriptions. Ame supplies a finite, versioned catalog of useful everyday topics.
 The existing 42-topic vocabulary is the starting material: consolidate overlapping topics and define
 each topic's supported image purposes and visible names explicitly. Do not compose every topic with
-every purpose. Category meanings change through application updates, not automatic dictionary
-expansion, generated names, or a user-authored category table. Open-ended category discovery was
+every purpose. Application updates maintain the bundled meanings; users may edit active definitions
+or add their own through the smart-album term editor. Automatic dictionary expansion and generated
+names remain excluded. Open-ended category discovery was
 withdrawn on 2026-11-03.
 
 Enabling smart albums requires no category names, comparison descriptions or model prompts from
-the user. The desktop offers no manual definition creation, editing, or removal. Previously saved
-definitions and their protection remain compatible. Preserve the text encoder so application-owned
-description updates reuse the current model and compatible image features. Only categories with
+the user. The sidebar term editor optionally creates, edits, resets or removes custom definitions.
+Manual changes retain protection against automatic replacement and retirement, including after reset.
+Preserve the text encoder so description updates reuse the current model and compatible image
+features. Only categories with
 current results appear in the sidebar; configuration and saved definitions survive an empty view.
 Display-only renaming preserves classification compatibility; semantic description changes and
 adding/removing definitions create a new classification-rule revision. Retired definitions retain
@@ -208,7 +210,7 @@ support, failure isolation, maintenance, and replacement contracts. A runtime me
 is not an admitted dependency. The Windows installer includes the admitted model and compatible
 inference runtime, with their licenses and notices. First startup verifies the installed model and
 activates smart albums without a separate download. A distribution without models offers an explicit
-download; users do not choose model/runtime directories or supply category definitions.
+download; users do not choose model/runtime directories or need to supply category definitions.
 The Settings page has no smart-album section or status prompt. Missing models offer download from
 the smart-album empty state; installed models need no setup prompt. Installation failure uses the
 shared download feedback's retry action without enabling analysis against partial files.

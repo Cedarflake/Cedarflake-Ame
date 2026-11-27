@@ -4036,4 +4036,100 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return '$dateString $timeString';
   }
+
+  @override
+  String get smartAlbumTerms => 'Smart album terms';
+
+  @override
+  String get editSmartAlbumTerms => 'Edit smart album terms';
+
+  @override
+  String get addSmartAlbumTerm => 'Add term';
+
+  @override
+  String get editSmartAlbumTerm => 'Edit term';
+
+  @override
+  String get deleteSmartAlbumTerm => 'Delete term';
+
+  @override
+  String get restoreSmartAlbumTerm => 'Restore defaults';
+
+  @override
+  String get allSmartAlbumTerms => 'All';
+
+  @override
+  String get builtInSmartAlbumTerm => 'Built-in';
+
+  @override
+  String get customSmartAlbumTerm => 'Custom';
+
+  @override
+  String get noMatchingSmartAlbumTerms => 'No terms to show.';
+
+  @override
+  String get restoreAllSmartAlbumTerms => 'Restore all built-in terms';
+
+  @override
+  String get restoreAllSmartAlbumTermsImpact =>
+      'Restore the default names and feature descriptions of all built-in terms. Custom terms and which terms are enabled will stay the same.';
+
+  @override
+  String get smartAlbumTermsChanged =>
+      'Some terms have changed. Close this dialog and try again.';
+
+  @override
+  String get smartAlbumTermsRestoreFailed =>
+      'Couldn\'t restore built-in terms. Try again.';
+
+  @override
+  String get smartAlbumTermName => 'Name';
+
+  @override
+  String get smartAlbumTermDescriptions => 'Feature descriptions';
+
+  @override
+  String get smartAlbumTermEnglishHint =>
+      'Short English descriptions are recommended.';
+
+  @override
+  String smartAlbumTermDescription(int number) {
+    return 'Description $number';
+  }
+
+  @override
+  String get addSmartAlbumDescription => 'Add description';
+
+  @override
+  String get removeSmartAlbumDescription => 'Remove description';
+
+  @override
+  String get smartAlbumTermsLoadFailed => 'Couldn\'t load terms. Try again.';
+
+  @override
+  String get smartAlbumTermSaveFailed => 'Couldn\'t save the term. Try again.';
+
+  @override
+  String get smartAlbumTermChanged =>
+      'This term has changed. Close this dialog and reopen it to edit the latest version.';
+
+  @override
+  String get smartAlbumTermInvalid =>
+      'Check the name and descriptions, then try again.';
+
+  @override
+  String get smartAlbumTermFieldRequired => 'Enter a value.';
+
+  @override
+  String smartAlbumTermFieldInvalid(int limit) {
+    return 'Use a single line of up to $limit characters.';
+  }
+
+  @override
+  String get smartAlbumTermDescriptionDuplicate =>
+      'Use a different description.';
+
+  @override
+  String get deleteSmartAlbumTermImpact =>
+      'This removes the term from smart albums. Its pictures stay in your library.';
 }
