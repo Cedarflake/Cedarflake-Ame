@@ -1,10 +1,11 @@
 # Microsoft Store package verification
 
-The [Store distribution plan](../plans/store-msix.md) owns implementation order and disposition;
+The [Store distribution plan](../plans/store-msix.md) owns implementation steps; the
+[roadmap](../roadmap.md#microsoft-store-distribution) owns disposition;
 [ADR 0045](../architecture/0045-microsoft-store-distribution.md) owns package and data behavior.
 
 The direct-directory startup passed the unsigned Release, catalog-free bridge smoke and installed
-client checks below. MSI lifecycle verification remains in progress.
+client checks below. The MSI lifecycle matrix and visible Setup maintenance also passed below.
 
 ## Shared data lifecycle probe — 2026-11-27
 
@@ -121,6 +122,16 @@ MSI policy cases and 16 checkbox transitions also passed for this build. A first
 from the Sandbox mapped directory returned `0x8007139F` before producing a Burn log; the identical
 binary ran successfully after copying into the guest. `readable-local.json`, `readable-Remove.json`
 and the associated Burn/MSI logs retain these results. The owned guest was retired after verification.
+
+## Hosted verification
+
+[Quality run 45947420779](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/45947420779)
+targets `eb54aa3a`. Its Remaining component rejected four stale production-factory entries and the
+new preferences-directory query missing from the dependency inventory. The retained composition
+policy now names the exact shared-directory and distribution-adapter factories under ADR 0045;
+the immutable legacy inventory and dependency rules are unchanged. The focused boundary suite
+passed all 26 cases, including rejecting parser fixtures. Final-head hosted verification remains
+pending with the compatibility cleanup.
 
 ## Review boundaries
 
