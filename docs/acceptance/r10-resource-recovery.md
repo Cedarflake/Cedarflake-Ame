@@ -436,3 +436,22 @@ not selected by this run. The closeout observations above retain their original 
 All 24 reviewed paths matched the merged tree before the local and remote
 `codex/r10b-resource-recovery` branches were deleted. The independent security documentation from
 `c1f84b70` remains in `main`. The roadmap owns the next slice; this integration starts no later stage.
+
+## Completed fallback history after inventory retirement, 2026-11-27
+
+A retained isolated catalog failed startup after a registered folder was removed. Its completed
+fallback and retired recovery authority remained valid, but the root cascade had removed the derived
+inventory run. Startup validation now accepts that terminal receipt after root removal or normal
+bounded inventory cleanup. A retained run still requires completed enumeration and absence checks;
+an unretired authority remains invalid for a completed control. No schema or data migration is added.
+
+The rebuilt Windows Release client reopened the same catalog without repairing its rows or resetting
+data, retaining 104 locations, 90 distinct images and two manual albums. Native library SHA-256 was
+`3cab5401e7c644f247112f96607118d4589b9c3a84b21838a0a5ea12d5f51eff`.
+Source collections were mounted read-only in Windows Sandbox. The production validator contains
+90 lines and no inline test cases; its new dedicated lifecycle fixture contains 205 lines.
+
+All seven focused `first_import_fallback` tests passed, covering root removal, terminal cleanup and
+rejection of unretired authority or incomplete retained inventory. Local compilation with the default
+test debug symbols exhausted memory; the focused run disables debug symbols for the Ame crate only,
+retaining all features and assertions. Hosted verification of this change is pending.

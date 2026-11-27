@@ -3,6 +3,8 @@ use crate::ports::journal_recovery::JournalRecoveryRepository;
 use super::*;
 use crate::domain::{LibraryChangeId, LibraryRecoveryAuthorityReason};
 
+mod retirement;
+
 const ROOT: &str = "first-import-fallback";
 
 fn published_import(path: std::path::PathBuf) -> (SqliteCatalog, PersistentJournalBaseline) {

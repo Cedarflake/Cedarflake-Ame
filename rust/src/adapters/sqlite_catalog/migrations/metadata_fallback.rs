@@ -64,8 +64,11 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
              OR control.root_generation <> authority.root_generation
              OR fallback.admitted_unix_ms < authority.authorized_unix_ms
              OR (control.status = 'completed' AND (
-               authority.retired_unix_ms IS NULL OR inventory.status IS NOT 'completed'
-               OR inventory.enumeration_complete IS NOT 1 OR inventory.absence_authority IS NOT 1
+               authority.retired_unix_ms IS NULL
+               OR (inventory.id IS NOT NULL AND (
+                 inventory.status IS NOT 'completed'
+                 OR inventory.enumeration_complete IS NOT 1 OR inventory.absence_authority IS NOT 1
+               ))
              ))
          ) OR EXISTS (SELECT 1 FROM pragma_foreign_key_check('library_metadata_fallbacks'))",
         [], |row| row.get(0),
