@@ -169,6 +169,16 @@ class LibraryGalleryQuery {
       requiresMergedDuplicates ||
       duplicateMode == LibraryGalleryDuplicateMode.merged;
 
+  LibraryGalleryQuery withSortKey(LibraryGallerySortKey value) {
+    if (value == sortKey) return this;
+    return copyWith(
+      sortKey: value,
+      sortDirection: value == LibraryGallerySortKey.fileName
+          ? LibraryGallerySortDirection.ascending
+          : LibraryGallerySortDirection.descending,
+    );
+  }
+
   LibraryGalleryQuery copyWith({
     LibraryGalleryCollection? collection,
     Object? organizationQueue = _unchanged,
