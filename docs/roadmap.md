@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-27
+Last planning update: 2026-11-28
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -68,14 +68,15 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Smart-album term editing
 
-The approved [term-editing plan](plans/smart-album-terms.md) is implemented on
-`codex/smart-album-terms`: a sidebar edit action, an album-style tray containing the complete bundled
+The approved [term-editing plan](plans/smart-album-terms.md) was integrated through
+[PR 77](https://github.com/Cedarflake/Cedarflake-Ame/pull/77) on 2026-11-28: a sidebar edit action,
+an album-style tray containing the complete bundled
 directory, origin filters, separate definition dialogs, per-term activation and batch restoration
 of built-ins with retained custom definitions, configured IDs and manual protection.
-Focused local and native-client evidence is recorded in
-[smart-album terms](acceptance/smart-album-terms.md); hosted checks and merge
-remain pending. This independent scope does not change the R10-05 release gate or authorize Beta
-publication.
+The [integration record](acceptance/smart-album-terms.md#integration--2026-11-28) owns local,
+native-client and hosted verification, retained classification display and branch cleanup.
+The viewer filmstrip-expansion crash reported on 2026-11-28 remains deferred separately at the
+user's request. This integration does not change the R10-05 release gate or authorize Beta publication.
 
 ### Microsoft Store distribution
 

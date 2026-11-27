@@ -183,3 +183,14 @@ widget suite, shared fixture and native workflow contain 443, 182 and 347 lines.
 The retained-display owner and its migration contain 143 and 164 production lines; migration
 regressions contain 81 dedicated lines. Viewer selection and gallery classification contain
 107 and 184 production lines. These owners have no inline tests.
+
+## Integration — 2026-11-28
+
+[PR 77](https://github.com/Cedarflake/Cedarflake-Ame/pull/77) was squash-merged as `ca517c9b`.
+The reviewed head `e0540308` passed [Quality / CI 1274](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/46051669192):
+Static, all four Rust shards, Flutter tests, Windows scan, Windows accessibility and Windows
+production-build verification. The merged tree matched that head exactly. Local `main` was
+fast-forwarded and both local and remote `codex/smart-album-terms` branches were deleted.
+
+The viewer filmstrip-expansion crash investigation was deferred at the user's request and is
+outside this integration. This change does not alter the Flutter SDK or claim that crash is fixed.
