@@ -1,8 +1,8 @@
 use crate::domain::ScanError;
 use crate::domain::classification::plan_classification_change;
 use crate::domain::classification::{
-    ClassificationAction, ClassificationObservation, ClassificationReview, ReviewRecommendation,
-    Taxonomy,
+    ClassificationAction, ClassificationObservation, ClassificationReview, ClassificationSubject,
+    HumanClassification, ReviewRecommendation, Taxonomy,
 };
 use crate::domain::classification_selection::{
     ClassificationItemReview, ClassificationItemState, ClassificationReviewReason,
@@ -54,7 +54,28 @@ pub(super) fn item_state(
     observation: &ClassificationObservation,
     taxonomy: &Taxonomy,
 ) -> Result<ClassificationItemState, ScanError> {
-    let effective = observation.effective();
+    let mut effective = observation.effective();
+    let mut recommendation = None;
+    let mut confirms_display = false;
+    if matches!(observation.human, HumanClassification::Unreviewed)
+        && let ClassificationSubject::Exact(content) = &observation.target.subject
+    {
+        let display = super::display::for_content(connection, content)?;
+        effective.category = display.as_ref().map(|value| value.category.clone());
+        recommendation = display.as_ref().map(|value| value.review);
+        confirms_display = display.as_ref().is_some_and(|display| {
+            observation
+                .compatible_prediction()
+                .is_some_and(|current| current.evidence.prediction_id == display.prediction_id)
+        });
+        if !observation.deferred {
+            effective.review = match recommendation {
+                None => ClassificationReview::Unclassified,
+                Some(ReviewRecommendation::RoutineSampling) => ClassificationReview::Suggested,
+                Some(_) => ClassificationReview::NeedsReview,
+            };
+        }
+    }
     Ok(ClassificationItemState {
         asset_id: selection.asset_id.clone(),
         category_id: effective.category.map(|category| category.as_str().into()),
@@ -66,7 +87,7 @@ pub(super) fn item_state(
             ClassificationReview::Confirmed => ClassificationItemReview::Confirmed,
             ClassificationReview::Conflict => ClassificationItemReview::Conflict,
         },
-        can_confirm: can_confirm(observation, taxonomy),
+        can_confirm: confirms_display && can_confirm(observation, taxonomy),
         review_reason: match effective.review {
             ClassificationReview::Confirmed => None,
             ClassificationReview::Unclassified => {
@@ -75,9 +96,8 @@ pub(super) fn item_state(
             }
             ClassificationReview::Conflict => Some(ClassificationReviewReason::Conflict),
             ClassificationReview::Deferred => Some(ClassificationReviewReason::Deferred),
-            ClassificationReview::Suggested | ClassificationReview::NeedsReview => observation
-                .compatible_prediction()
-                .map(|prediction| match prediction.review {
+            ClassificationReview::Suggested | ClassificationReview::NeedsReview => recommendation
+                .map(|review| match review {
                     ReviewRecommendation::RoutineSampling => ClassificationReviewReason::Sampling,
                     ReviewRecommendation::Uncalibrated => ClassificationReviewReason::Uncalibrated,
                     ReviewRecommendation::LowSeparation => ClassificationReviewReason::Uncertain,

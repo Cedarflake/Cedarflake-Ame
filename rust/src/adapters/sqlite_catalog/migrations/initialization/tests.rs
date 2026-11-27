@@ -3,7 +3,7 @@ use crate::adapters::sqlite_catalog::SqliteCatalog;
 
 #[test]
 fn unsupported_versions_leave_existing_rows_and_files_untouched() {
-    for version in [0, SCHEMA_VERSION - 1, SCHEMA_VERSION + 1] {
+    for version in [0, 82, SCHEMA_VERSION + 1] {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("catalog.sqlite3");
         let catalog = SqliteCatalog::open(path.clone()).unwrap();

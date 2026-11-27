@@ -4,6 +4,7 @@ use crate::ports::classification_configuration::ClassificationTermRepository;
 use super::*;
 
 mod activation;
+mod display;
 mod reset_all;
 
 fn edit(

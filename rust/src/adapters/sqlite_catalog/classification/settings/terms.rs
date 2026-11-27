@@ -29,7 +29,14 @@ impl ClassificationTermRepository for SqliteCatalog {
                 })
                 .transpose()?;
             let configuration = change.configuration(&before, current_setup.as_ref())?;
+            let display = super::super::display::RetainedDisplay::capture(
+                &transaction,
+                configuration.setup.run(),
+            )?;
             super::apply(&transaction, &configuration, &digest)?;
+            if let Some(display) = display {
+                display.retain(&transaction)?;
+            }
             super::super::maintenance::protect_manual_changes(
                 &transaction,
                 before.catalog.taxonomy.as_ref(),
@@ -63,7 +70,14 @@ impl ClassificationTermRepository for SqliteCatalog {
                 })
                 .transpose()?;
             if let Some(configuration) = change.configuration(&before, current_setup.as_ref())? {
+                let display = super::super::display::RetainedDisplay::capture(
+                    &transaction,
+                    configuration.setup.run(),
+                )?;
                 super::apply(&transaction, &configuration, &digest)?;
+                if let Some(display) = display {
+                    display.retain(&transaction)?;
+                }
                 super::super::maintenance::protect_manual_changes(
                     &transaction,
                     before.catalog.taxonomy.as_ref(),

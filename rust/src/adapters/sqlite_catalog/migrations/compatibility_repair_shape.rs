@@ -15,7 +15,7 @@ pub(super) fn inventory_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if schema_version != SCHEMA_VERSION {
+    if schema_version != 83 && schema_version != SCHEMA_VERSION {
         return Ok(false);
     }
     let core_matches = schema_object_sql_matches(
@@ -51,7 +51,7 @@ pub(super) fn live_gap_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if schema_version != SCHEMA_VERSION {
+    if schema_version != 83 && schema_version != SCHEMA_VERSION {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(

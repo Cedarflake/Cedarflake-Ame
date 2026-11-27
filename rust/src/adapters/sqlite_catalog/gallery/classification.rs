@@ -8,10 +8,10 @@ use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 use super::organization::record_expression;
 
 const LATEST_PREDICTIONS: &str = "compatible_predictions AS MATERIALIZED (
-       SELECT prediction.* FROM classification_prediction_projection AS prediction
+       SELECT prediction.* FROM classification_display_projection AS prediction
        JOIN (
          SELECT MAX(publication_id) AS publication_id
-         FROM classification_prediction_projection
+         FROM classification_display_projection
          GROUP BY fingerprint_scheme, digest, byte_length
        ) AS latest USING(publication_id)
      ),";
@@ -96,12 +96,45 @@ pub(in crate::adapters::sqlite_catalog) fn effective_projection(
     location: &str,
     scope: PredictionReadStrategy,
 ) -> String {
-    let record = record_expression(location);
-    let fingerprint = compatible_fingerprint(location);
     let (shared, predictions) = match scope {
-        PredictionReadStrategy::Shared => (LATEST_PREDICTIONS, "compatible_predictions"),
-        PredictionReadStrategy::Indexed => ("", "classification_prediction_projection"),
+        PredictionReadStrategy::Shared => (
+            LATEST_PREDICTIONS,
+            prediction_query(location, "compatible_predictions"),
+        ),
+        PredictionReadStrategy::Indexed => (
+            "",
+            format!(
+                "{} UNION ALL {}",
+                prediction_query(location, "classification_current_display_projection"),
+                prediction_query(location, "classification_retained_display_projection")
+            ),
+        ),
     };
+    projection(location, shared, &predictions)
+}
+
+pub(in crate::adapters::sqlite_catalog) fn command_projection(location: &str) -> String {
+    projection(
+        location,
+        "",
+        &prediction_query(location, "classification_prediction_projection"),
+    )
+}
+
+fn prediction_query(location: &str, predictions: &str) -> String {
+    let fingerprint = compatible_fingerprint(location);
+    format!(
+        "SELECT prediction.category_id, prediction.review, prediction.publication_id
+         FROM {DISPLAY_FINGERPRINTS}
+         CROSS JOIN {predictions} AS prediction
+           ON prediction.fingerprint_scheme = f.scheme AND prediction.digest = f.digest
+             AND prediction.byte_length = f.byte_length
+         WHERE {fingerprint}"
+    )
+}
+
+fn projection(location: &str, shared: &str, predictions: &str) -> String {
+    let record = record_expression(location);
     // The projection shares the gallery's published/retained display membership.
     // Classification commands independently require fresh content and field authority.
     // Collection reads decode each latest prediction once; point reads retain indexed admission.
@@ -109,13 +142,7 @@ pub(in crate::adapters::sqlite_catalog) fn effective_projection(
         "WITH {shared} human AS MATERIALIZED (
              SELECT * FROM classification_human_projection WHERE group_id = {record}
            ), prediction AS MATERIALIZED (
-             SELECT prediction.category_id, prediction.review, prediction.publication_id
-             FROM {DISPLAY_FINGERPRINTS}
-             JOIN {predictions} AS prediction
-               ON prediction.fingerprint_scheme = f.scheme AND prediction.digest = f.digest
-                 AND prediction.byte_length = f.byte_length
-             WHERE {fingerprint}
-             ORDER BY prediction.publication_id DESC LIMIT 1
+             {predictions} ORDER BY publication_id DESC LIMIT 1
            ), effective AS (
              SELECT CASE
                  WHEN human.choice_count > 1 THEN NULL

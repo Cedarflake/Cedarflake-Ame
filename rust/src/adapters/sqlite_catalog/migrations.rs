@@ -11,6 +11,7 @@ mod catch_up_contract;
 mod change_lane_contract;
 mod classification;
 mod classification_availability;
+mod classification_display;
 mod classification_maintenance;
 mod classification_merge;
 mod classification_projection;

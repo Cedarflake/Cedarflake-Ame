@@ -45,7 +45,16 @@ dispatch state and the complete configured ID set. It never initializes a starte
 activates a dormant definition; an empty batch is read-only. One semantic batch retires one live
 classification session, and operation replay retains the existing idempotency contract.
 Name-only changes retain the active run, encoder and calibration; semantic changes retire live
-classification sessions and reuse compatible image features. No persistence migration is required.
+classification sessions and reuse compatible image features.
+The catalog retains a separate display publication per content, updated with each admitted prediction.
+Term edits carry that display generation across the reviewed same-encoder transition in the same
+transaction; unrelated run replacements invalidate it. Current compatible results take precedence.
+Gallery, navigation and viewer reads retain admitted results during rematching, including while paused,
+without granting confirmation, work completion or file-organization authority. Current source identity
+and active category membership still apply; a retirement publication floor prevents a removed category
+from recovering its old results merely by being added again. Schema 84 upgrades schema 83 atomically,
+seeding display pointers only from currently admitted predictions. Later term edits perform bounded
+configuration work and do not copy or rewrite the library's prediction rows.
 Retirement removes a definition from future matching; persistence retains its identity and description
 history for saved human choices. Refreshing the active taxonomy never remaps a retired human choice.
 The current desktop has no manual category-decision commands, under the

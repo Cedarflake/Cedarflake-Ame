@@ -123,26 +123,63 @@ previous feature payloads. This is a small-fixture observation rather than a per
 Individual reset, custom deletion and dormant activation remained passing; all four original files
 and the directory entry count were unchanged after shutdown.
 
+## Retained classification display — 2026-11-28
+
+Review of PR 77 identified that a semantic edit removed every automatic result until rematching,
+including indefinitely while paused. The display projection now retains admitted same-encoder
+results across the reviewed term transaction, replacing each content result when its new prediction
+arrives. Removed categories and changed source identities remain excluded. Confirmation and physical
+organization continue to read current evidence through their separate command projection.
+
+All 44 focused Rust checks passed: 11 term transactions, 25 gallery/navigation/viewer queries,
+two display-migration cases, four initialization cases and two file-organization rule cases.
+Coverage includes paused edits across reopening, partial rematching, late-publication rejection,
+deleted-category readdition, encoder replacement, batch conflict rollback and supported schema
+83-to-84 upgrade. The migration tests preserve catalog revision across retry and already-completed
+upgrade admission, reject malformed baselines and roll back DDL/version updates together.
+
+The first source-change fixture updated a row without publishing the catalog revision; using the
+real transaction/publication boundary preserved the original stale-source rejection assertion.
+The existing query-cost regression also caught a compound-view plan that increased one-image reads
+from 5,000 to 14,000 SQLite steps after unrelated prediction history was added. Current and retained
+branches now apply the content key before their union. All original collection, point and scoped
+cost bounds passed without weakening their assertions; query-plan inspection confirmed complete
+content-key index searches for viewer reads as well.
+
+The updated Windows terms workflow passed in 47 seconds after a 535.6-second native rebuild.
+It paused completed analysis, saved a dormant bundled definition through the real form and verified
+the same populated categories and member IDs before any replacement prediction existed. Resuming
+completed rematching in 4,575 ms with all previous feature payloads retained. Editing, individual
+reset, custom deletion and batch reset also passed; the batch retained custom definitions and the
+exact enabled ID set. All four original fixture files and the directory entry count were unchanged.
+
+The earlier hosted Static job at `dcf8c015` stopped on three generated Rust import-order
+differences. Rustfmt normalized those imports without changing bridge declarations or hashes.
+
 ## Ownership and reviewability
 
 The new responsibility has separate domain validation, application commands, SQLite transaction,
-bridge adapter and presentation owners. No schema migration or dependency change is required.
+bridge adapter and presentation owners. Retained classification display adds a forward migration
+from the supported schema 83 baseline to schema 84; dependency versions remain unchanged.
 The existing runtime exports its already-admitted vocabulary/naming constructor for immutable bundled
 defaults; the centralized composition register records that lifetime.
 
 Current physical Rust line counts (production / inline tests / dedicated tests):
 
 - `application/classification_configuration`: 440 / 0 / 552.
-- `sqlite_catalog/classification/settings`: 1,457 / 0 / 5,187 across its existing modules,
+- `sqlite_catalog/classification/settings`: 1,471 / 0 / 5,630 across its existing modules,
   including dedicated coverage tests beside the adapter owners.
 - `application/classification_runtime`: 1,598 / 24 / 291 across its existing modules.
 
 The per-term and batch-reset domain owners contain 147 and 98 production lines. The application,
-defaults and SQLite term owners contain 198, 49 and 119 production lines, with no inline tests.
-Dedicated application and SQLite term suites contain 495 and 507 lines, including 125 application
-and 273 SQLite batch-test lines. Existing maintenance regressions own retained-origin protection.
+defaults and SQLite term owners contain 198, 49 and 133 production lines, with no inline tests.
+Dedicated application and SQLite term suites contain 495 and 950 lines, including 125 application,
+273 SQLite batch and 442 retained-display lines. Existing maintenance regressions own retained-origin protection.
 No term-specific branches were added to the discovery orchestrator or the existing settings
 transaction body.
 
 The tray, reset dialog and Dart application owner contain 291, 79 and 165 production lines; the
-widget suite, shared fixture and native workflow contain 443, 182 and 299 lines.
+widget suite, shared fixture and native workflow contain 443, 182 and 347 lines.
+The retained-display owner and its migration contain 143 and 164 production lines; migration
+regressions contain 81 dedicated lines. Viewer selection and gallery classification contain
+107 and 184 production lines. These owners have no inline tests.

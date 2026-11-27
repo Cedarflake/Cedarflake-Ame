@@ -59,10 +59,7 @@ pub(super) fn resolve(
             (name, "没有可用的相册归属")
         }
         Rule::Category => {
-            let projection = gallery::classification::effective_projection(
-                "locations",
-                gallery::classification::PredictionReadStrategy::Indexed,
-            );
+            let projection = gallery::classification::command_projection("locations");
             let name = connection.query_row(
                 &format!("SELECT ({projection}
                    SELECT category.label FROM effective

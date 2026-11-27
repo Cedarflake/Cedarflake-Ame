@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/adapters/rust/rust_library_scann
 import "package:cedarflake_ame/features/library/application/library_classification_terms.dart";
 import "package:cedarflake_ame/features/library/application/library_foreground_reads.dart";
 import "package:cedarflake_ame/features/library/application/ports/library_synchronization.dart";
+import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_classification_term_editor.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_classification_terms_sheet.dart";
@@ -135,6 +136,27 @@ void main() {
       observed: await client.configuration.load(),
     );
     final initial = await client.waitForRun(settings.runId!);
+    settings = await client.configuration.changeControl(
+      expectedRevision: (await client.configuration.load()).dispatchRevision,
+      action: LibraryClassificationControl.pause,
+    );
+    final visibleBefore = await client.configuration.loadNavigation();
+    expect(visibleBefore.visibleCategories, isNotEmpty);
+    final retainedMembers = <String, List<String>>{};
+    for (final category in visibleBefore.visibleCategories) {
+      final members = await const RustLibraryCatalog().load(
+        maxItems: 10,
+        query: LibraryGalleryQuery(
+          collection: LibraryGalleryCollection.smartAlbum(
+            categoryId: category.id,
+          ),
+        ),
+      );
+      expect(members.assets, isNotEmpty);
+      retainedMembers[category.id] = members.assets
+          .map((asset) => asset.locationId)
+          .toList();
+    }
 
     final dormant = (await service.load()).firstWhere(
       (term) => !term.isConfigured && term.defaultCategory != null,
@@ -149,6 +171,32 @@ void main() {
       isTrue,
     );
     expect(settings.runId, isNot("terms-initial-run"));
+    expect(settings.mode, LibraryClassificationMode.paused);
+    expect((await client.observe()).predictions[settings.runId], isNull);
+    expect(
+      (await client.configuration.loadNavigation()).visibleCategories.map(
+        (category) => category.id,
+      ),
+      unorderedEquals(retainedMembers.keys),
+    );
+    for (final entry in retainedMembers.entries) {
+      final members = await const RustLibraryCatalog().load(
+        maxItems: 10,
+        query: LibraryGalleryQuery(
+          collection: LibraryGalleryCollection.smartAlbum(
+            categoryId: entry.key,
+          ),
+        ),
+      );
+      expect(
+        members.assets.map((asset) => asset.locationId),
+        unorderedEquals(entry.value),
+      );
+    }
+    settings = await client.configuration.changeControl(
+      expectedRevision: settings.dispatchRevision,
+      action: LibraryClassificationControl.resume,
+    );
     final activated = await client.waitForRun(settings.runId!);
     for (final entry in initial.features.entries) {
       expect(activated.features[entry.key], entry.value);

@@ -59,7 +59,10 @@ pub(super) fn validate_schema_version(
     }
 }
 
-fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<(), ScanError> {
+pub(super) fn validate_in_snapshot(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<(), ScanError> {
     validate_schema_structure(connection, schema_version)?;
 
     // The process session owns reuse. Only its initial validation (or explicit stale renewal)
@@ -75,6 +78,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     super::classification_availability::validate_rows(connection)?;
     super::classification_publications::validate_rows(connection)?;
     super::classification_maintenance::validate_rows(connection)?;
+    if schema_version >= 84 {
+        super::classification_display::validate_rows(connection)?;
+    }
     super::similar_images::validate_rows(connection)?;
     super::album_icons::validate_rows(connection)?;
     super::file_operations::validate_rows(connection)?;
@@ -149,6 +155,9 @@ pub(super) fn validate_schema_structure(
     super::classification_availability::validate(connection)?;
     super::classification_publications::validate(connection)?;
     super::classification_projection::validate(connection)?;
+    if schema_version >= 84 {
+        super::classification_display::validate(connection)?;
+    }
     super::classification_maintenance::validate(connection)?;
     super::similar_images::validate(connection)?;
     super::album_icons::validate(connection)?;
