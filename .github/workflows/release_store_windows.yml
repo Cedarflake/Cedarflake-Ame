@@ -1,0 +1,106 @@
+name: Release / Microsoft Store
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Prepare an unsigned Store package, submit it, or read an exact submission
+        required: true
+        default: prepare
+        type: choice
+        options: [prepare, submit, status]
+      release_tag:
+        description: Existing release tag (prepare only)
+        type: string
+      artifact_run:
+        description: Successful main candidate run (prepare) or Store preparation run (submit/status)
+        required: true
+        type: string
+      artifact_id:
+        description: Immutable unsigned candidate or store-msix artifact ID from that run
+        required: true
+        type: string
+      submission_id:
+        description: Recorded Store submission ID (required for status and resuming a submission)
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-store
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: inputs.operation == 'prepare' && github.ref == 'refs/heads/main' && github.sha == github.workflow_sha
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Package the admitted candidate
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AME_TAG: ${{ inputs.release_tag }}
+          AME_RUN: ${{ inputs.artifact_run }}
+          AME_ARTIFACT: ${{ inputs.artifact_id }}
+        run: |
+          ./tool/release_prepare_store.ps1 -Tag $env:AME_TAG -CandidateRun $env:AME_RUN `
+            -CandidateArtifact $env:AME_ARTIFACT
+      - name: Retain unsigned upload package and candidate identity
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: store-msix-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/store-package/*
+          if-no-files-found: error
+          retention-days: 90
+
+  submission:
+    if: inputs.operation != 'prepare' && github.ref == 'refs/heads/main' && github.sha == github.workflow_sha
+    runs-on: windows-2025
+    timeout-minutes: 30
+    environment: windows-production-signing
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Admit the immutable Store package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AME_RUN: ${{ inputs.artifact_run }}
+          AME_ARTIFACT: ${{ inputs.artifact_id }}
+        run: |
+          . ./tool/release_store_artifacts.ps1
+          . ./tool/release_store_identity.ps1
+          $directory = Receive-AmeStoreArtifact -Repository $env:GITHUB_REPOSITORY `
+            -RunId $env:AME_RUN -ArtifactId $env:AME_ARTIFACT -Kind Msix -Directory build/store-package
+          $receipt = Read-AmeStorePackageReceipt (Join-Path $directory 'msix-package.json')
+          Assert-AmeStoreReleaseTag $env:GITHUB_REPOSITORY $receipt
+      - name: Submit or query the exact Store submission
+        shell: pwsh
+        env:
+          AME_STORE_TENANT_ID: ${{ secrets.AME_STORE_TENANT_ID }}
+          AME_STORE_CLIENT_ID: ${{ secrets.AME_STORE_CLIENT_ID }}
+          AME_STORE_CLIENT_SECRET: ${{ secrets.AME_STORE_CLIENT_SECRET }}
+          AME_OPERATION: ${{ inputs.operation }}
+          AME_SUBMISSION: ${{ inputs.submission_id }}
+        run: |
+          ./tool/release_submit_store.ps1 -PackageDirectory build/store-package `
+            -OutputDirectory build/store-submission -Operation $env:AME_OPERATION `
+            -SubmissionId $env:AME_SUBMISSION
+      - name: Retain submission ID even after upload or commit failure
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: store-submission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/store-submission/store-submission.json
+          if-no-files-found: ignore
+          retention-days: 90

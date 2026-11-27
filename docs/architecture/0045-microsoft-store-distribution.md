@@ -102,6 +102,35 @@ the Store-required zero fourth component. Map application `major.minor.patch+bui
 line. The offset supports pre-1.0 Ame releases while satisfying the Store's nonzero first component.
 Version and architecture admission belong to packaging.
 
+### Submission and signed-package retrieval
+
+Keep Store distribution independent of MSI/portable publication. The Store workflow consumes an
+immutable unsigned candidate from a successful main release run and preserves its source, tag,
+application build and Store version in the package receipt. Tagged application metadata, rather
+than the current tooling checkout's version, determines the package version.
+
+Use Microsoft's documented submission REST API with Entra client credentials in the existing
+protected release environment. This avoids the CLI's replacement of an existing pending draft.
+Create a draft only when none exists; retain its exact ID before uploading, update packages of the
+selected architecture, preserve listing/pricing and other architectures, then commit that ID.
+An explicit submission operation selects publication after certification. Resume only a submission
+whose certification note and package identity bind it to the admitted package digest. Never delete
+an unrelated draft. No access tokens or upload SAS URLs enter retained artifacts.
+
+The supported signed-package download adapter is WinGet on Windows with an authenticated Entra
+user session. `--skip-license` omits the offline license, but package discovery still uses Windows
+Web Account Manager authentication. Submission client credentials do not authenticate this download;
+fresh GitHub hosted runners cannot complete it unattended. Do not add an unofficial download service
+or assume that WinGet's generic version flag selects a historical Store package.
+
+After the exact submission reaches `Published`, validate the downloaded package's Windows signature,
+Store signing authority, reserved identity, architecture and package version. Compare every admitted
+application payload file with the unsigned candidate, including the executable and AOT data. Retain
+the actual MSIX/AppX or bundle format and signed bytes. An explicit publish operation appends the
+asset to the already published matching GitHub Release; identical remote digests are retained and
+conflicting attachments are never replaced. First-package deployment and offline-license behavior
+remain an isolated validation step before enabling routine attachment publication.
+
 ## Consequences and validation
 
 MSIX installation does not need the MSI service's administrative setup. Installed and portable
@@ -135,3 +164,5 @@ preserves existing unified user data.
 - [Scoped virtualization exclusions](https://learn.microsoft.com/en-us/windows/msix/desktop/flexible-virtualization)
 - [Store identity](https://learn.microsoft.com/en-us/windows/apps/publish/view-app-identity-details)
 - [Store readiness](https://learn.microsoft.com/en-us/windows/apps/publish/store-readiness-checklist)
+- [Submission API](https://learn.microsoft.com/en-us/windows/uwp/monetize/manage-app-submissions)
+- [WinGet download](https://learn.microsoft.com/en-us/windows/package-manager/winget/download)

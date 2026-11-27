@@ -5,6 +5,8 @@ param(
     [string]$SourceCommit,
     [string]$ReleaseRoot,
     [string]$UnsignedEvidencePath,
+    [string]$PubspecPath,
+    [string]$CargoManifestPath,
     [string]$ModelSourceDirectory,
     [ValidateSet('x64', 'arm64')][string]$Architecture = 'x64',
     [string]$OutputDirectory
@@ -20,8 +22,9 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'release_msix_payload.ps1')
 
 $repository = Get-AmeRepositoryRoot
-& (Join-Path $PSScriptRoot 'release_validate_version.ps1') -Tag $Tag
-$applicationVersion = [regex]::Match([IO.File]::ReadAllText((Join-Path $repository 'pubspec.yaml'), [Text.Encoding]::UTF8), '(?m)^version:\s*(\S+)\s*$').Groups[1].Value
+if (-not $PubspecPath) { $PubspecPath = Join-Path $repository 'pubspec.yaml' }
+& (Join-Path $PSScriptRoot 'release_validate_version.ps1') -Tag $Tag -PubspecPath $PubspecPath -CargoManifestPath $CargoManifestPath
+$applicationVersion = [regex]::Match([IO.File]::ReadAllText($PubspecPath, [Text.Encoding]::UTF8), '(?m)^version:\s*(\S+)\s*$').Groups[1].Value
 $version = Get-AmeMsixVersion -Tag $Tag -ApplicationVersion $applicationVersion
 if ($CandidateRoot) {
     if ($ReleaseRoot -or $UnsignedEvidencePath -or $Architecture -cne 'x64') { throw 'Choose one admitted x64 candidate or architecture-specific Release payload' }
@@ -105,7 +108,8 @@ try {
         $result = [ordered]@{
             format = 'cedarflake-ame-msix-v1'; sourceCommit = $source.SourceCommit; dirtyWorktree = $source.DirtyWorktree
             sourceEvidenceFormat = $source.EvidenceFormat; releaseTag = $Tag; architecture = $Architecture
-            packageVersion = $version; identity = Get-AmeMsixIdentity; windowsSdk = '10.0.26100.0'
+            packageVersion = $version; applicationVersion = $applicationVersion
+            identity = Get-AmeMsixIdentity; windowsSdk = '10.0.26100.0'
             fileName = $msixArtifactName; sha256 = (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash.ToLowerInvariant()
             payload = @($payload); generatedPayload = @($generated)
         }

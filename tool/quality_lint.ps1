@@ -60,6 +60,7 @@ try {
     & (Join-Path $PSScriptRoot "release_test_update_manifest.ps1")
     & (Join-Path $PSScriptRoot "release_test_installer_payload.ps1")
     & (Join-Path $PSScriptRoot "release_test_msix_payload.ps1")
+    & (Join-Path $PSScriptRoot "release_test_store.ps1")
     & (Join-Path $PSScriptRoot "release_test_classification_runtime.ps1")
     & (Join-Path $PSScriptRoot "release_test_classification_models.ps1")
     & (Join-Path $PSScriptRoot "release_test_classification_vocabulary.ps1")

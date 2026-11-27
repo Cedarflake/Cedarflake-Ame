@@ -57,8 +57,12 @@ retrieved Store package to the same version's GitHub Release when it becomes ava
    an isolated environment, then attach the validated signed MSIX or bundle to its matching Release.
    Existing same-name assets must match the admitted digest; retries must not replace another build.
 
-This follow-up requires the first published Store package and account configuration. Submission and
-external asset upload remain explicit release actions. The
+The implementation uses the [Store release procedure](../acceptance/quality/store-release.md).
+Submission runs in hosted CI; signed-package retrieval runs in an authenticated Windows user
+session because WinGet requires WAM authentication even with `--skip-license`. No dedicated runner
+or account is provisioned by this implementation. First publication, offline-download eligibility,
+submission credentials and actual signed-package deployment remain external prerequisites.
+Submission and external asset upload remain explicit release actions. The
 [WinGet download contract](https://learn.microsoft.com/en-us/windows/package-manager/winget/download)
 owns package and license retrieval; downloaded packages retain their actual Store format.
 

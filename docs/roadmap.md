@@ -68,7 +68,7 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ### Microsoft Store distribution
 
-MSIX implementation is pushed on `codex/store-msix` through `cbbac4a8`, following the
+MSIX implementation is on `codex/store-msix`, following the
 [Store distribution plan](plans/store-msix.md) and
 [ADR 0045](architecture/0045-microsoft-store-distribution.md). Package construction, Store-managed
 updates, shared data across MSI/portable/MSIX and the MSI uninstall data-removal choice have passed
@@ -80,8 +80,11 @@ candidate work retain their existing scope. Store submission and publication are
 
 The selected [distribution follow-up](plans/store-msix.md#store-signed-github-release-asset) retrieves
 the matching Store-signed package after Store publication and attaches it to the same GitHub Release.
-Follow-up implementation is planned; end-to-end verification awaits first Store publication and
-submission credentials. The current packager does not yet automate this handoff.
+The preparation/submission workflow and authenticated-Windows retrieval command are implemented;
+the [procedure](acceptance/quality/store-release.md) owns configuration and recovery. End-to-end
+verification awaits first Store publication, Entra submission credentials and a Windows user session
+eligible for Store downloads. The normal hosted runner cannot authenticate WinGet with submission
+client credentials. Actual submission and attachment publication remain separate release actions.
 
 ### Prerelease compatibility cleanup
 

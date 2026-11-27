@@ -135,6 +135,27 @@ pending with the compatibility cleanup.
 
 ## Review boundaries
 
+### Store publication tooling — 2026-11-27
+
+The new Store workflow and local retrieval entrypoint passed PowerShell parsing and pinned
+actionlint. Package fixtures passed exact identity/version/build admission and foreign executable
+rejection. Controlled HTTP transport exercised the submission entrypoint: one upload and commit,
+read-only resumption after commit, rejection of an unrelated draft without mutation, and rejection
+of a mismatched submission ID. Initial fixture runs exposed PowerShell dynamic-scope collisions
+with the scratch helper; fixture state now uses one named object, and the corrected cases passed.
+The existing MSIX payload checks and CI selection fixtures also passed.
+
+Production owners are separated into package/signature admission (144 lines), submission API and
+payload preparation (119), artifact provenance/publication (86), submission entrypoint (61),
+candidate preparation (27) and authenticated retrieval (132). The workflow is 106 lines and the
+dedicated contract suite is 200 lines. No product runtime or existing MSI/portable publisher is
+changed by this follow-up.
+
+No Partner Center submission, WAM-authenticated download, Microsoft-signed Ame package installation
+or Release attachment upload ran. These require the first published version and account setup;
+the [Store procedure](quality/store-release.md) defines that remaining validation. Local fixtures
+do not establish Store certification or offline-license compatibility.
+
 The changed update controller contains 327 production lines, with no inline tests; the new Store
 delivery suite contains 124 dedicated test lines. Distribution selection is a separate owner from
 download orchestration. MSI cleanup is split by account identity (134 lines), filesystem cleanup
