@@ -5,8 +5,15 @@
 [PR 73](https://github.com/Cedarflake/Cedarflake-Ame/pull/73) integrated desktop internationalization
 at `22816d57fb17dd0008d503788e05f3f837cd2577` on 2026-11-22. Git ancestry checked on 2026-11-26
 confirms that revision is included in the R10-04 baseline `7281949995313a752579053e77b34ad12631d754`.
+The merged file tree matches PR head `af6f0a66`. Its
+[complete CI run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/44973054453) passed the
+selected static, Flutter, Rust, native scan/accessibility and Windows build checks before merge.
 The client and focused verification below retain their original revision and scope; this ancestry
 check adds no new runtime or hosted-CI result.
+
+The [Flutter GIF playback regression](material-ui-migration.md#windows-gif-playback-regression-2026-11-22)
+is tracked with Beta qualification on `codex/r10-beta-candidate`. Its playback verification and the
+ARM64 execution limit retain their separate scope.
 
 ## Windows client, 2026-11-21
 
