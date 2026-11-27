@@ -74,9 +74,17 @@ admission and handoff fixtures retained after removal of historical downgrade se
 Logs under ignored `build/prerelease-compatibility` retain the failed attempts and focused reruns.
 Scoped Rust formatting and diff checks passed. Final-head hosted verification is pending.
 
+Independent review of `2da71f0f` identified an existing connection-order side effect: opening a
+DELETE-journal database switched its persistent mode to WAL before format rejection. WAL activation
+now follows successful initialization and recovery. The retained rejection cases use the production
+open path and compare complete fixture bytes before and after rejection. All four initialization
+cases passed for this correction. The first invocation failed to create the default temporary
+directories; the same compiled binary passed in the repository's leased scratch directory, which
+was then retired. No record or validation assertion was removed.
+
 ## Implementation review boundary
 
-Fresh initialization has 82 Rust lines and 127 dedicated test lines; its transaction applies a
+Fresh initialization has 82 Rust lines and 140 dedicated test lines; its transaction applies a
 2,897-line baseline SQL file containing the current schema and initial rows. The migration facade
 is 100 lines; current validation is 282 lines, with 650 lines of retained schema definitions used
 by structural validation. These owners have no inline tests. Storage initialization is 57 lines and

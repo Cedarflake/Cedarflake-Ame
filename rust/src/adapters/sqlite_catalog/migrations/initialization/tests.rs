@@ -20,8 +20,15 @@ fn unsupported_versions_leave_existing_rows_and_files_untouched() {
             .execute("UPDATE catalog_state SET revision = 37", [])
             .unwrap();
         drop(catalog);
+        let connection = Connection::open(&path).unwrap();
+        connection
+            .execute_batch("PRAGMA journal_mode = DELETE;")
+            .unwrap();
+        drop(connection);
+        let original = std::fs::read(&path).unwrap();
         let error = SqliteCatalog::open(path.clone()).err().unwrap();
         assert_eq!(error.code, "catalog_schema_unsupported");
+        assert_eq!(std::fs::read(&path).unwrap(), original);
         let connection = Connection::open(path).unwrap();
         assert_eq!(
             connection
@@ -49,17 +56,23 @@ fn unsupported_versions_leave_existing_rows_and_files_untouched() {
 
 #[test]
 fn nonempty_unidentified_database_is_not_initialized() {
-    let mut connection = Connection::open_in_memory().unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("unidentified.sqlite3");
+    let connection = Connection::open(&path).unwrap();
     connection
         .execute_batch(
             "CREATE TABLE sqliteX_fixture(value TEXT);
              INSERT INTO sqliteX_fixture VALUES ('keep');",
         )
         .unwrap();
+    drop(connection);
+    let original = std::fs::read(&path).unwrap();
     assert_eq!(
-        initialize(&mut connection).unwrap_err().code,
+        SqliteCatalog::open(path.clone()).err().unwrap().code,
         "catalog_schema_unsupported"
     );
+    assert_eq!(std::fs::read(&path).unwrap(), original);
+    let connection = Connection::open(&path).unwrap();
     assert_eq!(user_schema_objects(&connection).unwrap(), 1);
     assert_eq!(
         connection

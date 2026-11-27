@@ -297,14 +297,6 @@ impl SqliteCatalogSession {
         let mut connection = Connection::open(&path).map_err(database_error)?;
         prepare_fresh_catalog_auto_vacuum(&connection)?;
         configure_catalog_connection(&connection)?;
-        let journal_mode = connection
-            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
-            .map_err(database_error)?;
-        if !journal_mode.eq_ignore_ascii_case("wal") {
-            connection
-                .execute_batch("PRAGMA journal_mode = WAL;")
-                .map_err(database_error)?;
-        }
         #[cfg(test)]
         {
             let mut counts = SQLITE_FULL_SCHEMA_VALIDATION_COUNTS
@@ -315,6 +307,14 @@ impl SqliteCatalogSession {
             *count = count.saturating_add(1);
         }
         initialize_schema(&mut connection)?;
+        let journal_mode = connection
+            .query_row("PRAGMA journal_mode", [], |row| row.get::<_, String>(0))
+            .map_err(database_error)?;
+        if !journal_mode.eq_ignore_ascii_case("wal") {
+            connection
+                .execute_batch("PRAGMA journal_mode = WAL;")
+                .map_err(database_error)?;
+        }
         let application_id = catalog_pragma_integer(&connection, "application_id")?;
         let user_version = catalog_pragma_integer(&connection, "user_version")?;
         let schema_cookie = catalog_schema_cookie(&connection)?;
