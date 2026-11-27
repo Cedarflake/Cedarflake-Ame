@@ -30,12 +30,17 @@ Model/runtime directory selection stays outside normal setup. Existing definitio
 and retain their authority independently of the application's curated topic catalog.
 
 The edit action opens the shared album-style bottom tray. It lists the complete bundled directory
-and all configured terms, including empty categories, with their names and a one-line description.
+and all configured terms, including empty categories, with their names, a one-line description and
+Built-in or Custom origin. Mutually exclusive All, Built-in and Custom chips filter this directory.
 The internal `other` purpose remains hidden. Clicking a row opens a separate dialog with a name and
 one to eight feature descriptions.
 The tray places Add term beside its title and uses normal outside-click or Escape dismissal,
 without a separate Close button, selection checkboxes or second Apply action. Saving
 returns to the same list position and updates the affected row. Cancelling preserves the stored term.
+The list and its wheel-motion wrapper share the same `AmeScrollController`; the title and filters
+remain outside the scrolling region. Returning from an editor preserves the selected filter.
+Filters use compact native chips with proportionate checkmarks. Empty and populated filters retain
+the same bounded content height, with the empty message centered inside that region.
 The name is display-only and accepts any supported text. Recommend short English descriptions with
 the shared help tooltip; do not require English or translate user descriptions automatically.
 
@@ -46,6 +51,12 @@ derived membership without deleting images. Same-term conflicts are explained in
 retaining its draft; unrelated catalog updates do not cancel edits. Saving serializes only the
 affected classification change, not ordinary browsing. Name-only edits retain the active analysis;
 semantic changes reuse compatible features and preserve usable results during matching.
+
+The tray's More menu offers Restore all built-in terms with confirmation. It restores names and
+descriptions together, preserves every custom term and the configured category IDs, and does not
+activate dormant definitions. The action covers modified configured built-ins across all filters;
+it is disabled when none need restoration. A conflicting target rejects the complete batch while
+unrelated changes remain preserved. Closing the confirmation reloads the current definitions.
 
 Opening the directory does not configure any absent terms. Saving an unconfigured built-in term
 adds that term to matching and reuses compatible image features. The first save also initializes

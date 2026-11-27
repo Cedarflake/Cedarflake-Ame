@@ -4056,6 +4056,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreSmartAlbumTerm => 'Restore defaults';
 
   @override
+  String get allSmartAlbumTerms => 'All';
+
+  @override
+  String get builtInSmartAlbumTerm => 'Built-in';
+
+  @override
+  String get customSmartAlbumTerm => 'Custom';
+
+  @override
+  String get noMatchingSmartAlbumTerms => 'No terms to show.';
+
+  @override
+  String get restoreAllSmartAlbumTerms => 'Restore all built-in terms';
+
+  @override
+  String get restoreAllSmartAlbumTermsImpact =>
+      'Restore the default names and feature descriptions of all built-in terms. Custom terms and which terms are enabled will stay the same.';
+
+  @override
+  String get smartAlbumTermsChanged =>
+      'Some terms have changed. Close this dialog and try again.';
+
+  @override
+  String get smartAlbumTermsRestoreFailed =>
+      'Couldn\'t restore built-in terms. Try again.';
+
+  @override
   String get smartAlbumTermName => 'Name';
 
   @override

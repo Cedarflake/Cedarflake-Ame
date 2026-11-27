@@ -63,6 +63,19 @@ class RustLibraryClassificationTerms
   );
 
   @override
+  Future<LibraryClassificationSettings> resetAll({
+    required String operationId,
+    required List<LibraryClassificationCategory> expected,
+  }) => invokeClassificationBridge(
+    () async => classificationSettingsFromRust(
+      await native.resetAllClassificationTerms(
+        operationId: operationId,
+        expected: expected.map(_input).toList(),
+      ),
+    ),
+  );
+
+  @override
   Future<LibraryClassificationSettings> remove({
     required String operationId,
     required LibraryClassificationCategory expected,

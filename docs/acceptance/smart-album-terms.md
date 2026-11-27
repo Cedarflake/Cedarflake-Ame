@@ -84,6 +84,45 @@ same-term conflicts, unrelated changes, retained model/dispatch state and protec
 The existing cached-feature case again performed no decode or inference. Bridge verification passed
 all 39 asynchronous contracts and matching content hashes.
 
+## Bulk defaults and directory filtering — 2026-11-28
+
+Ten focused Flutter checks passed for the term workflow, including source filters retained across
+editing, restoration across the hidden built-in rows while Custom is selected, preserved custom and
+dormant definitions, cancellation, pending dismissal/duplicate-submit prevention, failed-batch retry,
+and name-only/no-op lifecycle behavior. The existing lower-row editing case now sends a real pointer
+scroll event: it observes an intermediate deceleration position before the exact final distance,
+then verifies position retention after editing. The tray and wrapper share one `AmeScrollController`.
+
+`material_ui` 1.11.1 supplies the single-selection `ChoiceChip` used for directory filters, matching
+the official [single-selection filter guidance](https://api.flutter.dev/flutter/material/FilterChip-class.html).
+Origin labels use existing list typography; the restoration action uses the shared popup menu and
+confirmation dialog. Localization verification passed 1,043 messages and the unchanged 39-contract
+bridge checks passed with matching generated hashes.
+
+The normal Windows preview also shows compact filters with an 18-pixel, weight-300 Material Symbols
+check in the native chip avatar slot. The pinned chip implementation derives its painted check's
+stroke from avatar height rather than icon weight; its public avatar and `showCheckmark` properties
+allow the existing Ame glyph without replacing selection or focus handling. Empty and populated
+filters retain the same 360-logical-pixel content region, constrained by available window height;
+switching to the empty Custom filter keeps the header in place and centers its message. The first
+attach/reload retained the prior layout; a full hot restart and subsequent attached reload displayed
+the current layout and glyph.
+
+The initial widget assertion compared a custom definition's object identity across an intervening
+Save; it now compares its ID, name and descriptions. The initial 18-case Rust run passed 17 cases;
+one SQLite historical-setup assertion incorrectly expected old display names. Loading intentionally
+combines current labels with versioned descriptions. The corrected check retains exact run, rule
+revision, refinement, category-ID and description assertions while checking current display names.
+Targeted runs passed the corrected mixed-batch case and the maintenance-protection case, giving
+19 applicable passing cases across the initial and targeted runs.
+
+The Windows terms workflow passed in 44 seconds after a 359.2-second native rebuild. It restored
+two modified built-ins through the confirmation while the Custom filter was selected, retained
+the custom definition and exact configured ID set, and completed matching in 2,867 ms using all
+previous feature payloads. This is a small-fixture observation rather than a performance target.
+Individual reset, custom deletion and dormant activation remained passing; all four original files
+and the directory entry count were unchanged after shutdown.
+
 ## Ownership and reviewability
 
 The new responsibility has separate domain validation, application commands, SQLite transaction,
@@ -91,16 +130,19 @@ bridge adapter and presentation owners. No schema migration or dependency change
 The existing runtime exports its already-admitted vocabulary/naming constructor for immutable bundled
 defaults; the centralized composition register records that lifetime.
 
-Physical Rust line counts at this checkpoint (production / inline tests / dedicated tests):
+Current physical Rust line counts (production / inline tests / dedicated tests):
 
-- `application/classification_configuration`: 378 / 0 / 198.
-- `sqlite_catalog/classification/settings`: 1,403 / 0 / 4,750 across its existing modules.
+- `application/classification_configuration`: 440 / 0 / 552.
+- `sqlite_catalog/classification/settings`: 1,457 / 0 / 5,187 across its existing modules,
+  including dedicated coverage tests beside the adapter owners.
 - `application/classification_runtime`: 1,598 / 24 / 291 across its existing modules.
 
-The new domain, application, defaults and SQLite owners are 119, 136, 49 and 65 lines respectively;
-their dedicated application and SQLite term tests are 141 and 169 lines. No term-specific branches
-were added to the discovery orchestrator or the existing settings transaction body.
+The per-term and batch-reset domain owners contain 147 and 98 production lines. The application,
+defaults and SQLite term owners contain 198, 49 and 119 production lines, with no inline tests.
+Dedicated application and SQLite term suites contain 495 and 507 lines, including 125 application
+and 273 SQLite batch-test lines. Existing maintenance regressions own retained-origin protection.
+No term-specific branches were added to the discovery orchestrator or the existing settings
+transaction body.
 
-After complete-directory activation, the domain, application and SQLite term owners are 138, 151
-and 69 production lines, with no inline tests. Application and SQLite dedicated term suites contain
-380 and 230 lines. Existing maintenance regressions own retained-origin protection.
+The tray, reset dialog and Dart application owner contain 291, 79 and 165 production lines; the
+widget suite, shared fixture and native workflow contain 443, 182 and 299 lines.

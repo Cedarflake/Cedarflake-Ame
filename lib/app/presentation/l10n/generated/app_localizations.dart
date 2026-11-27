@@ -6228,6 +6228,54 @@ abstract class AppLocalizations {
   /// **'恢复默认'**
   String get restoreSmartAlbumTerm;
 
+  /// No description provided for @allSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get allSmartAlbumTerms;
+
+  /// No description provided for @builtInSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'内置'**
+  String get builtInSmartAlbumTerm;
+
+  /// No description provided for @customSmartAlbumTerm.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义'**
+  String get customSmartAlbumTerm;
+
+  /// No description provided for @noMatchingSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有符合条件的词条'**
+  String get noMatchingSmartAlbumTerms;
+
+  /// No description provided for @restoreAllSmartAlbumTerms.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复全部内置词条'**
+  String get restoreAllSmartAlbumTerms;
+
+  /// No description provided for @restoreAllSmartAlbumTermsImpact.
+  ///
+  /// In zh, this message translates to:
+  /// **'将所有内置词条的名称和特征描述恢复为默认内容。自定义词条和启用状态保持不变。'**
+  String get restoreAllSmartAlbumTermsImpact;
+
+  /// No description provided for @smartAlbumTermsChanged.
+  ///
+  /// In zh, this message translates to:
+  /// **'部分词条已更新，请关闭此弹窗后重试。'**
+  String get smartAlbumTermsChanged;
+
+  /// No description provided for @smartAlbumTermsRestoreFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'无法恢复内置词条，请重试。'**
+  String get smartAlbumTermsRestoreFailed;
+
   /// No description provided for @smartAlbumTermName.
   ///
   /// In zh, this message translates to:

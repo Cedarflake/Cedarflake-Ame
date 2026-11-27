@@ -18,12 +18,58 @@ const starterTerm = LibraryClassificationTerm(
   defaultCategory: starterCategory,
 );
 
+ClassificationTermsFixture modifiedTermsFixture() =>
+    ClassificationTermsFixture()
+      ..terms = [
+        const LibraryClassificationTerm(
+          category: LibraryClassificationCategory(
+            id: "photo",
+            label: "My photographs",
+            descriptions: ["a photograph"],
+          ),
+          isCustom: false,
+          defaultCategory: starterCategory,
+        ),
+        const LibraryClassificationTerm(
+          category: LibraryClassificationCategory(
+            id: "art",
+            label: "Art",
+            descriptions: ["an oil painting"],
+          ),
+          isCustom: false,
+          defaultCategory: LibraryClassificationCategory(
+            id: "art",
+            label: "Art",
+            descriptions: ["a painting"],
+          ),
+        ),
+        const LibraryClassificationTerm(
+          category: LibraryClassificationCategory(
+            id: "landscape",
+            label: "Landscape",
+            descriptions: ["a landscape"],
+          ),
+          isCustom: false,
+          isConfigured: false,
+        ),
+        const LibraryClassificationTerm(
+          category: LibraryClassificationCategory(
+            id: "custom-cats",
+            label: "Cats",
+            descriptions: ["a cat"],
+          ),
+          isCustom: true,
+        ),
+      ];
+
 class ClassificationTermsFixture implements LibraryClassificationTermsService {
   List<LibraryClassificationTerm> terms = [starterTerm];
   int retired = 0;
   int changes = 0;
   int loads = 0;
   int saves = 0;
+  int resets = 0;
+  List<String> lastResetIds = [];
   LibraryClassificationCategory? lastExpected;
   Completer<void>? saveGate;
   bool reject = false;
@@ -40,7 +86,10 @@ class ClassificationTermsFixture implements LibraryClassificationTermsService {
     revision: BigInt.one,
     dispatchRevision: BigInt.one,
     mode: LibraryClassificationMode.automatic,
-    categories: terms.map((term) => term.category).toList(),
+    categories: terms
+        .where((term) => term.isConfigured)
+        .map((term) => term.category)
+        .toList(),
     runId: "run",
     installationSelected: true,
   );
@@ -99,6 +148,35 @@ class ClassificationTermsFixture implements LibraryClassificationTermsService {
   }) async {
     final index = terms.indexWhere((term) => term.category.id == expected.id);
     terms[index] = starterTerm;
+    return settings;
+  }
+
+  @override
+  Future<LibraryClassificationSettings> resetAll({
+    required String operationId,
+    required List<LibraryClassificationCategory> expected,
+  }) async {
+    resets++;
+    lastResetIds = expected.map((category) => category.id).toList();
+    await saveGate?.future;
+    if (reject) {
+      throw const LibraryClassificationFailure(
+        "classification_term_changed",
+        "Changed",
+      );
+    }
+    terms = [
+      for (final term in terms)
+        if (lastResetIds.contains(term.category.id))
+          LibraryClassificationTerm(
+            category: term.defaultCategory!,
+            defaultCategory: term.defaultCategory,
+            isCustom: term.isCustom,
+            isConfigured: term.isConfigured,
+          )
+        else
+          term,
+    ];
     return settings;
   }
 }

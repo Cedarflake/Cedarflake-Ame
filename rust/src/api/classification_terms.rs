@@ -62,3 +62,18 @@ pub fn reset_classification_term(
         Err(super::classification::unsupported())
     }
 }
+
+pub fn reset_all_classification_terms(
+    operation_id: String,
+    expected: Vec<ClassificationCategoryInput>,
+) -> Result<ClassificationSettings, ScanError> {
+    #[cfg(all(windows, feature = "classification-worker"))]
+    {
+        terms::reset_all(operation_id, expected)
+    }
+    #[cfg(not(all(windows, feature = "classification-worker")))]
+    {
+        let _ = (operation_id, expected);
+        Err(super::classification::unsupported())
+    }
+}

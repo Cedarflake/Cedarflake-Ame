@@ -12,6 +12,14 @@ class LibraryClassificationTerm {
   final bool isCustom;
   final bool isConfigured;
   final LibraryClassificationCategory? defaultCategory;
+
+  bool get canRestoreDefaults {
+    final defaults = defaultCategory;
+    if (isCustom || !isConfigured || defaults == null) return false;
+    return category.label != defaults.label ||
+        category.descriptions.length != defaults.descriptions.length ||
+        !category.descriptions.toSet().containsAll(defaults.descriptions);
+  }
 }
 
 class LibraryClassificationTermChange {

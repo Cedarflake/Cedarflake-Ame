@@ -1,5 +1,7 @@
 use crate::domain::classification::maintenance::ManagedCategoryOrigin;
-use crate::domain::classification_configuration::ClassificationTermChange;
+use crate::domain::classification_configuration::{
+    ClassificationTermChange, ClassificationTermsReset,
+};
 use crate::ports::classification_configuration::{
     CategoryRetirementRepository, ClassificationTermRepository,
 };
@@ -122,7 +124,7 @@ fn explicit_edits_and_retirement_remain_protected_after_reverting_wording() {
 }
 
 #[test]
-fn single_term_reset_retains_manual_protection_from_automatic_maintenance() {
+fn term_resets_retain_manual_protection_from_automatic_maintenance() {
     let (_directory, mut catalog) = super::super::super::fixture();
     start(&mut catalog);
     let plan = plan(&catalog, &evidence(&catalog));
@@ -160,7 +162,7 @@ fn single_term_reset_retains_manual_protection_from_automatic_maintenance() {
     let reset = ClassificationTermChange {
         expected: Some(renamed),
         replacement: Some(original.clone()),
-        bundled_default: Some(original),
+        bundled_default: Some(original.clone()),
         baseline: request(
             &catalog,
             "term-reset",
@@ -172,7 +174,42 @@ fn single_term_reset_retains_manual_protection_from_automatic_maintenance() {
     catalog.save_classification_term(&reset).unwrap();
     assert!(origin(&catalog, &identity).protected);
     let protected = catalog.load_category_retirement_snapshot().unwrap();
-    assert!(protected.protects(&reset.replacement.unwrap()));
+    assert!(protected.protects(&original));
+    let renamed_again = original.renamed("My restored architecture".into()).unwrap();
+    let edit_again = ClassificationTermChange {
+        expected: Some(original.clone()),
+        replacement: Some(renamed_again.clone()),
+        bundled_default: Some(original.clone()),
+        baseline: request(
+            &catalog,
+            "edit-again",
+            reset.baseline.primary().clone(),
+            ClassificationConfigurationAction::Save,
+        )
+        .setup,
+    };
+    catalog.save_classification_term(&edit_again).unwrap();
+    let defaults = [(identity.clone(), original.clone())].into_iter().collect();
+    let batch = ClassificationTermsReset::new(
+        request(
+            &catalog,
+            "reset-all",
+            reset.baseline.primary().clone(),
+            ClassificationConfigurationAction::Save,
+        )
+        .setup,
+        vec![renamed_again],
+        &defaults,
+    )
+    .unwrap();
+    catalog.reset_all_classification_terms(&batch).unwrap();
+    assert!(origin(&catalog, &identity).protected);
+    assert!(
+        catalog
+            .load_category_retirement_snapshot()
+            .unwrap()
+            .protects(&original)
+    );
 }
 
 #[test]

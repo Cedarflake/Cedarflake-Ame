@@ -3701,6 +3701,31 @@ class AppLocalizationsJa extends AppLocalizations {
   String get restoreSmartAlbumTerm => '既定に戻す';
 
   @override
+  String get allSmartAlbumTerms => 'すべて';
+
+  @override
+  String get builtInSmartAlbumTerm => '組み込み';
+
+  @override
+  String get customSmartAlbumTerm => 'カスタム';
+
+  @override
+  String get noMatchingSmartAlbumTerms => '該当する項目はありません';
+
+  @override
+  String get restoreAllSmartAlbumTerms => 'すべての組み込み項目を復元';
+
+  @override
+  String get restoreAllSmartAlbumTermsImpact =>
+      '組み込み項目の名前と特徴の説明を既定に戻します。カスタム項目と各項目の有効・無効は変更されません。';
+
+  @override
+  String get smartAlbumTermsChanged => '一部の項目が更新されました。このダイアログを閉じて、もう一度お試しください。';
+
+  @override
+  String get smartAlbumTermsRestoreFailed => '組み込み項目を復元できませんでした。もう一度お試しください。';
+
+  @override
   String get smartAlbumTermName => '名前';
 
   @override

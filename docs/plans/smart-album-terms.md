@@ -13,6 +13,8 @@ smart-album sidebar without restoring the retired classification settings or man
    reusing compatible image features; opening the directory is read-only. Retain the
    tray's scroll position. Localize unchanged built-in names, preserve user names, and recommend
    short English feature descriptions without restricting input languages.
+   Distinguish Built-in and Custom rows with mutually exclusive directory filters. Add confirmed
+   batch restoration of built-in definitions while preserving custom terms and configured IDs.
 3. Verify save/cancel/reset/delete, relevant conflicts, background maintenance and reusable features;
    inspect the actual client and compact/enlarged-text layout. Deliver one reversible change.
 
@@ -28,7 +30,9 @@ included. Source media, model selection, per-image manual decisions and Beta pub
 
 Use the existing classification transaction, lifecycle and widget test owners for behavior checks.
 Cover concurrent unrelated updates, edited-term conflict, rename-only changes, protected reset and
-custom removal. Check retained rows and drafts across refresh, return position, cancellation, and
+custom removal. Cover atomic batch restoration, empty/name-only batches, conflict rollback and
+preserved enabled IDs/custom definitions. Check retained rows and drafts across refresh, wheel
+deceleration, return position, filters, cancellation, and
 English/Chinese/Japanese at the supported compact window and enlarged text size. Avoid permanent
 assertions on exact copy or spacing. Real model matching uses an isolated catalog and existing
 licensed fixtures; record the observed outcome in the scoped acceptance record.

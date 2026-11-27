@@ -197,6 +197,55 @@ void main() {
     );
     await _save(tester);
     final custom = (await service.load()).singleWhere((term) => term.isCustom);
+    await _openTerm(tester, "photo");
+    await tester.enterText(
+      find.byType(TextFormField).last,
+      "a photograph of a colorful object on a table",
+    );
+    await _save(tester);
+    await _openTerm(tester, dormant.category.id);
+    await tester.enterText(
+      find.byKey(const Key("classification-term-name")),
+      "My activated term",
+    );
+    await _save(tester);
+    final beforeReset = await client.configuration.load();
+    final beforeResetFeatures = await client.waitForRun(beforeReset.runId!);
+    final configured = beforeReset.categories.map((term) => term.id).toSet();
+    await _click(tester, "classification-terms-filter-custom");
+    await _click(tester, "classification-terms-more");
+    await _click(tester, "classification-terms-reset-all");
+    await _click(tester, "classification-terms-reset-confirm");
+    await _wait(
+      tester,
+      () => find
+          .byKey(const Key("classification-terms-reset-dialog"))
+          .evaluate()
+          .isEmpty,
+    );
+    final afterReset = await client.configuration.load();
+    expect(
+      afterReset.categories.map((term) => term.id),
+      unorderedEquals(configured),
+    );
+    expect(afterReset.runId, isNot(beforeReset.runId));
+    final afterDirectory = await service.load();
+    for (final id in ["photo", dormant.category.id]) {
+      final term = afterDirectory.singleWhere((term) => term.category.id == id);
+      expect(term.category.label, term.defaultCategory!.label);
+      expect(term.category.descriptions, term.defaultCategory!.descriptions);
+    }
+    final retainedCustom = afterDirectory.singleWhere((term) => term.isCustom);
+    expect(retainedCustom.category.id, custom.category.id);
+    expect(retainedCustom.category.label, custom.category.label);
+    expect(retainedCustom.category.descriptions, custom.category.descriptions);
+    final resetFeatures = await client.waitForRun(afterReset.runId!);
+    for (final entry in beforeResetFeatures.features.entries) {
+      expect(resetFeatures.features[entry.key], entry.value);
+    }
+    debugPrint(
+      "CLASSIFICATION_TERMS batchReset=true customPreserved=true enabledIdsPreserved=true retainedFeaturePayloads=true",
+    );
     await _openTerm(tester, custom.category.id);
     await _click(tester, "classification-term-delete");
     await _click(tester, "classification-term-delete-confirm");

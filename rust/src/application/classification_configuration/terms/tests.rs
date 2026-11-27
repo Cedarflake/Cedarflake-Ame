@@ -5,6 +5,7 @@ use crate::domain::classification_configuration::ClassificationConfigurationActi
 mod activation;
 mod initialization;
 mod reading;
+mod reset_all;
 
 #[test]
 fn editor_includes_empty_definitions_and_restores_the_bundled_definition() {

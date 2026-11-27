@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
 
-use crate::domain::classification::{CategoryDefinition, CategoryId, ClassificationRecordId};
+use crate::domain::classification::{
+    CategoryDefinition, CategoryId, ClassificationAnalysisSetup, ClassificationRecordId,
+};
 use crate::domain::classification_configuration::{
     ClassificationCategoryInput, ClassificationSettings, ClassificationTerm,
-    ClassificationTermChange,
+    ClassificationTermChange, ClassificationTermsReset,
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::classification_configuration::{
@@ -84,6 +86,48 @@ pub(crate) fn reset(
     execute(operation_id, Some(expected), Some(replacement))
 }
 
+pub(crate) fn reset_all(
+    operation_id: String,
+    expected: Vec<ClassificationCategoryInput>,
+) -> Result<ClassificationSettings, ScanError> {
+    let change = reset_change(operation_id, expected)?;
+    let storage = storage_paths()?;
+    if change.changes_matching() {
+        while_retired(|| reset_with_storage(&storage, &change))
+    } else {
+        reset_with_storage(&storage, &change)
+    }
+}
+
+fn reset_change(
+    operation_id: String,
+    expected: Vec<ClassificationCategoryInput>,
+) -> Result<ClassificationTermsReset, ScanError> {
+    let defaults = defaults::categories()?;
+    if expected.len() > defaults.len() {
+        return Err(ScanError::new(
+            "classification_term_invalid",
+            "Too many categories to restore",
+        ));
+    }
+    ClassificationTermsReset::new(
+        baseline(operation_id)?,
+        expected
+            .into_iter()
+            .map(definition)
+            .collect::<Result<_, _>>()?,
+        defaults,
+    )
+}
+
+fn reset_with_storage(
+    storage: &StoragePaths,
+    change: &ClassificationTermsReset,
+) -> Result<ClassificationSettings, ScanError> {
+    let mut catalog = open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
+    settings(catalog.reset_all_classification_terms(change)?, storage)
+}
+
 fn execute(
     operation_id: String,
     expected: Option<CategoryDefinition>,
@@ -103,13 +147,7 @@ fn change(
     expected: Option<CategoryDefinition>,
     replacement: Option<CategoryDefinition>,
 ) -> Result<ClassificationTermChange, ScanError> {
-    let operation = ClassificationRecordId::new(operation_id).map_err(invalid)?;
-    let baseline = classification_candidate::prepare(
-        operation,
-        classification_candidate::initial_categories().map_err(invalid)?,
-        model_package().compatibility(),
-    )
-    .map_err(invalid)?;
+    let baseline = baseline(operation_id)?;
     let bundled_default = match replacement.as_ref() {
         Some(category) => defaults::categories()?.get(category.id()).cloned(),
         None => None,
@@ -120,6 +158,15 @@ fn change(
         bundled_default,
         baseline,
     })
+}
+
+fn baseline(operation_id: String) -> Result<ClassificationAnalysisSetup, ScanError> {
+    classification_candidate::prepare(
+        ClassificationRecordId::new(operation_id).map_err(invalid)?,
+        classification_candidate::initial_categories().map_err(invalid)?,
+        model_package().compatibility(),
+    )
+    .map_err(invalid)
 }
 
 fn save_with_storage(

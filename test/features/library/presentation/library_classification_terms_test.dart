@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/domain/library_classification_co
 import "package:cedarflake_ame/features/library/domain/library_classification_term.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_classification_term_editor.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_classification_terms_sheet.dart";
+import "package:flutter/gestures.dart";
 import "package:material_ui/material_ui.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -207,6 +208,22 @@ void main() {
     await open(tester, fixture);
     final list = find.byType(ListView);
     final controller = tester.widget<ListView>(list).controller!;
+    await tester.sendEventToBinding(
+      PointerScrollEvent(
+        position: tester.getCenter(list),
+        scrollDelta: const Offset(0, 120),
+        kind: PointerDeviceKind.mouse,
+      ),
+    );
+    final immediate = controller.offset;
+    expect(immediate, greaterThan(0));
+    expect(immediate, lessThan(120));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 45));
+    expect(controller.offset, greaterThan(immediate));
+    expect(controller.offset, lessThan(120));
+    await tester.pumpAndSettle();
+    expect(controller.offset, closeTo(120, 0.001));
     controller.jumpTo(650);
     await tester.pumpAndSettle();
     final before = controller.offset;
@@ -221,6 +238,128 @@ void main() {
     expect(controller.offset, before);
     expect(find.text("Edited subject"), findsOneWidget);
   });
+
+  testWidgets(
+    "origin filters retain selection while reset covers all built-ins",
+    (tester) async {
+      final fixture = modifiedTermsFixture();
+      final custom = fixture.terms.last;
+      final dormant = fixture.terms[2];
+      await open(tester, fixture);
+      await click(tester, "classification-terms-filter-builtIn");
+      expect(
+        find.byKey(const Key("classification-term-photo")),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key("classification-term-custom-cats")),
+        findsNothing,
+      );
+      await click(tester, "classification-terms-filter-custom");
+      expect(find.byKey(const Key("classification-term-photo")), findsNothing);
+      await click(tester, "classification-term-custom-cats");
+      await click(tester, "classification-term-save");
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.byKey(const Key("classification-terms-filter-custom")),
+            )
+            .selected,
+        isTrue,
+      );
+      await click(tester, "classification-terms-more");
+      await click(tester, "classification-terms-reset-all");
+      await click(tester, "classification-terms-reset-cancel");
+      expect(fixture.resets, 0);
+      await click(tester, "classification-terms-more");
+      await click(tester, "classification-terms-reset-all");
+      await click(tester, "classification-terms-reset-confirm");
+      expect(fixture.lastResetIds, unorderedEquals(["photo", "art"]));
+      expect(fixture.retired, 1);
+      expect(fixture.terms.first.category.label, starterCategory.label);
+      expect(fixture.terms[1].category.descriptions, ["a painting"]);
+      expect(fixture.terms[2], same(dormant));
+      expect(fixture.terms.last.category.id, custom.category.id);
+      expect(fixture.terms.last.category.label, custom.category.label);
+      expect(
+        fixture.terms.last.category.descriptions,
+        custom.category.descriptions,
+      );
+      expect(fixture.terms.map((term) => term.isConfigured), [
+        true,
+        true,
+        false,
+        true,
+      ]);
+      expect(
+        find.byKey(const Key("classification-term-custom-cats")),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key("classification-term-photo")), findsNothing);
+      await click(tester, "classification-terms-filter-all");
+      expect(
+        find.byKey(const Key("classification-term-photo")),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    "batch reset holds dismissal and retries without discarding definitions",
+    (tester) async {
+      final fixture = modifiedTermsFixture()
+        ..saveGate = Completer<void>()
+        ..reject = true;
+      final before = List.of(fixture.terms);
+      await open(tester, fixture);
+      await click(tester, "classification-terms-more");
+      await click(tester, "classification-terms-reset-all");
+      final confirm = find.byKey(
+        const Key("classification-terms-reset-confirm"),
+      );
+      await tester.tap(confirm);
+      await tester.pump();
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      final dialog = find.byKey(const Key("classification-terms-reset-dialog"));
+      await Navigator.of(tester.element(dialog)).maybePop();
+      await tester.pump();
+      expect(dialog, findsOneWidget);
+      expect(fixture.resets, 1);
+      fixture.saveGate!.complete();
+      await tester.pumpAndSettle();
+      expect(fixture.terms, before);
+      expect(fixture.changes, 0);
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNotNull);
+      fixture.reject = false;
+      await click(tester, "classification-terms-reset-confirm");
+      expect(dialog, findsNothing);
+      expect(fixture.changes, 1);
+      expect(fixture.resets, 2);
+    },
+  );
+
+  test(
+    "name-only batch preserves matching and a default batch is a no-op",
+    () async {
+      final fixture = modifiedTermsFixture();
+      fixture.terms.removeAt(1);
+      await fixture.editor.resetAll(
+        operationId: "names",
+        originals: fixture.terms,
+      );
+      expect(fixture.retired, 0);
+      expect(fixture.changes, 1);
+      expect(fixture.lastResetIds, ["photo"]);
+      await fixture.editor.resetAll(
+        operationId: "no-op",
+        originals: fixture.terms,
+      );
+      expect(fixture.resets, 1);
+      expect(fixture.changes, 1);
+      expect(fixture.retired, 0);
+    },
+  );
 
   testWidgets(
     "save holds dismissal and duplicate submission; failed draft survives and reopening refreshes expected term",

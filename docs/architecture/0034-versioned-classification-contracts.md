@@ -39,6 +39,11 @@ this editor. The directory includes dormant bundled definitions without configur
 one activates that definition; resetting an unconfigured entry only changes the dialog draft.
 A previously unconfigured catalog initializes the full starter set on its first edit. Compare the
 reviewed expected definition against persisted state before applying that initialization.
+Batch restoration compares only the reviewed configured built-ins in one write transaction, then
+restores their bundled definitions together. It preserves custom definitions, unrelated edits,
+dispatch state and the complete configured ID set. It never initializes a starter taxonomy or
+activates a dormant definition; an empty batch is read-only. One semantic batch retires one live
+classification session, and operation replay retains the existing idempotency contract.
 Name-only changes retain the active run, encoder and calibration; semantic changes retire live
 classification sessions and reuse compatible image features. No persistence migration is required.
 Retirement removes a definition from future matching; persistence retains its identity and description

@@ -3643,6 +3643,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreSmartAlbumTerm => '恢复默认';
 
   @override
+  String get allSmartAlbumTerms => '全部';
+
+  @override
+  String get builtInSmartAlbumTerm => '内置';
+
+  @override
+  String get customSmartAlbumTerm => '自定义';
+
+  @override
+  String get noMatchingSmartAlbumTerms => '没有符合条件的词条';
+
+  @override
+  String get restoreAllSmartAlbumTerms => '恢复全部内置词条';
+
+  @override
+  String get restoreAllSmartAlbumTermsImpact =>
+      '将所有内置词条的名称和特征描述恢复为默认内容。自定义词条和启用状态保持不变。';
+
+  @override
+  String get smartAlbumTermsChanged => '部分词条已更新，请关闭此弹窗后重试。';
+
+  @override
+  String get smartAlbumTermsRestoreFailed => '无法恢复内置词条，请重试。';
+
+  @override
   String get smartAlbumTermName => '名称';
 
   @override

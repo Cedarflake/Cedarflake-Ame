@@ -6,6 +6,8 @@ use super::classification_catalog::ClassificationCatalogState;
 
 mod terms;
 pub use terms::ClassificationTermChange;
+mod terms_reset;
+pub use terms_reset::ClassificationTermsReset;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ClassificationConfigurationAction {

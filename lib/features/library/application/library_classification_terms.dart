@@ -117,6 +117,23 @@ class LibraryClassificationTerms {
     return LibraryClassificationTermChange(original.category.id, null);
   }
 
+  Future<void> resetAll({
+    required String operationId,
+    required List<LibraryClassificationTerm> originals,
+  }) async {
+    final targets = originals.where((term) => term.canRestoreDefaults).toList();
+    if (targets.isEmpty) return;
+    await _change(
+      () => _service.resetAll(
+        operationId: operationId,
+        expected: [for (final term in targets) term.category],
+      ),
+      semantic: targets.any(
+        (term) => !_sameDescriptions(term.category, term.defaultCategory!),
+      ),
+    );
+  }
+
   Future<LibraryClassificationSettings> _change(
     Future<LibraryClassificationSettings> Function() action, {
     required bool semantic,

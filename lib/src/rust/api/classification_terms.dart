@@ -37,3 +37,12 @@ Future<ClassificationSettings> resetClassificationTerm({
   operationId: operationId,
   expected: expected,
 );
+
+Future<ClassificationSettings> resetAllClassificationTerms({
+  required String operationId,
+  required List<ClassificationCategoryInput> expected,
+}) =>
+    RustLib.instance.api.crateApiClassificationTermsResetAllClassificationTerms(
+      operationId: operationId,
+      expected: expected,
+    );

@@ -16,4 +16,8 @@ abstract interface class LibraryClassificationTermsService {
     required String operationId,
     required LibraryClassificationCategory expected,
   });
+  Future<LibraryClassificationSettings> resetAll({
+    required String operationId,
+    required List<LibraryClassificationCategory> expected,
+  });
 }
