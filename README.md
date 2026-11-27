@@ -95,3 +95,4 @@ Except where otherwise noted, Cedarflake Ame is licensed under the
 Third-party code, dependencies, model weights, and resources retain their own licenses and notices.
 
 End-user terms are described in [EULA.md](EULA.md).
+Information handling is described in the [Privacy Statement](PRIVACY.md).

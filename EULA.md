@@ -1,6 +1,6 @@
 # Cedarflake Ame End User License Agreement
 
-Last updated: 2026-11-26
+Last updated: 2026-11-27
 
 This agreement describes the terms for using Cedarflake Ame ("Ame"), a local image
 library application provided by the Cedarflake Ame contributors.
@@ -38,6 +38,9 @@ hardware and task information; they exclude image contents, catalog records, cre
 and personal file paths. Exporting a report does not upload it. You choose whether and
 where to share it.
 
+See the [Privacy Statement](PRIVACY.md) for information handling, network services,
+storage, retention and your choices.
+
 ## 4. File operations and analysis results
 
 Moving, renaming, recycling or permanently deleting files changes their location, name
@@ -58,8 +61,9 @@ Update checks, application-package downloads and model downloads contact their r
 hosting services. Those services receive the network requests and handle them under their
 own terms and privacy practices.
 
-Update settings let you choose manual checks, automatic checks or automatic downloads,
-and a stable or preview channel. Applying an in-app update requires the restart action.
+MSI and portable update settings let you choose manual checks, automatic checks or automatic
+downloads, and a stable or preview channel. Applying an in-app update requires the restart action.
+Updates for the Microsoft Store edition are managed by Windows and Microsoft Store.
 Preview releases, including Alpha, Beta and RC versions, may contain unfinished features
 or defects. Availability of updates, downloads and ongoing support is not guaranteed.
 

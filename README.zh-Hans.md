@@ -57,3 +57,4 @@ flutter run -d windows
 除另有说明外，Cedarflake Ame 使用 [Apache 许可证 2.0](LICENSE)（`Apache-2.0`）。第三方代码、依赖项、模型权重和资源各自适用其原有的许可证和声明。
 
 使用条款见[最终用户许可协议](EULA.md)（英文）。
+信息处理方式见[隐私声明](PRIVACY.zh-Hans.md)。

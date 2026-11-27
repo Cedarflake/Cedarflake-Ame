@@ -57,3 +57,4 @@ Copyright 2026 Cedarflake Ame contributors.
 特記がある場合を除き、Cedarflake Ame には [Apache License, Version 2.0](LICENSE)（`Apache-2.0`）が適用されます。サードパーティのコード、依存ライブラリ、モデルの重み、リソースには、それぞれのライセンスと表記が適用されます。
 
 利用条件は[エンドユーザー使用許諾契約](EULA.md)（英語）を参照してください。
+情報の取り扱いは[プライバシーに関する声明](PRIVACY.md)（英語）を参照してください。
