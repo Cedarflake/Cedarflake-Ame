@@ -6,7 +6,8 @@ fn first_custom_add_initializes_starters_and_can_be_deleted_without_models() {
     let directory = tempfile::tempdir().unwrap();
     let storage = storage(directory.path());
     let draft = load_with_storage(&storage).unwrap();
-    assert_eq!(draft.len(), 5);
+    assert_eq!(draft.len(), 56);
+    assert!(draft.iter().all(|term| !term.is_configured));
     assert!(
         super::super::super::load_with_storage(&storage)
             .unwrap()
@@ -34,7 +35,14 @@ fn first_custom_add_initializes_starters_and_can_be_deleted_without_models() {
     )
     .unwrap();
     assert_eq!(removed.categories.len(), 6);
-    assert_eq!(load_with_storage(&storage).unwrap(), draft);
+    let mut expected = draft;
+    for term in &mut expected {
+        term.is_configured = matches!(
+            term.category.id.as_str(),
+            "comic" | "illustration" | "meme" | "photo" | "screenshot"
+        );
+    }
+    assert_eq!(load_with_storage(&storage).unwrap(), expected);
 }
 
 #[test]
@@ -48,9 +56,25 @@ fn first_builtin_edit_initializes_once_and_preserves_the_reviewed_definition() {
         .unwrap();
     let expected = definition(selected.category.clone()).unwrap();
     let renamed = expected.renamed("My photographs".into()).unwrap();
+    let stale = change(
+        "expected-before-initialization".into(),
+        Some(expected),
+        Some(renamed.clone()),
+    )
+    .unwrap();
+    assert_eq!(
+        save_with_storage(&storage, &stale).unwrap_err().code,
+        "classification_term_changed"
+    );
+    assert!(
+        super::super::super::load_with_storage(&storage)
+            .unwrap()
+            .categories
+            .is_empty()
+    );
     let saved = save_with_storage(
         &storage,
-        &change("first-rename".into(), Some(expected), Some(renamed.clone())).unwrap(),
+        &change("first-rename".into(), None, Some(renamed.clone())).unwrap(),
     )
     .unwrap();
     assert_eq!(saved.categories.len(), 6);

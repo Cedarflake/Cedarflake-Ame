@@ -73,11 +73,14 @@ class LibraryClassificationTerms {
     final settings = await _change(
       () => _service.save(
         operationId: operationId,
-        expected: original?.category,
+        expected: original != null && original.isConfigured
+            ? original.category
+            : null,
         replacement: replacement,
       ),
       semantic:
           original == null ||
+          !original.isConfigured ||
           !_sameDescriptions(original.category, replacement),
     );
     return _result(settings, replacement.id, original);
@@ -89,6 +92,9 @@ class LibraryClassificationTerms {
   }) async {
     final defaults = original.defaultCategory;
     if (defaults == null) throw StateError("Term has no bundled default");
+    if (!original.isConfigured) {
+      throw StateError("Unconfigured terms can only reset their draft");
+    }
     final settings = await _change(
       () =>
           _service.reset(operationId: operationId, expected: original.category),

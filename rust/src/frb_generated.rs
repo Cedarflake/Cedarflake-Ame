@@ -7902,10 +7902,12 @@ impl SseDecode for crate::domain::classification_configuration::ClassificationTe
             crate::domain::classification_configuration::ClassificationCategoryInput,
         >>::sse_decode(deserializer);
         let mut var_isCustom = <bool>::sse_decode(deserializer);
+        let mut var_isConfigured = <bool>::sse_decode(deserializer);
         return crate::domain::classification_configuration::ClassificationTerm {
             category: var_category,
             default_category: var_defaultCategory,
             is_custom: var_isCustom,
+            is_configured: var_isConfigured,
         };
     }
 }
@@ -13791,6 +13793,7 @@ impl flutter_rust_bridge::IntoDart
             self.category.into_into_dart().into_dart(),
             self.default_category.into_into_dart().into_dart(),
             self.is_custom.into_into_dart().into_dart(),
+            self.is_configured.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -19253,6 +19256,7 @@ impl SseEncode for crate::domain::classification_configuration::ClassificationTe
         );
         <Option<crate::domain::classification_configuration::ClassificationCategoryInput>>::sse_encode(self.default_category, serializer);
         <bool>::sse_encode(self.is_custom, serializer);
+        <bool>::sse_encode(self.is_configured, serializer);
     }
 }
 

@@ -41,6 +41,7 @@ pub struct ClassificationTerm {
     pub category: ClassificationCategoryInput,
     pub default_category: Option<ClassificationCategoryInput>,
     pub is_custom: bool,
+    pub is_configured: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

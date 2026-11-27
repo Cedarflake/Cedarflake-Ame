@@ -1024,7 +1024,7 @@
   "restoreSmartAlbumTerm": "既定に戻す",
   "smartAlbumTermName": "名前",
   "smartAlbumTermDescriptions": "画像の特徴",
-  "smartAlbumTermEnglishHint": "短い英語の説明をおすすめします。例：a photo of a cat sleeping on a sofa",
+  "smartAlbumTermEnglishHint": "短い英語の説明をおすすめします。",
   "smartAlbumTermDescription": "説明 {number}",
   "addSmartAlbumDescription": "説明を追加",
   "removeSmartAlbumDescription": "説明を削除",

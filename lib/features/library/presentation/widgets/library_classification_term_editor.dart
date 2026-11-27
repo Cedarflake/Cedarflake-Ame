@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_dialog.dart";
 import "../../../../app/presentation/ame_localizations.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_classification_terms.dart";
 import "../../domain/library_classification_configuration.dart";
 import "../../domain/library_classification_review.dart";
@@ -70,12 +71,35 @@ class _LibraryClassificationTermEditorState
     );
   }
 
-  Future<void> _reset() => _submit(
-    (editor) => editor.reset(
-      operationId: "reset-$_operationId",
-      original: widget.original!,
-    ),
-  );
+  Future<void> _reset() async {
+    final original = widget.original!;
+    if (!original.isConfigured) {
+      final defaults = original.defaultCategory!;
+      final previous = _descriptions.toList();
+      setState(() {
+        _name.text = libraryCategoryLabel(context.l10n, defaults);
+        _descriptions
+          ..clear()
+          ..addAll(
+            defaults.descriptions.map(
+              (text) => TextEditingController(text: text),
+            ),
+          );
+        _errorCode = null;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        for (final field in previous) {
+          field.dispose();
+        }
+      });
+      _changed();
+      return;
+    }
+    await _submit(
+      (editor) =>
+          editor.reset(operationId: "reset-$_operationId", original: original),
+    );
+  }
 
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
@@ -126,14 +150,13 @@ class _LibraryClassificationTermEditorState
       if (mounted) Navigator.of(context).pop(result);
     } on Object catch (error) {
       if (mounted) {
-        setState(
-          () => _errorCode = error is LibraryClassificationFailure
+        setState(() {
+          _saving = false;
+          _errorCode = error is LibraryClassificationFailure
               ? error.code
-              : "classification_failed",
-        );
+              : "classification_failed";
+        });
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -165,104 +188,144 @@ class _LibraryClassificationTermEditorState
         title: original == null
             ? context.l10n.addSmartAlbumTerm
             : context.l10n.editSmartAlbumTerm,
-        content: Form(
-          key: _form,
-          child: AmeDialogBody(
-            children: [
-              TextFormField(
-                key: const Key("classification-term-name"),
-                controller: _name,
-                autofocus: true,
-                enabled: !_saving,
-                decoration: InputDecoration(
-                  labelText: context.l10n.smartAlbumTermName,
+        scrollable: false,
+        content: SingleChildScrollView(
+          child: Form(
+            key: _form,
+            child: AmeDialogBody(
+              children: [
+                TextFormField(
+                  key: const Key("classification-term-name"),
+                  controller: _name,
+                  autofocus: true,
+                  enabled: !_saving,
+                  decoration: InputDecoration(
+                    labelText: context.l10n.smartAlbumTermName,
+                    filled: true,
+                  ),
+                  validator: (value) => _validate(value, 80),
+                  onChanged: (_) => _changed(),
                 ),
-                validator: (value) => _validate(value, 80),
-                onChanged: (_) => _changed(),
-              ),
-              AmeDialogField(
-                label: context.l10n.smartAlbumTermDescriptions,
-                child: Text(context.l10n.smartAlbumTermEnglishHint),
-              ),
-              for (var index = 0; index < _descriptions.length; index++)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 8,
                   children: [
-                    Expanded(
-                      child: TextFormField(
-                        key: ObjectKey(_descriptions[index]),
-                        controller: _descriptions[index],
-                        enabled: !_saving,
-                        minLines: 1,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          labelText: context.l10n.smartAlbumTermDescription(
-                            index + 1,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  context.l10n.smartAlbumTermDescriptions,
+                                  style: Theme.of(context).textTheme.labelLarge,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              AmeTooltip(
+                                message: context.l10n.smartAlbumTermEnglishHint,
+                                child: Icon(
+                                  Symbols.info_rounded,
+                                  size: 18,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        validator: (value) {
-                          final error = _validate(value, 1024);
-                          if (error != null) return error;
-                          if (_descriptions
-                                  .where(
-                                    (field) =>
-                                        field.text.trim() == value!.trim(),
-                                  )
-                                  .length >
-                              1) {
-                            return context
-                                .l10n
-                                .smartAlbumTermDescriptionDuplicate;
-                          }
-                          return null;
-                        },
-                        onChanged: (_) => _changed(),
-                      ),
+                        if (_descriptions.length < 8)
+                          TextButton.icon(
+                            key: const Key("classification-description-add"),
+                            onPressed: _saving
+                                ? null
+                                : () {
+                                    setState(
+                                      () => _descriptions.add(
+                                        TextEditingController(),
+                                      ),
+                                    );
+                                    _changed();
+                                  },
+                            icon: const Icon(Symbols.add_rounded, size: 20),
+                            label: Text(context.l10n.addSmartAlbumDescription),
+                          ),
+                      ],
                     ),
-                    if (_descriptions.length > 1)
-                      IconButton(
-                        tooltip: context.l10n.removeSmartAlbumDescription,
-                        onPressed: _saving
-                            ? null
-                            : () {
-                                final removed = _descriptions[index];
-                                setState(() => _descriptions.removeAt(index));
-                                WidgetsBinding.instance.addPostFrameCallback(
-                                  (_) => removed.dispose(),
-                                );
-                                _changed();
-                              },
-                        icon: const Icon(Symbols.close_rounded, size: 20),
+                    for (var index = 0; index < _descriptions.length; index++)
+                      Semantics(
+                        label: context.l10n.smartAlbumTermDescription(
+                          index + 1,
+                        ),
+                        child: TextFormField(
+                          key: ObjectKey(_descriptions[index]),
+                          controller: _descriptions[index],
+                          enabled: !_saving,
+                          minLines: 1,
+                          maxLines: 4,
+                          decoration: InputDecoration(
+                            filled: true,
+                            suffixIcon: _descriptions.length > 1
+                                ? IconButton(
+                                    tooltip: context
+                                        .l10n
+                                        .removeSmartAlbumDescription,
+                                    onPressed: _saving
+                                        ? null
+                                        : () {
+                                            final removed =
+                                                _descriptions[index];
+                                            setState(
+                                              () =>
+                                                  _descriptions.removeAt(index),
+                                            );
+                                            WidgetsBinding.instance
+                                                .addPostFrameCallback(
+                                                  (_) => removed.dispose(),
+                                                );
+                                            _changed();
+                                          },
+                                    icon: const Icon(
+                                      Symbols.close_rounded,
+                                      size: 20,
+                                    ),
+                                  )
+                                : null,
+                          ),
+                          validator: (value) {
+                            final error = _validate(value, 1024);
+                            if (error != null) return error;
+                            if (_descriptions
+                                    .where(
+                                      (field) =>
+                                          field.text.trim() == value!.trim(),
+                                    )
+                                    .length >
+                                1) {
+                              return context
+                                  .l10n
+                                  .smartAlbumTermDescriptionDuplicate;
+                            }
+                            return null;
+                          },
+                          onChanged: (_) => _changed(),
+                        ),
                       ),
                   ],
                 ),
-              if (_descriptions.length < 8)
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: TextButton.icon(
-                    key: const Key("classification-description-add"),
-                    onPressed: _saving
-                        ? null
-                        : () {
-                            setState(
-                              () => _descriptions.add(TextEditingController()),
-                            );
-                            _changed();
-                          },
-                    icon: const Icon(Symbols.add_rounded, size: 20),
-                    label: Text(context.l10n.addSmartAlbumDescription),
-                  ),
-                ),
-              if (_errorCode case final code?)
-                AmeDialogError(switch (code) {
-                  "classification_term_changed" =>
-                    context.l10n.smartAlbumTermChanged,
-                  "classification_configuration_invalid" ||
-                  "classification_term_invalid" =>
-                    context.l10n.smartAlbumTermInvalid,
-                  _ => context.l10n.smartAlbumTermSaveFailed,
-                }),
-            ],
+                if (_errorCode case final code?)
+                  AmeDialogError(switch (code) {
+                    "classification_term_changed" =>
+                      context.l10n.smartAlbumTermChanged,
+                    "classification_configuration_invalid" ||
+                    "classification_term_invalid" =>
+                      context.l10n.smartAlbumTermInvalid,
+                    _ => context.l10n.smartAlbumTermSaveFailed,
+                  }),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -285,7 +348,7 @@ class _LibraryClassificationTermEditorState
           FilledButton(
             key: const Key("classification-term-save"),
             onPressed: _saving ? null : _save,
-            child: Text(_saving ? context.l10n.saving : context.l10n.save),
+            child: Text(context.l10n.save),
           ),
         ],
       ),

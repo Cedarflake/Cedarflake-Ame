@@ -3649,8 +3649,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smartAlbumTermDescriptions => '特征描述';
 
   @override
-  String get smartAlbumTermEnglishHint =>
-      '建议使用简短的英语描述图片内容，例如：a photo of a cat sleeping on a sofa';
+  String get smartAlbumTermEnglishHint => '建议使用简短的英语描述图片内容。';
 
   @override
   String smartAlbumTermDescription(int number) {

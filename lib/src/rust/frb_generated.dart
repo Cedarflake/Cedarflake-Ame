@@ -8812,14 +8812,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ClassificationTerm dco_decode_classification_term(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return ClassificationTerm(
       category: dco_decode_classification_category_input(arr[0]),
       defaultCategory: dco_decode_opt_box_autoadd_classification_category_input(
         arr[1],
       ),
       isCustom: dco_decode_bool(arr[2]),
+      isConfigured: dco_decode_bool(arr[3]),
     );
   }
 
@@ -13666,10 +13667,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_defaultCategory =
         sse_decode_opt_box_autoadd_classification_category_input(deserializer);
     var var_isCustom = sse_decode_bool(deserializer);
+    var var_isConfigured = sse_decode_bool(deserializer);
     return ClassificationTerm(
       category: var_category,
       defaultCategory: var_defaultCategory,
       isCustom: var_isCustom,
+      isConfigured: var_isConfigured,
     );
   }
 
@@ -19480,6 +19483,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       serializer,
     );
     sse_encode_bool(self.isCustom, serializer);
+    sse_encode_bool(self.isConfigured, serializer);
   }
 
   @protected

@@ -2,7 +2,9 @@ use super::super::tests::{change as initial_change, storage};
 use super::*;
 use crate::domain::classification_configuration::ClassificationConfigurationAction;
 
+mod activation;
 mod initialization;
+mod reading;
 
 #[test]
 fn editor_includes_empty_definitions_and_restores_the_bundled_definition() {
@@ -14,7 +16,8 @@ fn editor_includes_empty_definitions_and_restores_the_bundled_definition() {
     )
     .unwrap();
     let terms = load_with_storage(&storage).unwrap();
-    assert_eq!(terms.len(), 5);
+    assert_eq!(terms.len(), 56);
+    assert_eq!(terms.iter().filter(|term| term.is_configured).count(), 5);
     assert!(terms.iter().all(|term| term.category.id != "other"));
     let original = terms
         .iter()

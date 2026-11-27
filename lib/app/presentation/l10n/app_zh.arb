@@ -2353,7 +2353,7 @@
   "restoreSmartAlbumTerm": "恢复默认",
   "smartAlbumTermName": "名称",
   "smartAlbumTermDescriptions": "特征描述",
-  "smartAlbumTermEnglishHint": "建议使用简短的英语描述图片内容，例如：a photo of a cat sleeping on a sofa",
+  "smartAlbumTermEnglishHint": "建议使用简短的英语描述图片内容。",
   "smartAlbumTermDescription": "描述 {number}",
   "addSmartAlbumDescription": "添加描述",
   "removeSmartAlbumDescription": "移除描述",

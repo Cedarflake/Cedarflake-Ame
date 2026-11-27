@@ -4,11 +4,13 @@ class LibraryClassificationTerm {
   const LibraryClassificationTerm({
     required this.category,
     required this.isCustom,
+    this.isConfigured = true,
     this.defaultCategory,
   });
 
   final LibraryClassificationCategory category;
   final bool isCustom;
+  final bool isConfigured;
   final LibraryClassificationCategory? defaultCategory;
 }
 

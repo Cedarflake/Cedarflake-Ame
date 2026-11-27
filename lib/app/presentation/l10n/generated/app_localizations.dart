@@ -6243,7 +6243,7 @@ abstract class AppLocalizations {
   /// No description provided for @smartAlbumTermEnglishHint.
   ///
   /// In zh, this message translates to:
-  /// **'建议使用简短的英语描述图片内容，例如：a photo of a cat sleeping on a sofa'**
+  /// **'建议使用简短的英语描述图片内容。'**
   String get smartAlbumTermEnglishHint;
 
   /// No description provided for @smartAlbumTermDescription.

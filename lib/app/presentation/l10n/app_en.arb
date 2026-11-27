@@ -1024,7 +1024,7 @@
   "restoreSmartAlbumTerm": "Restore defaults",
   "smartAlbumTermName": "Name",
   "smartAlbumTermDescriptions": "Feature descriptions",
-  "smartAlbumTermEnglishHint": "Short English descriptions work best as a starting point. For example: a photo of a cat sleeping on a sofa.",
+  "smartAlbumTermEnglishHint": "Short English descriptions are recommended.",
   "smartAlbumTermDescription": "Description {number}",
   "addSmartAlbumDescription": "Add description",
   "removeSmartAlbumDescription": "Remove description",

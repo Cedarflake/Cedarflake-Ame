@@ -11,6 +11,7 @@ use crate::domain::classification::{
 pub struct ClassificationTermChange {
     pub expected: Option<CategoryDefinition>,
     pub replacement: Option<CategoryDefinition>,
+    pub bundled_default: Option<CategoryDefinition>,
     pub baseline: ClassificationAnalysisSetup,
 }
 
@@ -28,14 +29,38 @@ impl ClassificationTermChange {
         if selected.id().as_str() == "other" {
             return Err(invalid());
         }
+        if self
+            .bundled_default
+            .as_ref()
+            .is_some_and(|definition| definition.id() != selected.id())
+        {
+            return Err(invalid());
+        }
+        let custom = selected.id().as_str().starts_with("custom-");
         match (&self.expected, &self.replacement) {
             (Some(expected), Some(replacement)) if expected.id() != replacement.id() => {
                 return Err(invalid());
             }
-            (None, Some(_)) | (Some(_), None) if !selected.id().as_str().starts_with("custom-") => {
+            (None, Some(_)) if !custom && self.bundled_default.is_none() => {
+                return Err(invalid());
+            }
+            (Some(_), None) if !custom => {
                 return Err(invalid());
             }
             _ => {}
+        }
+        let actual = current
+            .catalog
+            .taxonomy
+            .as_ref()
+            .into_iter()
+            .flat_map(Taxonomy::categories)
+            .find(|category| category.id() == selected.id());
+        if actual != self.expected.as_ref() {
+            return Err(ScanError::new(
+                "classification_term_changed",
+                "The selected category changed; reload its current definition",
+            ));
         }
         let mut categories = current
             .catalog
@@ -46,12 +71,6 @@ impl ClassificationTermChange {
         let position = categories
             .iter()
             .position(|category| category.id() == selected.id());
-        if position.map(|index| &categories[index]) != self.expected.as_ref() {
-            return Err(ScanError::new(
-                "classification_term_changed",
-                "The selected category changed; reload its current definition",
-            ));
-        }
         match (position, &self.replacement) {
             (Some(index), Some(replacement)) => categories[index] = replacement.clone(),
             (Some(index), None) => {

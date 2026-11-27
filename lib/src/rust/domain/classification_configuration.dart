@@ -109,16 +109,21 @@ class ClassificationTerm {
   final ClassificationCategoryInput category;
   final ClassificationCategoryInput? defaultCategory;
   final bool isCustom;
+  final bool isConfigured;
 
   const ClassificationTerm({
     required this.category,
     this.defaultCategory,
     required this.isCustom,
+    required this.isConfigured,
   });
 
   @override
   int get hashCode =>
-      category.hashCode ^ defaultCategory.hashCode ^ isCustom.hashCode;
+      category.hashCode ^
+      defaultCategory.hashCode ^
+      isCustom.hashCode ^
+      isConfigured.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -127,5 +132,6 @@ class ClassificationTerm {
           runtimeType == other.runtimeType &&
           category == other.category &&
           defaultCategory == other.defaultCategory &&
-          isCustom == other.isCustom;
+          isCustom == other.isCustom &&
+          isConfigured == other.isConfigured;
 }

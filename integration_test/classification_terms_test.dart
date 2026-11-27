@@ -46,6 +46,10 @@ void main() {
       changeConfiguration: client.lifecycle.changeConfiguration,
       onChanged: () {},
     );
+    final directory = await service.load();
+    expect(directory, hasLength(56));
+    expect(directory.every((term) => !term.isConfigured), isTrue);
+    expect((await client.configuration.load()).categories, isEmpty);
     final source = Directory(classificationEnvironment("FIXTURE"));
     final originals = <String, List<int>>{};
     addTearDown(() async {
@@ -86,14 +90,8 @@ void main() {
       ),
     );
     await tester.tap(find.text("Open terms"));
-    await _wait(
-      tester,
-      () => find
-          .byKey(const Key("classification-term-photo"))
-          .evaluate()
-          .isNotEmpty,
-    );
-    await _click(tester, "classification-term-photo");
+    await _wait(tester, () => find.byType(ListView).evaluate().isNotEmpty);
+    await _openTerm(tester, "photo");
     await tester.enterText(
       find.byKey(const Key("classification-term-name")),
       "My photographs",
@@ -138,7 +136,28 @@ void main() {
     );
     final initial = await client.waitForRun(settings.runId!);
 
-    await _click(tester, "classification-term-photo");
+    final dormant = (await service.load()).firstWhere(
+      (term) => !term.isConfigured && term.defaultCategory != null,
+    );
+    final beforeActivation = settings.categories.length;
+    await _openTerm(tester, dormant.category.id);
+    await _save(tester);
+    settings = await client.configuration.load();
+    expect(settings.categories, hasLength(beforeActivation + 1));
+    expect(
+      settings.categories.any((term) => term.id == dormant.category.id),
+      isTrue,
+    );
+    expect(settings.runId, isNot("terms-initial-run"));
+    final activated = await client.waitForRun(settings.runId!);
+    for (final entry in initial.features.entries) {
+      expect(activated.features[entry.key], entry.value);
+    }
+    debugPrint(
+      "CLASSIFICATION_TERMS dormantActivation=true retainedFeaturePayloads=true",
+    );
+
+    await _openTerm(tester, "photo");
     await tester.enterText(
       find.byType(TextFormField).last,
       "a close-up photograph of a colorful object",
@@ -147,15 +166,15 @@ void main() {
     settings = await client.configuration.load();
     expect(settings.runId, isNot("terms-initial-run"));
     final rematched = await client.waitForRun(settings.runId!);
-    for (final entry in initial.features.entries) {
+    for (final entry in activated.features.entries) {
       expect(rematched.features[entry.key], entry.value);
     }
-    expect(rematched.features.length, initial.features.length + 1);
+    expect(rematched.features.length, activated.features.length + 1);
     debugPrint(
       "CLASSIFICATION_TERMS retainedFeaturePayloads=true addedTextFeature=1",
     );
 
-    await _click(tester, "classification-term-photo");
+    await _openTerm(tester, "photo");
     await _click(tester, "classification-term-reset");
     await _wait(
       tester,
@@ -178,15 +197,7 @@ void main() {
     );
     await _save(tester);
     final custom = (await service.load()).singleWhere((term) => term.isCustom);
-    await tester.scrollUntilVisible(
-      find.byKey(Key("classification-term-${custom.category.id}")),
-      180,
-      scrollable: find.descendant(
-        of: find.byType(ListView),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    await _click(tester, "classification-term-${custom.category.id}");
+    await _openTerm(tester, custom.category.id);
     await _click(tester, "classification-term-delete");
     await _click(tester, "classification-term-delete-confirm");
     await _wait(
@@ -223,4 +234,17 @@ Future<void> _save(WidgetTester tester) async {
     tester,
     () => find.byType(LibraryClassificationTermEditor).evaluate().isEmpty,
   );
+}
+
+Future<void> _openTerm(WidgetTester tester, String id) async {
+  final list = find.byType(ListView);
+  tester.widget<ListView>(list).controller!.jumpTo(0);
+  await tester.pumpAndSettle();
+  await tester.scrollUntilVisible(
+    find.byKey(Key("classification-term-$id")),
+    180,
+    maxScrolls: 40,
+    scrollable: find.descendant(of: list, matching: find.byType(Scrollable)),
+  );
+  await _click(tester, "classification-term-$id");
 }

@@ -69,9 +69,10 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ### Smart-album term editing
 
 The approved [term-editing plan](plans/smart-album-terms.md) is implemented on
-`codex/smart-album-terms`: a sidebar edit action, an album-style tray, separate definition dialogs
-and per-term persistence with retained manual protection. Focused local and native-client evidence
-is recorded in [smart-album terms](acceptance/smart-album-terms.md); hosted checks and integration
+`codex/smart-album-terms`: a sidebar edit action, an album-style tray containing the complete bundled
+directory, separate definition dialogs and per-term activation with retained manual protection.
+Focused local and native-client evidence is recorded in
+[smart-album terms](acceptance/smart-album-terms.md); hosted checks and merge
 remain pending. This independent scope does not change the R10-05 release gate or authorize Beta
 publication.
 

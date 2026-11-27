@@ -8,7 +8,9 @@ smart-album sidebar without restoring the retired classification settings or man
 1. Add per-term application commands for create, edit, reset and custom-term deletion. Merge each
    reviewed term against current configuration in one transaction; unrelated changes remain usable.
    Preserve manual protection, stable IDs and compatible image features.
-2. Add the sidebar edit action, an album-style tray and a separate short-form dialog. Retain the
+2. Add the sidebar edit action, an album-style tray showing the full bundled directory and configured
+   custom terms, and a separate short-form dialog. Activate an absent built-in term only on Save,
+   reusing compatible image features; opening the directory is read-only. Retain the
    tray's scroll position. Localize unchanged built-in names, preserve user names, and recommend
    short English feature descriptions without restricting input languages.
 3. Verify save/cancel/reset/delete, relevant conflicts, background maintenance and reusable features;

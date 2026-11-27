@@ -3,6 +3,8 @@ use crate::ports::classification_configuration::ClassificationTermRepository;
 
 use super::*;
 
+mod activation;
+
 fn edit(
     catalog: &SqliteCatalog,
     operation: &str,
@@ -12,6 +14,7 @@ fn edit(
     ClassificationTermChange {
         expected,
         replacement,
+        bundled_default: None,
         baseline: request(
             catalog,
             operation,

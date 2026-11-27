@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::domain::classification::{CategoryDefinition, CategoryId, ClassificationRecordId};
 use crate::domain::classification_configuration::{
     ClassificationCategoryInput, ClassificationSettings, ClassificationTerm,
@@ -22,18 +24,26 @@ fn load_with_storage(storage: &StoragePaths) -> Result<Vec<ClassificationTerm>, 
     let catalog = open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
     let snapshot = catalog.load_classification_configuration()?;
     let defaults = defaults::categories()?;
-    let taxonomy = match snapshot.catalog.taxonomy {
-        Some(taxonomy) => taxonomy,
-        None => classification_candidate::initial_categories().map_err(invalid)?,
-    };
-    Ok(taxonomy
-        .categories()
-        .iter()
-        .filter(|category| category.id().as_str() != "other")
-        .map(|category| ClassificationTerm {
+    let mut categories: BTreeMap<_, _> = defaults
+        .values()
+        .map(|category| (category.id(), (category, false)))
+        .collect();
+    if let Some(taxonomy) = &snapshot.catalog.taxonomy {
+        categories.extend(
+            taxonomy
+                .categories()
+                .iter()
+                .map(|category| (category.id(), (category, true))),
+        );
+    }
+    Ok(categories
+        .into_values()
+        .filter(|(category, _)| category.id().as_str() != "other")
+        .map(|(category, is_configured)| ClassificationTerm {
             category: input(category),
             default_category: defaults.get(category.id()).map(input),
             is_custom: category.id().as_str().starts_with("custom-"),
+            is_configured,
         })
         .collect())
 }
@@ -100,9 +110,14 @@ fn change(
         model_package().compatibility(),
     )
     .map_err(invalid)?;
+    let bundled_default = match replacement.as_ref() {
+        Some(category) => defaults::categories()?.get(category.id()).cloned(),
+        None => None,
+    };
     Ok(ClassificationTermChange {
         expected,
         replacement,
+        bundled_default,
         baseline,
     })
 }

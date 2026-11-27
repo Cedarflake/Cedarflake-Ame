@@ -84,6 +84,9 @@ class _LibraryClassificationTermsSheetState
         terms.add(updated);
       }
     });
+    if (original == null || !original.isConfigured) {
+      await _load();
+    }
   }
 
   Widget _buildTerms(BuildContext context) {
@@ -143,9 +146,22 @@ class _LibraryClassificationTermsSheetState
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          context.l10n.smartAlbumTerms,
-          style: Theme.of(context).textTheme.titleLarge,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                context.l10n.smartAlbumTerms,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            const SizedBox(width: 16),
+            TextButton.icon(
+              key: const Key("classification-term-add"),
+              onPressed: _loading || _terms == null ? null : () => _edit(),
+              icon: const Icon(Symbols.add_rounded, size: 20),
+              label: Text(context.l10n.addSmartAlbumTerm),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Flexible(
@@ -159,24 +175,6 @@ class _LibraryClassificationTermsSheetState
             message: context.l10n.smartAlbumTermsLoadFailed,
             onRetry: _load,
           ),
-        const SizedBox(height: 16),
-        Wrap(
-          alignment: WrapAlignment.end,
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            TextButton.icon(
-              key: const Key("classification-term-add"),
-              onPressed: _loading || _terms == null ? null : () => _edit(),
-              icon: const Icon(Symbols.add_rounded, size: 20),
-              label: Text(context.l10n.addSmartAlbumTerm),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(context.l10n.close),
-            ),
-          ],
-        ),
       ],
     ),
   );

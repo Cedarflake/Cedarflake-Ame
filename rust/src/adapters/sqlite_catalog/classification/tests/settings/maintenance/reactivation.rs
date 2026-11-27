@@ -1,6 +1,9 @@
 use crate::application::classification_discovery::prepare_equivalent_category_retirement;
 use crate::domain::classification::maintenance::{CategoryActivation, ManagedCategoryOrigin};
-use crate::ports::classification_configuration::CategoryRetirementRepository;
+use crate::domain::classification_configuration::ClassificationTermChange;
+use crate::ports::classification_configuration::{
+    CategoryRetirementRepository, ClassificationTermRepository,
+};
 
 use super::*;
 
@@ -64,6 +67,63 @@ fn count(catalog: &SqliteCatalog, table: &str) -> i64 {
             row.get(0)
         })
         .unwrap()
+}
+
+#[test]
+fn manual_term_reactivation_protects_the_retained_origin_after_reset() {
+    let (_directory, mut catalog) = super::super::super::fixture();
+    let (evidence, identity) = retired(&mut catalog);
+    let proposal = assess(&catalog, &evidence, "automatic-proposal")
+        .unwrap()
+        .plan
+        .unwrap();
+    let default = proposal
+        .configuration()
+        .setup
+        .primary()
+        .categories()
+        .iter()
+        .find(|definition| definition.id() == &identity)
+        .unwrap()
+        .clone();
+    let activation = ClassificationTermChange {
+        expected: None,
+        replacement: Some(default.clone()),
+        bundled_default: Some(default.clone()),
+        baseline: request(
+            &catalog,
+            "manual-activation",
+            edited_rules("Drawing", "baseline"),
+            ClassificationConfigurationAction::Save,
+        )
+        .setup,
+    };
+    let saved = catalog.save_classification_term(&activation).unwrap();
+    assert_eq!(
+        saved.catalog.taxonomy.as_ref().unwrap().categories().len(),
+        2
+    );
+    assert!(origin(&catalog, &identity).protected);
+    let reset = ClassificationTermChange {
+        expected: Some(default.clone()),
+        replacement: Some(default.clone()),
+        bundled_default: Some(default.clone()),
+        baseline: request(
+            &catalog,
+            "reset-activated-term",
+            saved.catalog.taxonomy.unwrap(),
+            ClassificationConfigurationAction::Save,
+        )
+        .setup,
+    };
+    catalog.save_classification_term(&reset).unwrap();
+    assert!(origin(&catalog, &identity).protected);
+    assert!(
+        catalog
+            .load_category_retirement_snapshot()
+            .unwrap()
+            .protects(&default)
+    );
 }
 
 #[test]

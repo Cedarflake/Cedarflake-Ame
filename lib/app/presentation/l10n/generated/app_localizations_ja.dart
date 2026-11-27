@@ -3707,8 +3707,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get smartAlbumTermDescriptions => '画像の特徴';
 
   @override
-  String get smartAlbumTermEnglishHint =>
-      '短い英語の説明をおすすめします。例：a photo of a cat sleeping on a sofa';
+  String get smartAlbumTermEnglishHint => '短い英語の説明をおすすめします。';
 
   @override
   String smartAlbumTermDescription(int number) {

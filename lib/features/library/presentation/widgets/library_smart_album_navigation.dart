@@ -61,8 +61,9 @@ class _LibrarySmartAlbumNavigationState
             key: const Key("library-smart-albums-edit"),
             tooltip: context.l10n.editSmartAlbumTerms,
             style: IconButton.styleFrom(
-              fixedSize: const Size.square(36),
-              iconSize: 20,
+              minimumSize: const Size.square(36),
+              maximumSize: const Size.square(36),
+              iconSize: 18,
               padding: const EdgeInsets.all(8),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),

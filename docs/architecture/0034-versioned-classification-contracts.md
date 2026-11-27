@@ -35,7 +35,10 @@ merges unchanged unrelated definitions and current dispatch state, then uses the
 configuration transaction. It never replaces the taxonomy from a stale whole-list UI snapshot.
 User-created IDs occupy the custom namespace. Bundled defaults come from the admitted starter and
 curated naming owners. Reset retains manual protection; only custom definitions may be deleted in
-this editor. A previously unconfigured catalog initializes the full starter set on its first edit.
+this editor. The directory includes dormant bundled definitions without configuring them. Saving
+one activates that definition; resetting an unconfigured entry only changes the dialog draft.
+A previously unconfigured catalog initializes the full starter set on its first edit. Compare the
+reviewed expected definition against persisted state before applying that initialization.
 Name-only changes retain the active run, encoder and calibration; semantic changes retire live
 classification sessions and reuse compatible image features. No persistence migration is required.
 Retirement removes a definition from future matching; persistence retains its identity and description

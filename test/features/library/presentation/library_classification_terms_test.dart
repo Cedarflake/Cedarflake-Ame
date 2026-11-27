@@ -1,5 +1,6 @@
 import "dart:async";
 
+import "package:cedarflake_ame/app/presentation/ame_localizations.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/application/library_classification_terms.dart";
 import "package:cedarflake_ame/features/library/domain/library_classification_configuration.dart";
@@ -75,6 +76,19 @@ void main() {
           find.byKey(const Key("classification-term-name")),
         );
         expect(field.controller!.text, isNotEmpty);
+        final description = find.byType(TextFormField).last;
+        final semantics = tester.ensureSemantics();
+        try {
+          await tester.pump();
+          expect(
+            tester.getSemantics(description).label,
+            contains(
+              tester.element(description).l10n.smartAlbumTermDescription(1),
+            ),
+          );
+        } finally {
+          semantics.dispose();
+        }
         await click(tester, "classification-term-save");
         expect(fixture.terms.single.category.label, starterCategory.label);
         expect(fixture.retired, 0);
@@ -114,13 +128,64 @@ void main() {
       await click(tester, "classification-term-save");
       expect(fixture.retired, 2);
       await click(tester, "classification-term-photo");
-      await click(tester, "classification-term-reset");
+      final reset = find.byKey(const Key("classification-term-reset"));
+      await tester.tap(reset);
+      await tester.pump();
+      expect(tester.widget<TextButton>(reset).onPressed, isNull);
+      await tester.pumpAndSettle();
       expect(fixture.terms.first.category.label, starterCategory.label);
       await click(tester, "classification-term-${created.category.id}");
       await click(tester, "classification-term-delete");
       await click(tester, "classification-term-delete-confirm");
       expect(fixture.terms.map((term) => term.category.id), ["photo"]);
       expect(fixture.changes, 5);
+    },
+  );
+
+  testWidgets(
+    "unconfigured built-in resets its draft and activates only on save",
+    (tester) async {
+      final fixture = ClassificationTermsFixture()
+        ..terms = [
+          const LibraryClassificationTerm(
+            category: starterCategory,
+            defaultCategory: starterCategory,
+            isCustom: false,
+            isConfigured: false,
+          ),
+        ];
+      await open(tester, fixture);
+      await click(tester, "classification-term-photo");
+      await tester.enterText(
+        find.byType(TextFormField).last,
+        "a changed description",
+      );
+      await click(tester, "classification-term-reset");
+      expect(find.byType(LibraryClassificationTermEditor), findsOneWidget);
+      expect(
+        tester
+            .widget<TextFormField>(find.byType(TextFormField).last)
+            .controller!
+            .text,
+        starterCategory.descriptions.single,
+      );
+      expect(fixture.saves, 0);
+      expect(fixture.changes, 0);
+      expect(fixture.retired, 0);
+      await click(tester, "classification-term-save");
+      expect(fixture.lastExpected, isNull);
+      expect(fixture.terms.single.isConfigured, isTrue);
+      expect(fixture.loads, 2);
+      expect(fixture.retired, 1);
+      expect(fixture.changes, 1);
+      await click(tester, "classification-term-photo");
+      await tester.enterText(
+        find.byKey(const Key("classification-term-name")),
+        "Renamed photographs",
+      );
+      await click(tester, "classification-term-save");
+      expect(fixture.lastExpected?.id, "photo");
+      expect(fixture.retired, 1);
     },
   );
 

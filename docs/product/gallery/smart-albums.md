@@ -29,24 +29,29 @@ pause, continue, stop or disable-analysis actions.
 Model/runtime directory selection stays outside normal setup. Existing definitions remain preserved
 and retain their authority independently of the application's curated topic catalog.
 
-The edit action opens the shared album-style bottom tray. It lists all configured terms, including
-empty categories, with their names and a one-line description; the internal `other` purpose remains
-hidden. Clicking a row opens a separate dialog with a name and one to eight feature descriptions.
-The tray has Add term and Close actions, no selection checkboxes or second Apply action. Saving
+The edit action opens the shared album-style bottom tray. It lists the complete bundled directory
+and all configured terms, including empty categories, with their names and a one-line description.
+The internal `other` purpose remains hidden. Clicking a row opens a separate dialog with a name and
+one to eight feature descriptions.
+The tray places Add term beside its title and uses normal outside-click or Escape dismissal,
+without a separate Close button, selection checkboxes or second Apply action. Saving
 returns to the same list position and updates the affected row. Cancelling preserves the stored term.
 The name is display-only and accepts any supported text. Recommend short English descriptions with
-an example; do not require English or translate user descriptions automatically.
+the shared help tooltip; do not require English or translate user descriptions automatically.
 
 Built-in terms offer Restore defaults; user-created terms offer Delete with confirmation. Reset
-restores the bundled definition while retaining manual protection. Delete removes the term and its
+restores the bundled definition while retaining manual protection. For an unconfigured term, reset
+only restores the dialog draft; Save activates that term. Delete removes the term and its
 derived membership without deleting images. Same-term conflicts are explained in the dialog while
 retaining its draft; unrelated catalog updates do not cancel edits. Saving serializes only the
 affected classification change, not ordinary browsing. Name-only edits retain the active analysis;
 semantic changes reuse compatible features and preserve usable results during matching.
 
-Before any taxonomy is configured, the tray displays the bundled starting definitions. Its first
-save initializes that complete set atomically. Existing taxonomies never regain absent terms merely
-because the editor opens. Model installation is not required to edit definitions.
+Opening the directory does not configure any absent terms. Saving an unconfigured built-in term
+adds that term to matching and reuses compatible image features. The first save also initializes
+the basic purpose definitions atomically; existing taxonomies do not regain other absent terms.
+Name-only edits to already configured terms retain their analysis run. Model installation is not
+required to edit definitions.
 When expanded without categories, use the same static icon-and-text empty row as the Library's
 folder list, with `还没有分类结果`. Hide it when collapsed or when category rows become available;
 keep loading and failure separate. Do not substitute evaluation categories or add a setup paragraph

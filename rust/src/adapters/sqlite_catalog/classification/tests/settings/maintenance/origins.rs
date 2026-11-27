@@ -146,6 +146,7 @@ fn single_term_reset_retains_manual_protection_from_automatic_maintenance() {
     let edit = ClassificationTermChange {
         expected: Some(original.clone()),
         replacement: Some(renamed.clone()),
+        bundled_default: Some(original.clone()),
         baseline: request(
             &catalog,
             "term-edit",
@@ -158,7 +159,8 @@ fn single_term_reset_retains_manual_protection_from_automatic_maintenance() {
     assert!(origin(&catalog, &identity).protected);
     let reset = ClassificationTermChange {
         expected: Some(renamed),
-        replacement: Some(original),
+        replacement: Some(original.clone()),
+        bundled_default: Some(original),
         baseline: request(
             &catalog,
             "term-reset",

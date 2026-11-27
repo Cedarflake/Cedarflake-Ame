@@ -28,6 +28,7 @@ class RustLibraryClassificationTerms
               ? null
               : classificationInputFromRust(defaults),
           isCustom: term.isCustom,
+          isConfigured: term.isConfigured,
         );
       }),
     ),

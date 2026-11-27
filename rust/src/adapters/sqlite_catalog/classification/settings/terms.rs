@@ -46,7 +46,11 @@ fn request_digest(change: &ClassificationTermChange) -> Result<String, ScanError
         &mut hash,
         codec::encode_run(change.baseline.run())?.as_bytes(),
     );
-    for category in [&change.expected, &change.replacement] {
+    for category in [
+        &change.expected,
+        &change.replacement,
+        &change.bundled_default,
+    ] {
         match category {
             Some(category) => {
                 operations::field(&mut hash, b"definition");

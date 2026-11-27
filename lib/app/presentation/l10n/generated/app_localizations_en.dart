@@ -4063,7 +4063,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get smartAlbumTermEnglishHint =>
-      'Short English descriptions work best as a starting point. For example: a photo of a cat sleeping on a sofa.';
+      'Short English descriptions are recommended.';
 
   @override
   String smartAlbumTermDescription(int number) {
