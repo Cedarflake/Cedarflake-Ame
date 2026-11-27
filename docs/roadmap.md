@@ -69,7 +69,8 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 ### Beta candidate and publication
 
 R10-05 preparation is active on `codex/r10-beta-candidate`. The
-[release notes](releases/v0.1.0-beta.1.md) cover Alpha 3-to-Beta changes and both upgrade paths.
+[release notes](releases/v0.1.0-beta.1.md) cover Alpha 3-to-Beta changes, installed and portable
+replacement, and the supported current-data boundary.
 Candidate selection is blocked by the reproduced Windows image-playback crash: Flutter's
 [stable backport](https://github.com/flutter/flutter/pull/196991) merged on 2026-11-24, but
 3.50.2 has not been released as of 2026-11-26. Retain the accepted stable-SDK policy; qualify a

@@ -199,8 +199,8 @@ The GitHub API digests and verified published package sizes are:
 Preparation starts from `3e8400f823480b9cf7d15b138ff028785f10ba93` on
 `codex/r10-beta-candidate`. Flutter `0.1.0-beta.1+4` and Rust `0.1.0-beta.1` agree with the proposed
 tag; MSI version `0.1.4` follows published Alpha 3's `0.1.3`. The
-[prepared notes](../releases/v0.1.0-beta.1.md) describe changes since Alpha 3, manual Alpha upgrades,
-the portable launcher's new location and the four-asset update distribution.
+[prepared notes](../releases/v0.1.0-beta.1.md) initially described changes since Alpha 3, manual Alpha
+upgrades, the portable launcher's new location and the four-asset update distribution.
 
 The release preflight recovered an unresolved Windows graphics failure from the separate
 upstream-tracking branch. Its [owning evidence](material-ui-migration.md#windows-gif-playback-regression-2026-11-22)
@@ -214,9 +214,17 @@ Retained evidence has the following scope:
 | Owner | Retained result | Final-candidate work |
 | --- | --- | --- |
 | [R10a](r10-responsiveness.md#r10a-closeout) and [R10b](r10-resource-recovery.md#r10b-closeout--2026-11-15) | Responsiveness, sustained resources and recovery qualification | Recheck affected graphics paths after the SDK change; retain unchanged workload evidence |
-| [R10c](r10-upgrade-compatibility.md#upgrade-and-recovery-matrix) | Alpha 3 data migration, MSI rollback, repair and portable replacement | Verify the final packages and final Windows 11 client; earlier package hashes do not identify this candidate |
+| [R10c](r10-upgrade-compatibility.md#upgrade-and-recovery-matrix) | Alpha 3 data migration, MSI rollback, repair and portable replacement | Retain the historical migration result at its recorded revision; verify final packages, current-format data retention and existing installer recovery |
 | [Application updates](application-updates.md#integration--2026-11-26) | Installed/portable handoff and recovery, integrated full CI | Verify the release's full package and metadata match its MSI/ZIP |
 | [Diagnostics](r10-diagnostics.md#integration--2026-11-26) | Diagnostic export, startup recovery guidance and full CI | Preserve these checks in the candidate's full gate |
+
+Final-candidate storage and data qualification follow the
+[Store lifecycle](store-msix.md) and [current-format cleanup](prerelease-compatibility.md) owners:
+use the shared directory directly, retain supported current-format records across normal updates,
+and leave earlier default directories untouched without automatic import or historical Alpha migration.
+Generate the MSIX upload package with the Beta release; Store submission and later attachment of the
+matching Store-signed package remain separate release actions under the
+[Store distribution plan](../plans/store-msix.md).
 
 No release tag, package or GitHub Release was created in this preflight. The existing main-only
 workflow automatically publishes after its candidate and packaging gates; `validate_only` skips

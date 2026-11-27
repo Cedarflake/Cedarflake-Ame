@@ -11,9 +11,10 @@ Make the delivered catalog, discovery and organization workflows suitable for su
 Prioritize observed responsiveness, bounded resource use, recovery and upgrading an existing library.
 Preserve the current Material surfaces, SigLIP 2 integration and Windows file-operation policies.
 
-R8 file operations, R9 album/year movement, MSI/ZIP packaging, migration backups and analysis-worker
+R8 file operations, R9 album/year movement, MSI/ZIP packaging and analysis-worker
 admission already exist. Inspect their remaining integration gaps rather than reimplementing them.
-Alpha 3 is the published upgrade baseline; R9 and viewer image copying landed after that release.
+Alpha 3 is the published release-comparison baseline; R9 and viewer image copying landed after that
+release.
 
 Start from current source and the owning evidence below. Historical pending CI and superseded
 failures are not new blockers without a current failure or missing affected verification.
@@ -23,7 +24,7 @@ failures are not new blockers without a current failure or missing affected veri
 | Gallery, smart albums and review navigation | [Interaction evidence](../acceptance/material-motion.md#classification-navigation-and-foreground-reads), [ADR 0014](../architecture/0014-query-wide-gallery-layout-manifest.md) | Release input-to-usable-content latency, continuous held dragging and resource stability during background publication |
 | Semantic discovery and workers | [R7 evidence](../acceptance/r7-semantic-discovery.md), [ADR 0041](../architecture/0041-resource-aware-analysis-scheduling.md) | Completed-index query costs and pressure/recovery behavior beyond the recorded partial-index runs |
 | Synchronization and storage | [Current performance procedures](../acceptance/quality/performance-and-real-library.md), [ADR 0005](../architecture/0005-storage-governance-and-budget.md) | Target-scale catch-up, authoritative recovery, combined-root use and cache enforcement |
-| Installation and upgrades | [ADR 0027](../architecture/0027-windows-installer-lifecycle.md), [Release evidence](../acceptance/unsigned-windows-release.md#alpha-3-publication--2026-11-12) | Actual Alpha-to-Beta application/data compatibility and recovery after an interrupted upgrade |
+| Installation and upgrades | [ADR 0027](../architecture/0027-windows-installer-lifecycle.md), [Release evidence](../acceptance/unsigned-windows-release.md#alpha-3-publication--2026-11-12) | Final-package installation and updates, current-format data retention and interrupted-installer recovery |
 | Diagnosis and version display | `ame_bootstrap_failure.dart`, `ame_settings_page.dart` | A usable diagnostics export beyond bootstrap error copying; About and license pages must use the build version instead of their hard-coded Alpha 2 text |
 
 ## Execution slices
@@ -85,15 +86,21 @@ affected workflows. Existing fixture budgets apply to their own processes, not t
 
 ### R10-03 — Upgrade and compatibility
 
-In disposable Windows Sandbox, install the published Alpha 3 MSI, populate representative catalog,
-favorite, album, representative/retained-image, organization and file-operation records, then upgrade
-to the candidate. Also check a compatible older catalog fixture, repair, uninstall and portable
-directory replacement. Verify model/runtime discovery and the installed broker after upgrade.
+The completed [R10c qualification](../acceptance/r10-upgrade-compatibility.md#upgrade-and-recovery-matrix)
+retains its historical Alpha 3 migration and package-upgrade results at the recorded revisions.
+For the final candidate, use disposable Windows Sandbox catalogs in the supported current format.
+Verify catalog, favorite, album, representative/retained-image, organization and file-operation
+records across normal MSI updates and portable directory replacement. Verify model/runtime discovery
+and the installed broker after upgrade.
 
-Reuse migration backups and completion receipts. Interrupt migration and installer upgrade at their
-existing controlled boundaries; verify the preceding compatible installation/data can be recovered.
-An older executable must reject an unsupported newer schema clearly. Do not promise that arbitrary
-binary downgrades can read a migrated database or silently discard newer user decisions.
+Use the current shared directories directly under the
+[Store storage contract](../architecture/0045-microsoft-store-distribution.md), retaining custom
+storage selection. Earlier default directories remain untouched and are not automatically imported.
+Reuse current-format reopening and unsupported-format rejection checks under the
+[prerelease cleanup plan](prerelease-compatibility.md); retired Alpha schema migrations, their backups
+and completion receipts are outside final-candidate qualification.
+Reuse existing installer interruption, rollback, repair and uninstall checks and the Store lifecycle
+evidence for cross-distribution sharing. Normal updates preserve supported current-format user data.
 
 Make About, licenses, diagnostics, executable metadata, package receipts and release notes obtain
 their version from the same build identity. The Flutter build number must increase across Alpha to
@@ -139,6 +146,11 @@ upgrade instructions and remaining accepted limits. Publish an unsigned GitHub p
 MSI and portable ZIP from one verified candidate. Retain the current model payload differences,
 checksums, immutable tag/package checks and [artifact reuse](release-artifact-reuse.md) workflow.
 Verify downloaded packages and the release body before recording publication.
+
+Generate the Store MSIX upload package with the Beta release from the admitted release payload,
+following the [Store distribution plan](store-msix.md). Store submission remains a separately
+authorized action. After Store publication, retrieval and attachment of the matching Store-signed
+package to that GitHub Release follow the same plan and their separate publication authority.
 
 Freeze the candidate only after the accepted stable SDK passes the affected Windows graphics
 workflow in the [Material migration evidence](../acceptance/material-ui-migration.md#windows-gif-playback-regression-2026-11-22).
