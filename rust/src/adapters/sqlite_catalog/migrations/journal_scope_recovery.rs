@@ -1,7 +1,7 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
+use super::database_error;
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 use crate::domain::ScanError;
 
 const TABLE: &str = "library_journal_scope_recoveries";
@@ -16,23 +16,6 @@ const DDL: &str = "CREATE TABLE library_journal_scope_recoveries (
     FOREIGN KEY(current_change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE,
     FOREIGN KEY(previous_change_id) REFERENCES library_change_queue(id) ON DELETE CASCADE
 )";
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 36)?;
-    transaction.execute_batch(DDL).map_err(database_error)?;
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 37; PRAGMA user_version = 37;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 37)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     if !schema_object_sql_matches(connection, "table", TABLE, DDL)? {
@@ -104,64 +87,4 @@ fn invalid() -> ScanError {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::adapters::SqliteCatalog;
-    use tempfile::tempdir;
-
-    #[test]
-    fn schema_36_upgrade_adds_ordered_recovery_without_changing_existing_tables() {
-        let directory = tempdir().unwrap();
-        let path = directory.path().join("catalog.sqlite3");
-        drop(SqliteCatalog::open(path.clone()).unwrap());
-        let mut connection = Connection::open(&path).unwrap();
-        super::super::camera_metadata::downgrade_to_v61_for_test(&connection);
-        connection
-            .execute_batch(
-                "DROP TABLE library_media_admission_rechecks;
-                 DROP TABLE library_journal_scope_recoveries;
-            UPDATE schema_info SET version = 36; PRAGMA user_version = 36;",
-            )
-            .unwrap();
-        let before: i64 = connection
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        migrate(&mut connection).expect("upgrade retained schema 36 to 37");
-        validate(&connection).unwrap();
-        validate_rows(&connection).unwrap();
-        let after: i64 = connection
-            .query_row(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(after, before + 1);
-        current_schema::validate_schema_version(&connection, 37).unwrap();
-    }
-
-    #[test]
-    fn conflicting_recovery_table_rolls_back_schema_version() {
-        let directory = tempdir().unwrap();
-        let path = directory.path().join("catalog.sqlite3");
-        drop(SqliteCatalog::open(path.clone()).unwrap());
-        let connection = Connection::open(&path).unwrap();
-        super::super::camera_metadata::downgrade_to_v61_for_test(&connection);
-        connection
-            .execute_batch(
-                "DROP TABLE library_media_admission_rechecks;
-                 DROP TABLE library_journal_scope_recoveries;
-            CREATE TABLE library_journal_scope_recoveries (parent_change_id TEXT);
-            UPDATE schema_info SET version = 36; PRAGMA user_version = 36;",
-            )
-            .unwrap();
-        drop(connection);
-        assert!(SqliteCatalog::open(path.clone()).is_err());
-        let connection = Connection::open(path).unwrap();
-        current_schema::validate_schema_version(&connection, 36).unwrap();
-    }
-}
+mod tests {}

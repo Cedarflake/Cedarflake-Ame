@@ -1,9 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
+use super::database_error;
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 
 const TABLE_NAME: &str = "scan_directory_identities";
 const TABLE_DDL: &str = "CREATE TABLE scan_directory_identities (
@@ -21,46 +21,6 @@ const TABLE_DDL: &str = "CREATE TABLE scan_directory_identities (
 const INDEX_NAME: &str = "scan_directory_identities_by_identity";
 const INDEX_DDL: &str = "CREATE INDEX scan_directory_identities_by_identity
     ON scan_directory_identities(scan_id, identity_value, relative_path)";
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    super::prerelease_journal_repair::repair_range_id_triggers(connection)?;
-    super::prerelease_journal_repair::repair_recovery_window(connection)?;
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::terminal_inventory_repair::apply(transaction, 34)?;
-    super::retired_live_gap_repair::apply(transaction, 34)?;
-    super::retired_root_authority::repair_for_schema(transaction, 34)?;
-    current_schema::validate_schema_version(transaction, 34)?;
-    for (kind, name, ddl) in [
-        ("table", TABLE_NAME, TABLE_DDL),
-        ("index", INDEX_NAME, INDEX_DDL),
-    ] {
-        let exists: bool = transaction
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = ?1)",
-                [name],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if exists {
-            if !schema_object_sql_matches(transaction, kind, name, ddl)? {
-                return Err(contract_error());
-            }
-        } else {
-            transaction.execute_batch(ddl).map_err(database_error)?;
-        }
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 35; PRAGMA user_version = 35;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 35)
-}
 
 pub(super) fn validate_structure(connection: &Connection) -> Result<(), ScanError> {
     if !schema_object_sql_matches(connection, "table", TABLE_NAME, TABLE_DDL)?

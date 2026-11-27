@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape::schema_object_sql_matches};
+use super::{database_error, schema_shape::schema_object_sql_matches};
 
 const TABLE: &str = "CREATE TABLE library_metadata_fallbacks (
     change_id INTEGER PRIMARY KEY,
@@ -33,27 +33,6 @@ const GUARD: &str = "CREATE TRIGGER library_metadata_fallback_insert_guard
 const UPDATE_GUARD: &str = "CREATE TRIGGER library_metadata_fallback_update_guard
     BEFORE UPDATE ON library_metadata_fallbacks
     BEGIN SELECT RAISE(ABORT, 'metadata fallback admission is immutable'); END";
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 45)?;
-    transaction.execute_batch(TABLE).map_err(database_error)?;
-    transaction.execute_batch(GUARD).map_err(database_error)?;
-    transaction
-        .execute_batch(UPDATE_GUARD)
-        .map_err(database_error)?;
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 46; PRAGMA user_version = 46;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 46)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in [
@@ -105,52 +84,4 @@ fn invalid() -> ScanError {
 }
 
 #[cfg(test)]
-pub(super) fn downgrade_to_v45_for_test(connection: &Connection) {
-    super::organization::downgrade_to_v46_for_test(connection);
-    if super::schema_shape::schema_version(connection).unwrap() == 46 {
-        connection
-            .execute_batch(
-                "DROP TRIGGER library_metadata_fallback_insert_guard;
-            DROP TRIGGER library_metadata_fallback_update_guard;
-            DROP TABLE library_metadata_fallbacks;
-            UPDATE schema_info SET version = 45; PRAGMA user_version = 45;",
-            )
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn upgrade_preserves_existing_catalog_and_rejects_unowned_fallback() {
-        let mut connection = Connection::open_in_memory().unwrap();
-        super::super::migrate_schema(&mut connection).unwrap();
-        downgrade_to_v45_for_test(&connection);
-        let revision: i64 = connection
-            .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
-            .unwrap();
-        super::super::migrate_schema(&mut connection).unwrap();
-        assert_eq!(
-            super::super::schema_shape::schema_version(&connection).unwrap(),
-            super::super::SCHEMA_VERSION
-        );
-        assert_eq!(
-            connection
-                .query_row("SELECT revision FROM catalog_state", [], |row| row
-                    .get::<_, i64>(0))
-                .unwrap(),
-            revision
-        );
-        assert!(
-            connection
-                .execute("INSERT INTO library_metadata_fallbacks VALUES(999, 1)", [])
-                .is_err()
-        );
-        validate_rows(&connection).unwrap();
-        connection
-            .execute_batch("DROP TRIGGER library_metadata_fallback_insert_guard")
-            .unwrap();
-        assert!(validate(&connection).is_err());
-    }
-}
+mod tests {}

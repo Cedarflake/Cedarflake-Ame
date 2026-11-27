@@ -66,7 +66,8 @@ per-batch issue, and the task resumes according to an explicit retry policy.
   ownership, or cross-root handoff evidence. Historical residue belongs to explicit cleanup and
   migration owners, not a second abandonment of a terminal scan.
 - Source identity and state are revalidated before derived results are published.
-- Schema changes use forward migrations with migration tests.
+- Future schema changes use forward migrations with migration tests from the supported baseline.
+  The prerelease baseline below retires earlier Alpha upgrade paths.
 - Queries use bounded keyset windows rather than loading the whole library or relying on deep
   `OFFSET` pagination.
 - Filesystem discovery is sorted deterministically per directory. Directory entries are staged in
@@ -84,6 +85,27 @@ per-batch issue, and the task resumes according to an explicit retry policy.
 - Retaining a traversal checkpoint requires proof that changes during the observation gap are
   covered. Without that proof, explicit continuation rebuilds the first inventory behind the
   observer-first boundary; it cannot publish partial membership from the old frontier.
+
+### Supported prerelease baseline
+
+Fresh catalogs are created directly at schema 83 in one transaction, with the current tables,
+indexes, triggers and initial singleton state. Current catalogs retain their data, structural
+validation and operational recovery. Earlier Alpha schemas and future unsupported versions are
+rejected without upgrading, resetting or deleting the stored data. No historical migration chain
+or migration-backup mechanism runs at startup.
+
+This deliberate Alpha reset retires upgrade paths for development formats before the supported
+baseline. It does not retire recovery for interrupted current operations, organization archives,
+source validation or future forward migrations. Storage settings use their current version 2 and
+model installation settings use version 3 under the same fresh/current/unsupported distinction.
+The shared default-directory transition is owned by ADR 0045; any one-time operator relocation
+remains outside application startup.
+
+Validate the fresh schema and initial records against an independently created pre-change current
+catalog. Preserve current-format reopen, rejection without mutation, transaction rollback and
+retained user-decision coverage. Historical migration evidence below remains provenance for the
+retired chain. Rollback may restore that chain without converting current data, since the baseline
+does not change schema 83's storage contract.
 
 ### Catalog connection and checkpoint policy
 
@@ -142,7 +164,8 @@ schema migration.
 ## Validation gates
 
 - the catalog is created outside a selected source directory;
-- migrations work from an empty database and across every committed schema version;
+- fresh initialization matches the supported baseline; current data reopens and unsupported
+  versions are rejected without mutation;
 - cancellation leaves a coherent catalog and reports a terminal task state;
 - wrong-extension, damaged, missing, inaccessible, and Chinese-path fixtures do not panic;
 - preview generation is bounded and leaves source bytes unchanged;

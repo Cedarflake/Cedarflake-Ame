@@ -3257,7 +3257,7 @@ fn terminal_retention_atomically_releases_all_handoff_owners() {
         )
         .expect("handoff owners after completion");
     assert_eq!(retained_handoffs, 0);
-    super::super::migrations::migrate_schema(&mut catalog.connection)
+    super::super::migrations::initialize_schema(&mut catalog.connection)
         .expect("completed catch-up remains valid at the next startup");
 
     assert_eq!(

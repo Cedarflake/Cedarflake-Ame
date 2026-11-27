@@ -358,41 +358,5 @@ pub(super) fn validate_with_depth(
     Ok(())
 }
 
-pub(super) fn validate_prerelease_authority(connection: &Connection) -> Result<(), ScanError> {
-    let has_marker = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM pragma_table_info('library_change_queue_contract')
-               WHERE name = 'change_catch_up_complete'
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if !has_marker {
-        return Err(ScanError::new(
-            "catalog_change_catch_up_contract_unverifiable",
-            "The catalog cannot prove its downtime catch-up checkpoint authority",
-        ));
-    }
-    let marker_complete = connection
-        .query_row(
-            "SELECT change_catch_up_complete = 1
-             FROM library_change_queue_contract WHERE singleton = 1",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    if !marker_complete {
-        return Err(ScanError::new(
-            "catalog_change_catch_up_contract_unverifiable",
-            "The catalog cannot prove its downtime catch-up checkpoint authority",
-        ));
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests;

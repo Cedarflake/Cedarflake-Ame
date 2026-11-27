@@ -54,7 +54,6 @@ mod classification;
 mod media_admission_rechecks;
 mod metadata_filter_payload;
 mod metadata_inventory;
-mod migration_backup;
 mod migrations;
 mod operation_diagnostics;
 mod organization;
@@ -124,7 +123,7 @@ use source_reconciliation::{
 
 use change_queue::{activate_root_change_queue, retire_root_change_queue};
 pub(crate) use metadata_inventory::MetadataInventorySpoolExecution;
-use migrations::{migrate_schema, prepare_fresh_catalog_auto_vacuum};
+use migrations::{initialize_schema, prepare_fresh_catalog_auto_vacuum};
 pub(crate) use read_retry::SqliteCatalogReadExecutor;
 pub(crate) use reclamation::SqliteCatalogSpaceMaintenance;
 mod catalog_delta;
@@ -236,68 +235,6 @@ pub(crate) fn full_schema_validation_count(path: &Path) -> usize {
         .unwrap_or(0)
 }
 
-#[cfg(test)]
-pub(crate) use migrations::downgrade_to_v39_for_test;
-
-#[cfg(test)]
-pub(crate) fn remove_persistent_journal_v22_contract_for_test(connection: &Connection) {
-    migrations::downgrade_source_revision_contract_to_v30_for_test(connection);
-    connection
-        .execute_batch(
-            "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
-             DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_insert_guard;
-             DROP INDEX IF EXISTS library_live_gap_recovery_claims_root;
-             DROP TABLE IF EXISTS library_live_gap_recovery_claims;
-             DROP TABLE IF EXISTS library_live_gap_recovery_contract;
-             DROP INDEX IF EXISTS library_scan_publication_namespace_root;
-             DROP TABLE IF EXISTS library_scan_publication_namespace_bindings;
-             DROP TABLE IF EXISTS library_root_publication_namespaces;
-             DROP TABLE IF EXISTS library_root_publication_namespace_contract;
-             DROP TRIGGER IF EXISTS library_metadata_inventory_spool_directory_complete_guard;
-             DROP TRIGGER IF EXISTS library_metadata_inventory_spool_binding_update_guard;
-             DROP INDEX IF EXISTS library_metadata_inventory_spool_entries_order;
-             DROP TABLE IF EXISTS library_metadata_inventory_spool_entries;
-             DROP INDEX IF EXISTS library_metadata_inventory_spool_directories_state;
-             DROP TABLE IF EXISTS library_metadata_inventory_spool_directories;
-             DROP TABLE IF EXISTS library_metadata_inventory_spools;
-             DROP TABLE IF EXISTS library_metadata_inventory_spool_contract;
-             DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_update_guard;
-             DROP TRIGGER IF EXISTS library_metadata_inventory_candidate_owner_insert_guard;
-             DROP INDEX IF EXISTS library_metadata_inventory_candidate_owners_change;
-             DROP TABLE IF EXISTS library_metadata_inventory_candidate_owners;
-             DROP INDEX IF EXISTS library_metadata_inventory_frontier_state;
-             DROP TABLE IF EXISTS library_metadata_inventory_frontier;
-             DROP TABLE IF EXISTS library_recovery_execution_contract;
-             DROP TRIGGER IF EXISTS library_persistent_journal_baseline_update_guard;
-             DROP TRIGGER IF EXISTS library_persistent_journal_baseline_insert_guard;
-             DROP INDEX IF EXISTS library_persistent_journal_baselines_root;
-             DROP TABLE IF EXISTS library_persistent_journal_baselines;
-             DROP TRIGGER IF EXISTS library_recovery_authority_update_guard;
-             DROP TRIGGER IF EXISTS library_recovery_authority_insert_guard;
-             DROP INDEX IF EXISTS library_recovery_authorities_root;
-             DROP TABLE IF EXISTS library_recovery_authorities;
-             DROP TABLE IF EXISTS library_recovery_authority_contract;
-             DROP TRIGGER IF EXISTS library_change_queue_lane_origin_update;
-             DROP TRIGGER IF EXISTS library_change_queue_lane_insert;
-             DROP TRIGGER IF EXISTS library_change_queue_lane_update_guard;
-             DROP TRIGGER IF EXISTS library_change_queue_lane_insert_guard;
-             DROP INDEX IF EXISTS library_change_queue_lanes_eligible;
-             DROP TABLE IF EXISTS library_change_queue_lanes;
-             DROP TABLE IF EXISTS library_change_lane_contract;
-             DROP TABLE library_persistent_journal_pending_renames;
-             DROP TABLE library_persistent_journal_range_lifecycle;
-             DROP TABLE library_persistent_journal_cross_root_ranges;
-             DROP TABLE library_persistent_journal_cross_root_lineage;
-             DROP TABLE library_persistent_journal_queue_lineage;
-             DROP TABLE library_persistent_journal_source_ranges;
-             DROP TABLE library_persistent_journal_checkpoints;
-             DROP TABLE library_persistent_journal_root_state;
-             DROP TABLE library_persistent_journal_contract;
-             DROP INDEX library_change_root_state_generation_identity;",
-        )
-        .expect("remove v22 persistent journal contract from migration fixture");
-}
-
 pub struct SqliteCatalog {
     path: PathBuf,
     connection: Connection,
@@ -377,8 +314,7 @@ impl SqliteCatalogSession {
             let count = counts.entry(admission_path.clone()).or_default();
             *count = count.saturating_add(1);
         }
-        migration_backup::prepare(&connection, &path, SCHEMA_VERSION)?;
-        migrate_schema(&mut connection)?;
+        initialize_schema(&mut connection)?;
         let application_id = catalog_pragma_integer(&connection, "application_id")?;
         let user_version = catalog_pragma_integer(&connection, "user_version")?;
         let schema_cookie = catalog_schema_cookie(&connection)?;

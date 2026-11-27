@@ -15,14 +15,9 @@ pub(super) fn inventory_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    let spool_contract_version = match schema_version {
-        25 | 26 => None,
-        27 => Some(1),
-        28..=30 => Some(2),
-        31 => Some(3),
-        32..=SCHEMA_VERSION => Some(4),
-        _ => return Ok(false),
-    };
+    if schema_version != SCHEMA_VERSION {
+        return Ok(false);
+    }
     let core_matches = schema_object_sql_matches(
         connection,
         "table",
@@ -37,30 +32,26 @@ pub(super) fn inventory_shape_matches(
     if !core_matches {
         return Ok(false);
     }
-    if let Some(version) = spool_contract_version {
-        if !inventory_spool_contract::schema_matches(connection, version)? {
-            return Ok(false);
-        }
-        connection
-            .query_row(
-                "SELECT singleton = 1 AND contract_version = ?1 AND complete = 1
-                 FROM library_metadata_inventory_spool_contract",
-                [version],
-                |row| row.get::<_, bool>(0),
-            )
-            .optional()
-            .map_err(database_error)
-            .map(|marker| marker.unwrap_or(false))
-    } else {
-        Ok(true)
+    if !inventory_spool_contract::schema_matches(connection)? {
+        return Ok(false);
     }
+    connection
+        .query_row(
+            "SELECT singleton = 1 AND contract_version = 4 AND complete = 1
+             FROM library_metadata_inventory_spool_contract",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .optional()
+        .map_err(database_error)
+        .map(|marker| marker.unwrap_or(false))
 }
 
 pub(super) fn live_gap_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30..=SCHEMA_VERSION) {
+    if schema_version != SCHEMA_VERSION {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(

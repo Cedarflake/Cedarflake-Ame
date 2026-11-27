@@ -18,9 +18,9 @@ use image::{ExtendedColorType, ImageEncoder, ImageFormat, Rgb, RgbImage, Rgba, R
 use rusqlite::Connection;
 use tempfile::tempdir;
 
+use crate::adapters::FileDiscovery;
 #[cfg(windows)]
 use crate::adapters::force_publication_namespace_guard_failure_for_test;
-use crate::adapters::{FileDiscovery, remove_persistent_journal_v22_contract_for_test};
 use crate::domain::{
     GalleryQuery, LibraryChangeCatchUpEvidence, LibraryChangeCatchUpQueueBatch,
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
@@ -1478,19 +1478,15 @@ fn publication_guard_capability_failure_preserves_catalog_and_requires_recovery(
 
 #[test]
 fn bidirectional_full_scan_catch_up_preserves_assets_and_invalidates_moved_previews() {
-    assert_bidirectional_full_scan_catch_up("full-handoff", false, false);
+    assert_bidirectional_full_scan_catch_up("full-handoff", false);
 }
 
 #[test]
-fn prerelease_handoff_migration_deduplicates_hard_links_and_replaces_unversioned_identity() {
-    assert_bidirectional_full_scan_catch_up("full-handoff-recovery", true, true);
+fn full_scan_handoff_deduplicates_hard_links() {
+    assert_bidirectional_full_scan_catch_up("full-handoff-hard-links", true);
 }
 
-fn assert_bidirectional_full_scan_catch_up(
-    scenario: &str,
-    inject_hard_link_location: bool,
-    repair_missing_handoff_preview: bool,
-) {
+fn assert_bidirectional_full_scan_catch_up(scenario: &str, inject_hard_link_location: bool) {
     let source = tempdir().expect("source directory");
     let destination = tempdir().expect("destination directory");
     let storage = tempdir().expect("storage directory");
@@ -1759,54 +1755,7 @@ fn assert_bidirectional_full_scan_catch_up(
         )
         .expect("source publication evidence");
     assert_eq!(source_publication, (0, 1, 1, 64, 1, 0));
-    if repair_missing_handoff_preview {
-        let connection =
-            Connection::open(&storage_paths.catalog_path).expect("prerelease preview catalog");
-        assert_eq!(
-            connection
-                .execute(
-                    "DELETE FROM preview_artifacts WHERE artifact_path = ?1",
-                    [&source_preview.preview_path],
-                )
-                .expect("restore prerelease missing handoff preview"),
-            1
-        );
-        remove_persistent_journal_v22_contract_for_test(&connection);
-        connection
-            .execute_batch(
-                "DROP TABLE library_change_preview_repair_contract;
-                 DROP TABLE library_metadata_inventory_entries;
-                 DROP TABLE library_metadata_inventory_runs;
-                 DROP TABLE library_metadata_inventory_contract;
-                 DROP TABLE library_terminal_media_evidence;
-                 DROP TABLE library_terminal_media_evidence_contract;
-                 UPDATE schema_info SET version = 19;",
-            )
-            .expect("restore prerelease preview repair marker");
-        drop(connection);
-        drop(
-            SqliteCatalog::open(storage_paths.catalog_path.clone())
-                .expect("repair prerelease missing handoff preview"),
-        );
-        let migrated_handoff_evidence = Connection::open(&storage_paths.catalog_path)
-            .expect("migrated handoff catalog")
-            .query_row(
-                "SELECT
-                   (SELECT COUNT(*) FROM library_change_catch_up_handoffs),
-                   (SELECT COUNT(*) FROM library_change_scan_handoff_batches),
-                   (SELECT COUNT(*) FROM library_change_scan_handoff_items)",
-                [],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, i64>(1)?,
-                        row.get::<_, i64>(2)?,
-                    ))
-                },
-            )
-            .expect("migrated handoff evidence");
-        assert_eq!(migrated_handoff_evidence, (0, 0, 0));
-    }
+
     begin_authoritative_checkpoint(
         &storage_paths,
         &ScanRequest {
@@ -1843,11 +1792,9 @@ fn assert_bidirectional_full_scan_catch_up(
         .find(|asset| asset.relative_path == "destination.png")
         .expect("destination-first moved asset");
     assert_eq!(final_snapshot.assets.len(), 2);
-    if repair_missing_handoff_preview {
-        assert_ne!(moved_source.asset_id, source_asset_id);
-    } else {
-        assert_eq!(moved_source.asset_id, source_asset_id);
-    }
+
+    assert_eq!(moved_source.asset_id, source_asset_id);
+
     assert_ne!(moved_source.asset_id, destination_asset_id);
     assert_ne!(moved_source.location_id, source_location_id);
     assert_eq!(moved_destination.asset_id, destination_asset_id);
@@ -1867,13 +1814,10 @@ fn assert_bidirectional_full_scan_catch_up(
         moved_destination.source_revision,
         destination_preview.source_revision
     );
-    if repair_missing_handoff_preview {
-        assert!(moved_source.source_generation > 0);
-        assert!(moved_destination.source_generation > 0);
-    } else {
-        assert!(moved_source.source_generation > source_preview.source_generation);
-        assert!(moved_destination.source_generation > destination_preview.source_generation);
-    }
+
+    assert!(moved_source.source_generation > source_preview.source_generation);
+    assert!(moved_destination.source_generation > destination_preview.source_generation);
+
     let connection = Connection::open(storage_paths.catalog_path).expect("final catalog");
     let terminal_evidence: (i64, i64, i64, i64, i64, i64) = connection
         .query_row(
@@ -5235,265 +5179,6 @@ fn authoritative_full_scan_with_new_placeholder_remains_stale_without_advancing_
     assert_eq!(after_audit, before_audit);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
-}
-
-#[cfg(windows)]
-#[test]
-fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
-    let source = tempdir().expect("source directory");
-    let storage = tempdir().expect("storage directory");
-    let album = source.path().join("album");
-    fs::create_dir(&album).expect("album directory");
-    let source_path = album.join("retained.png");
-    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
-        .save(&source_path)
-        .expect("fixture image");
-    let storage_paths = StoragePaths {
-        catalog_path: storage.path().join("catalog.sqlite3"),
-        preview_root: storage.path().join("previews"),
-        preview_budget_bytes: 64 * 1024 * 1024,
-        settings_path: storage.path().join("settings.sqlite3"),
-    };
-    run_scan_with_storage(
-        ScanRequest {
-            scan_id: "v17-normalization-initial".to_owned(),
-            root_path: source.path().to_string_lossy().into_owned(),
-            max_items: None,
-            max_entries: None,
-            preview_edge: 128,
-        },
-        |_| true,
-        storage_paths.clone(),
-    )
-    .expect("initial scan");
-    let before = load_test_snapshot(&storage_paths);
-    let before_asset = before.assets.first().expect("published asset");
-    let old_location_id = before_asset.location_id.clone();
-    let old_asset_id = before_asset.asset_id.clone();
-    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
-    let current_version: i64 = connection
-        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
-        .expect("current schema version");
-    remove_persistent_journal_v22_contract_for_test(&connection);
-    connection
-        .execute_batch(
-            "PRAGMA foreign_keys = OFF;
-              DROP INDEX asset_locations_root_relative;
-              DROP TABLE library_change_scan_handoff_items;
-              DROP TABLE library_change_scan_handoff_lineage;
-              DROP TABLE library_change_scan_handoff_batches;
-              DROP TABLE library_change_queue_catch_up_lineage;
-             DROP TABLE library_change_preview_repair_contract;
-             DROP TABLE library_metadata_inventory_entries;
-             DROP TABLE library_metadata_inventory_runs;
-             DROP TABLE library_metadata_inventory_contract;
-             DROP TABLE library_terminal_media_evidence;
-             DROP TABLE library_terminal_media_evidence_contract;
-             DROP TABLE scan_run_catch_up_lineage;
-             DROP TABLE library_change_catch_up_handoffs;
-             DROP INDEX scan_runs_one_active_root;
-             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
-             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
-             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
-             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
-             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
-             ALTER TABLE scan_runs DROP COLUMN scan_owner;
-             ALTER TABLE library_change_queue_contract
-               DROP COLUMN scan_ownership_complete;
-             ALTER TABLE library_change_queue_contract
-               DROP COLUMN authoritative_recovery_complete;",
-        )
-        .expect("restore v17 table shape");
-    connection
-        .execute(
-            "UPDATE preview_artifact_locations
-             SET location_id = 'legacy-v17-location'
-             WHERE location_id = ?1",
-            [&old_location_id],
-        )
-        .expect("restore legacy preview owner");
-    connection
-        .execute(
-            "UPDATE asset_locations
-             SET relative_path = 'album\\retained.png',
-                 location_id = 'legacy-v17-location'
-             WHERE location_id = ?1",
-            [&old_location_id],
-        )
-        .expect("restore legacy location identity");
-    connection
-        .execute_batch(
-            "ALTER TABLE library_change_queue_contract
-               DROP COLUMN scan_handoff_batch_complete;
-              ALTER TABLE library_change_queue_contract
-               DROP COLUMN scan_catch_up_lineage_complete;
-             ALTER TABLE library_change_queue_contract
-               DROP COLUMN change_catch_up_complete;
-             DROP TABLE library_change_catch_up_state;
-             UPDATE schema_info SET version = 17;",
-        )
-        .expect("restore v17 version");
-    drop(connection);
-    set_scan_fixture_offline_attribute(&source_path, true);
-    let mut events = Vec::new();
-
-    run_scan_with_storage(
-        ScanRequest {
-            scan_id: "v17-normalization-placeholder-rescan".to_owned(),
-            root_path: source.path().to_string_lossy().into_owned(),
-            max_items: None,
-            max_entries: None,
-            preview_edge: 128,
-        },
-        |event| {
-            events.push(event);
-            true
-        },
-        storage_paths.clone(),
-    )
-    .expect("migrated placeholder rescan remains recoverable");
-    set_scan_fixture_offline_attribute(&source_path, false);
-
-    let after = load_test_snapshot(&storage_paths);
-    let retained = after.assets.first().expect("retained legacy location");
-    let version: i64 = Connection::open(&storage_paths.catalog_path)
-        .expect("migrated catalog")
-        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
-        .expect("schema version");
-    assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, current_version);
-    assert_eq!(after.revision, before.revision);
-    assert_eq!(after.assets.len(), 1);
-    assert_eq!(retained.location_id, "legacy-v17-location");
-    assert_eq!(retained.relative_path, "album/retained.png");
-    assert_eq!(retained.asset_id, old_asset_id);
-}
-
-#[cfg(windows)]
-#[test]
-fn migrated_v17_healthy_file_preserves_location_but_not_unproven_asset_identity() {
-    let source = tempdir().expect("source directory");
-    let storage = tempdir().expect("storage directory");
-    let album = source.path().join("album");
-    fs::create_dir(&album).expect("album directory");
-    let source_path = album.join("healthy.png");
-    RgbaImage::from_pixel(8, 6, Rgba([20, 40, 60, 255]))
-        .save(&source_path)
-        .expect("fixture image");
-    let storage_paths = StoragePaths {
-        catalog_path: storage.path().join("catalog.sqlite3"),
-        preview_root: storage.path().join("previews"),
-        preview_budget_bytes: 64 * 1024 * 1024,
-        settings_path: storage.path().join("settings.sqlite3"),
-    };
-    run_scan_with_storage(
-        ScanRequest {
-            scan_id: "v17-healthy-initial".to_owned(),
-            root_path: source.path().to_string_lossy().into_owned(),
-            max_items: None,
-            max_entries: None,
-            preview_edge: 128,
-        },
-        |_| true,
-        storage_paths.clone(),
-    )
-    .expect("initial scan");
-    let before = load_test_snapshot(&storage_paths);
-    let before_asset = before.assets.first().expect("published asset");
-    let old_location_id = before_asset.location_id.clone();
-    let old_asset_id = before_asset.asset_id.clone();
-    let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
-    remove_persistent_journal_v22_contract_for_test(&connection);
-    connection
-        .execute_batch(
-            "PRAGMA foreign_keys = OFF;
-              DROP INDEX asset_locations_root_relative;
-              DROP TABLE library_change_scan_handoff_items;
-              DROP TABLE library_change_scan_handoff_lineage;
-              DROP TABLE library_change_scan_handoff_batches;
-              DROP TABLE library_change_queue_catch_up_lineage;
-             DROP TABLE library_change_preview_repair_contract;
-             DROP TABLE library_metadata_inventory_entries;
-             DROP TABLE library_metadata_inventory_runs;
-             DROP TABLE library_metadata_inventory_contract;
-             DROP TABLE library_terminal_media_evidence;
-             DROP TABLE library_terminal_media_evidence_contract;
-             DROP TABLE scan_run_catch_up_lineage;
-             DROP TABLE library_change_catch_up_handoffs;
-             DROP INDEX scan_runs_one_active_root;
-             ALTER TABLE library_change_queue DROP COLUMN authoritative_scan_id;
-             ALTER TABLE library_change_root_state DROP COLUMN last_consistency_audit_unix_ms;
-             ALTER TABLE scan_runs DROP COLUMN requires_previous_snapshot;
-             ALTER TABLE scan_runs DROP COLUMN root_generation_at_start;
-             ALTER TABLE scan_runs DROP COLUMN change_queue_high_watermark;
-             ALTER TABLE scan_runs DROP COLUMN scan_owner;
-             ALTER TABLE library_change_queue_contract
-               DROP COLUMN scan_ownership_complete;
-             ALTER TABLE library_change_queue_contract
-               DROP COLUMN authoritative_recovery_complete;",
-        )
-        .expect("restore v17 table shape");
-    connection
-        .execute(
-            "UPDATE preview_artifact_locations
-             SET location_id = 'legacy-v17-healthy-location'
-             WHERE location_id = ?1",
-            [&old_location_id],
-        )
-        .expect("restore legacy preview owner");
-    connection
-        .execute(
-            "UPDATE asset_locations
-             SET relative_path = 'album\\healthy.png',
-                 location_id = 'legacy-v17-healthy-location',
-                 file_identity_scheme = NULL,
-                 file_identity_value = NULL
-             WHERE location_id = ?1",
-            [&old_location_id],
-        )
-        .expect("restore legacy location without identity evidence");
-    connection
-        .execute_batch(
-            "ALTER TABLE library_change_queue_contract
-               DROP COLUMN scan_handoff_batch_complete;
-              ALTER TABLE library_change_queue_contract
-               DROP COLUMN scan_catch_up_lineage_complete;
-             ALTER TABLE library_change_queue_contract
-               DROP COLUMN change_catch_up_complete;
-             DROP TABLE library_change_catch_up_state;
-             UPDATE schema_info SET version = 17;",
-        )
-        .expect("restore v17 version");
-    drop(connection);
-    let mut events = Vec::new();
-
-    run_scan_with_storage(
-        ScanRequest {
-            scan_id: "v17-healthy-rescan".to_owned(),
-            root_path: source.path().to_string_lossy().into_owned(),
-            max_items: None,
-            max_entries: None,
-            preview_edge: 128,
-        },
-        |event| {
-            events.push(event);
-            true
-        },
-        storage_paths.clone(),
-    )
-    .expect("healthy migrated rescan");
-
-    let after = load_test_snapshot(&storage_paths);
-    let retained = after.assets.first().expect("retained legacy location");
-    assert!(matches!(events.last(), Some(ScanEvent::Completed { .. })));
-    assert_eq!(after.assets.len(), 1);
-    assert_eq!(retained.location_id, "legacy-v17-healthy-location");
-    assert_eq!(retained.relative_path, "album/healthy.png");
-    assert_ne!(retained.asset_id, old_asset_id);
-    assert!(retained.file_identity.is_some());
-    assert!(retained.source_revision.is_some());
-    assert!(retained.source_generation > 0);
-    assert!(!fs::read(&source_path).expect("source bytes").is_empty());
 }
 
 #[cfg(windows)]

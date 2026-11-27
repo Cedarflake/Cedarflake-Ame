@@ -83,7 +83,7 @@
   "startupFailureTitle": "Cedarflake Ame を起動できませんでした",
   "copyDiagnostics": "診断情報をコピー",
   "diagnosticsCopied": "診断情報をコピーしました",
-  "startupUnsupportedCatalog": "このライブラリは未対応のバージョンで作成されています。問題を調べるには、診断情報をエクスポートしてください。",
+  "startupUnsupportedCatalog": "このバージョンの Ame は、このライブラリのデータ形式に対応していません。問題を調べるには、診断情報をエクスポートしてください。",
   "startupDatabaseError": "ライブラリを読み込めませんでした。ドライブが利用できることを確認して、Ame を再起動してください。それでも開けない場合は診断情報をエクスポートしてください。",
   "startupCatalogError": "Ame を再起動してライブラリを開き直してください。それでも開けない場合は診断情報をエクスポートしてください。",
   "startupComponentError": "アプリの一部を読み込めませんでした。Ame を再起動してください。それでも起動しない場合は診断情報をエクスポートしてください。",

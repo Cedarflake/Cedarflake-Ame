@@ -1,11 +1,11 @@
 use rusqlite::Connection;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 #[test]
-fn current_v25_recovery_authority_is_allowlisted_and_bound_to_p2_work() {
+fn current_recovery_authority_is_allowlisted_and_bound_to_p2_work() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_change_queue(
@@ -74,13 +74,13 @@ fn current_v25_recovery_authority_is_allowlisted_and_bound_to_p2_work() {
         )
         .expect_err("authority identity is immutable");
     assert!(immutable.to_string().contains("identity is immutable"));
-    migrate_schema(&mut connection).expect("validate recovery authority contract");
+    initialize_schema(&mut connection).expect("validate recovery authority contract");
 }
 
 #[test]
-fn current_v25_rejects_weakened_recovery_authority_shape() {
+fn current_rejects_weakened_recovery_authority_shape() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     let original = connection
         .query_row(
             "SELECT sql FROM sqlite_master
@@ -109,7 +109,7 @@ fn current_v25_rejects_weakened_recovery_authority_shape() {
         .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1003")
         .expect("publish controlled schema mutation");
 
-    let error = migrate_schema(&mut connection).expect_err("weakened authority must fail");
+    let error = initialize_schema(&mut connection).expect_err("weakened authority must fail");
     assert_eq!(
         error.code,
         "catalog_recovery_authority_contract_unverifiable"

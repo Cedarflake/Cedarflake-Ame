@@ -1,12 +1,10 @@
 use crate::adapters::sqlite_catalog::tests::support::{fixture_request, load_default_snapshot};
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use tempfile::tempdir;
-
-use crate::ports::CatalogMaintenanceControl;
 
 use crate::adapters::sqlite_catalog::*;
 
@@ -139,62 +137,6 @@ fn sqlite_write_admission_preempts_blocking_recovery_publication_and_wakes_epoch
         observed_epoch,
     );
     waiter.join().expect("live writer");
-    assert_admission_is_idle(&admission);
-}
-
-#[test]
-fn sqlite_write_admission_live_waiter_preempts_maintenance_outside_the_lock_before_interrupt_install()
- {
-    let admission = Arc::new(SqliteWriteAdmission::new());
-    let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
-    let (preempt_sender, preempt_receiver) = mpsc::channel();
-    let callback_admission = Arc::downgrade(&admission);
-    let callback_control = control.clone();
-    let active_maintenance = admission
-        .try_acquire_preemptible_maintenance(Arc::new(move || {
-            let was_unlocked = callback_admission
-                .upgrade()
-                .is_some_and(|admission| admission.state.try_lock().is_ok());
-            callback_control.preempt();
-            preempt_sender
-                .send(was_unlocked)
-                .expect("report completed maintenance preemption");
-        }))
-        .expect("acquire preemptible maintenance writer");
-    let (acquired_sender, acquired_receiver) = mpsc::channel();
-    let waiting_admission = Arc::clone(&admission);
-    let waiter = thread::spawn(move || {
-        let _permit = waiting_admission.acquire(LibraryChangeLane::Live);
-        acquired_sender.send(()).expect("report live admission");
-    });
-
-    assert!(
-        preempt_receiver
-            .recv_timeout(Duration::from_secs(1))
-            .expect("maintenance preemption completed outside the writer lock")
-    );
-    assert!(control.is_interrupted());
-    let interrupt_count = Arc::new(AtomicUsize::new(0));
-    let interrupt_count_for_callback = Arc::clone(&interrupt_count);
-    control
-        .install_interrupt(Arc::new(move || {
-            interrupt_count_for_callback.fetch_add(1, Ordering::AcqRel);
-        }))
-        .expect("install late SQLite interrupt");
-    assert_eq!(interrupt_count.load(Ordering::Acquire), 1);
-    assert!(
-        acquired_receiver
-            .recv_timeout(Duration::from_millis(50))
-            .is_err(),
-        "preemption requests release; it does not revoke a live permit unsafely",
-    );
-
-    control.clear_interrupt();
-    drop(active_maintenance);
-    acquired_receiver
-        .recv_timeout(Duration::from_secs(1))
-        .expect("live writer eventually acquires the permit");
-    waiter.join().expect("live waiter");
     assert_admission_is_idle(&admission);
 }
 

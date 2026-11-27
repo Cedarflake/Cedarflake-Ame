@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 use crate::domain::{ScanError, StorageConfiguration};
 use crate::ports::StorageSettingsRepository;
 
-use crate::domain::storage_versions::SETTINGS_SCHEMA_VERSION;
+mod schema;
 
 pub struct SqliteStorageSettings {
     connection: Connection,
@@ -24,56 +24,9 @@ impl SqliteStorageSettings {
             })?;
         }
         let mut connection = Connection::open(path).map_err(settings_error)?;
-        connection
-            .execute_batch(
-                "PRAGMA foreign_keys = ON;
-                 CREATE TABLE IF NOT EXISTS storage_settings_schema (
-                   version INTEGER NOT NULL
-                 );
-                 INSERT INTO storage_settings_schema(version)
-                   SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM storage_settings_schema);
-                 CREATE TABLE IF NOT EXISTS storage_settings (
-                   singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-                   catalog_path TEXT NOT NULL,
-                   preview_root TEXT NOT NULL,
-                   preview_budget_bytes INTEGER NOT NULL CHECK(preview_budget_bytes > 0)
-                 );",
-            )
-            .map_err(settings_error)?;
-        let version: i64 = connection
-            .query_row(
-                "SELECT version FROM storage_settings_schema LIMIT 1",
-                [],
-                |row| row.get(0),
-            )
-            .map_err(settings_error)?;
-        match version {
-            1 => migrate_settings_schema_v1_to_v2(&mut connection)?,
-            SETTINGS_SCHEMA_VERSION => {}
-            _ => {
-                return Err(ScanError::new(
-                    "storage_settings_schema_unsupported",
-                    format!("Expected settings schema {SETTINGS_SCHEMA_VERSION}, found {version}"),
-                ));
-            }
-        }
+        schema::initialize(&mut connection)?;
         Ok(Self { connection })
     }
-}
-
-fn migrate_settings_schema_v1_to_v2(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection.transaction().map_err(settings_error)?;
-    transaction
-        .execute_batch(
-            "CREATE TABLE preview_root_ownership (
-               preview_root TEXT PRIMARY KEY,
-               state TEXT NOT NULL CHECK(state IN ('pending', 'retired')),
-               recorded_unix_ms INTEGER NOT NULL
-             );
-             UPDATE storage_settings_schema SET version = 2;",
-        )
-        .map_err(settings_error)?;
-    transaction.commit().map_err(settings_error)
 }
 
 impl StorageSettingsRepository for SqliteStorageSettings {
@@ -301,31 +254,85 @@ mod tests {
     }
 
     #[test]
-    fn migrates_schema_one_before_tracking_preview_root_ownership() {
+    fn unsupported_settings_are_rejected_without_rewriting_data() {
         let directory = tempdir().expect("temporary directory");
-        let path = directory.path().join("settings.sqlite3");
-        let connection = Connection::open(&path).expect("legacy settings");
-        connection
-            .execute_batch(
-                "CREATE TABLE storage_settings_schema (version INTEGER NOT NULL);
+        for version in [1, 3] {
+            let path = directory.path().join(format!("settings-{version}.sqlite3"));
+            let connection = Connection::open(&path).expect("legacy settings");
+            connection
+                .execute_batch(
+                    "CREATE TABLE storage_settings_schema (version INTEGER NOT NULL);
                  INSERT INTO storage_settings_schema(version) VALUES (1);
                  CREATE TABLE storage_settings (
                    singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
                    catalog_path TEXT NOT NULL,
                    preview_root TEXT NOT NULL,
                    preview_budget_bytes INTEGER NOT NULL CHECK(preview_budget_bytes > 0)
-                 );",
-            )
-            .expect("legacy schema");
-        drop(connection);
+                 );
+                 INSERT INTO storage_settings VALUES (1, 'kept-catalog', 'kept-previews', 1024);",
+                )
+                .expect("legacy schema");
+            connection
+                .execute("UPDATE storage_settings_schema SET version = ?1", [version])
+                .unwrap();
+            let error = SqliteStorageSettings::open(path)
+                .err()
+                .expect("unsupported version");
+            assert_eq!(error.code, "storage_settings_schema_unsupported");
+            let retained: (String, String, i64) = connection
+                .query_row(
+                    "SELECT catalog_path, preview_root, preview_budget_bytes FROM storage_settings",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                )
+                .unwrap();
+            assert_eq!(
+                retained,
+                ("kept-catalog".to_owned(), "kept-previews".to_owned(), 1024)
+            );
+            assert_eq!(
+                connection
+                    .query_row("SELECT version FROM storage_settings_schema", [], |row| row
+                        .get::<_, i64>(0))
+                    .unwrap(),
+                version
+            );
+            assert_eq!(
+                connection
+                    .query_row(
+                        "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'preview_root_ownership'",
+                        [],
+                        |row| row.get::<_, i64>(0)
+                    )
+                    .unwrap(),
+                0
+            );
+        }
+    }
 
-        let mut settings = SqliteStorageSettings::open(path).expect("migrated settings");
-
-        assert!(
-            settings
-                .load_retired_preview_roots()
-                .expect("retired preview roots")
-                .is_empty()
+    #[test]
+    fn an_unidentified_database_is_not_initialized_as_settings() {
+        let directory = tempdir().unwrap();
+        let path = directory.path().join("foreign.sqlite3");
+        let connection = Connection::open(&path).unwrap();
+        connection
+            .execute_batch("CREATE TABLE sqliteX_notes(value TEXT); INSERT INTO sqliteX_notes VALUES ('keep');")
+            .unwrap();
+        assert!(SqliteStorageSettings::open(path).is_err());
+        let objects: Vec<String> = connection
+            .prepare("SELECT name FROM sqlite_schema")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(objects, ["sqliteX_notes"]);
+        assert_eq!(
+            connection
+                .query_row("SELECT value FROM sqliteX_notes", [], |row| row
+                    .get::<_, String>(0))
+                .unwrap(),
+            "keep"
         );
     }
 }

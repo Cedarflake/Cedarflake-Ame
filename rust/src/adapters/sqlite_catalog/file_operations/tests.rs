@@ -231,7 +231,6 @@ fn file_operation_journal_upgrades_copied_moves_without_starting_or_retargeting_
     journal
         .advance(record.id, 1, FileOperationEvent::Copied(copied.clone()), 3)
         .unwrap();
-    super::super::migrations::downgrade_to_v79_for_test(&journal.catalog.connection);
     drop(journal);
     let mut reopened =
         SqliteFileOperationJournal::open(directory.path().join("catalog.sqlite3")).unwrap();

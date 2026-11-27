@@ -1,45 +1,10 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape::schema_object_sql_matches};
+use super::{database_error, schema_shape::schema_object_sql_matches};
 
 mod schema;
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 46)?;
-    for (kind, name, ddl) in schema::OBJECTS {
-        let exists: bool = transaction
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = ?1)",
-                [name],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if exists {
-            if !schema_object_sql_matches(transaction, kind, name, ddl)? {
-                return Err(invalid());
-            }
-        } else {
-            transaction.execute_batch(ddl).map_err(database_error)?;
-        }
-    }
-    transaction
-        .execute_batch(
-            "INSERT OR IGNORE INTO organization_state(singleton, revision) VALUES (1, 0);
-             UPDATE schema_info SET version = 47; PRAGMA user_version = 47;",
-        )
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 47)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in schema::OBJECTS {
@@ -95,21 +60,6 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
         return Err(invalid());
     }
     Ok(())
-}
-
-#[cfg(test)]
-pub(in crate::adapters::sqlite_catalog) fn downgrade_to_v46_for_test(connection: &Connection) {
-    super::organization_transitions::downgrade_to_v47_for_test(connection);
-    if super::schema_shape::schema_version(connection).unwrap() == 47 {
-        for (kind, name, _) in schema::OBJECTS.iter().rev() {
-            connection
-                .execute_batch(&format!("DROP {kind} {name}"))
-                .unwrap();
-        }
-        connection
-            .execute_batch("UPDATE schema_info SET version = 46; PRAGMA user_version = 46;")
-            .unwrap();
-    }
 }
 
 #[cfg(test)]

@@ -123,39 +123,3 @@ pub(super) fn merge(
         has_content_binding: preferred.is_some(),
     }))
 }
-
-pub(in crate::adapters::sqlite_catalog) fn reconcile_known_bindings(
-    connection: &Connection,
-) -> Result<(), ScanError> {
-    let mut after: Option<(String, String, i64)> = None;
-    loop {
-        let next: Option<(String, String, i64)> = connection
-            .query_row(
-                "SELECT fingerprint_scheme, digest, byte_length FROM organization_bindings
-             WHERE digest IS NOT NULL AND (fingerprint_scheme, digest, byte_length) > (?1, ?2, ?3)
-             ORDER BY fingerprint_scheme, digest, byte_length LIMIT 1",
-                params![
-                    after.as_ref().map_or("", |key| key.0.as_str()),
-                    after.as_ref().map_or("", |key| key.1.as_str()),
-                    after.as_ref().map_or(-1, |key| key.2)
-                ],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
-            )
-            .optional()
-            .map_err(database_error)?;
-        let Some(key) = next else {
-            break;
-        };
-        prepare_groups(connection)?;
-        connection.execute(
-            "INSERT OR IGNORE INTO temp.organization_merge_groups
-             SELECT mapping.group_id FROM organization_bindings AS binding
-             JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id
-             WHERE binding.fingerprint_scheme = ?1 AND binding.digest = ?2 AND binding.byte_length = ?3",
-            params![key.0, key.1, key.2],
-        ).map_err(database_error)?;
-        merge(connection, None)?;
-        after = Some(key);
-    }
-    Ok(())
-}

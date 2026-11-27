@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -60,25 +60,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
     ),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 51)?;
-    for (_, _, ddl) in OBJECTS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 52; PRAGMA user_version = 52;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 52)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in OBJECTS {
         if !schema_shape::schema_object_sql_matches(connection, kind, name, ddl)? {
@@ -110,21 +91,3 @@ fn invalid() -> ScanError {
         "Organization continuation requires valid scoped session and lineage records",
     )
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v51_for_test(connection: &Connection) {
-    super::organization_native_recovery::downgrade_to_v52_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 52 {
-        for (kind, name, _) in OBJECTS.iter().rev() {
-            connection
-                .execute_batch(&format!("DROP {kind} {name}"))
-                .unwrap();
-        }
-        connection
-            .execute_batch("UPDATE schema_info SET version = 51; PRAGMA user_version = 51;")
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests;

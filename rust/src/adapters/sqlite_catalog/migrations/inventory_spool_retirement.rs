@@ -1,13 +1,6 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
-
-#[cfg(test)]
-mod fixtures;
-#[cfg(test)]
-mod tests;
-#[cfg(test)]
-pub(super) use fixtures::downgrade_to_v31_for_test;
 
 use super::schema_shape::schema_object_sql_matches;
 use super::{
@@ -15,7 +8,7 @@ use super::{
     METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
     METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
     METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL, METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
-    METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL, current_schema, database_error,
+    METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL,
 };
 
 const CONTRACT: &str = "CREATE TABLE library_metadata_inventory_spool_contract (
@@ -172,79 +165,4 @@ pub(super) fn schema_matches(connection: &Connection) -> Result<bool, ScanError>
         }
     }
     Ok(true)
-}
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::terminal_inventory_repair::apply(transaction, 31)?;
-    super::retired_live_gap_repair::apply(transaction, 31)?;
-    super::retired_root_authority::repair_for_schema(transaction, 31)?;
-    current_schema::validate_schema_version(transaction, 31)?;
-    if !super::source_revision_contract::metadata_contract_is_complete(transaction)? {
-        super::source_revision_contract::invalidate_precontract_metadata(transaction)?;
-        super::source_revision_contract::create_metadata_contract(transaction)?;
-    }
-    // Copy all three owners before dropping any original table. Foreign keys stay enabled;
-    // child-first removal cannot cascade into the independently copied storage graph.
-    let names = [
-        "library_metadata_inventory_spools",
-        "library_metadata_inventory_spool_directories",
-        "library_metadata_inventory_spool_entries",
-    ];
-    for (name, ddl) in names
-        .iter()
-        .zip([HEADER.to_owned(), directory_ddl(), entry_ddl()])
-    {
-        let temporary = names.iter().fold(ddl, |sql, name| {
-            sql.replace(&format!("\"{name}\""), &format!("\"{name}_v32\""))
-        });
-        transaction
-            .execute_batch(&temporary)
-            .map_err(database_error)?;
-        transaction
-            .execute_batch(&format!("INSERT INTO {name}_v32 SELECT * FROM {name}"))
-            .map_err(database_error)?;
-    }
-    for name in names.iter().rev() {
-        transaction
-            .execute_batch(&format!("DROP TABLE {name}"))
-            .map_err(database_error)?;
-    }
-    for name in names {
-        transaction
-            .execute_batch(&format!("ALTER TABLE {name}_v32 RENAME TO {name}"))
-            .map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("DROP TABLE library_metadata_inventory_spool_contract")
-        .map_err(database_error)?;
-    for ddl in [
-        CONTRACT,
-        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
-        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
-        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL,
-        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
-    ] {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    for (_, ddl) in GUARDS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    for (_, ddl) in INDEXES {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch(
-            "INSERT INTO library_metadata_inventory_spool_contract VALUES (1, 4, 1);
-        UPDATE schema_info SET version = 32; PRAGMA user_version = 32;",
-        )
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 32)
 }

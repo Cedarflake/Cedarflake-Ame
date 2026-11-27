@@ -1,9 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 use crate::domain::file_operation_journal::invalid;
 
-use super::{current_schema, database_error, schema_shape};
+use super::schema_shape;
 
 const ITEMS: &str = "CREATE TABLE file_operation_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,25 +54,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
     ("trigger", "file_operation_events_retained", RETAIN_EVENTS),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 78)?;
-    for (_, _, sql) in OBJECTS {
-        transaction.execute_batch(sql).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 79; PRAGMA user_version = 79;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 79)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, sql) in OBJECTS {
         if !schema_shape::schema_object_sql_matches(connection, kind, name, sql)? {
@@ -87,21 +68,3 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
     super::super::file_operations::validation::validate_history(connection)
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_for_test(connection: &Connection) {
-    super::file_operation_notifications::downgrade_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 79 {
-        connection
-            .execute_batch(
-                "DROP TRIGGER file_operation_events_retained;
-             DROP TABLE file_operation_events;
-             DROP TABLE file_operation_items;
-             UPDATE schema_info SET version = 78; PRAGMA user_version = 78;",
-            )
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests;

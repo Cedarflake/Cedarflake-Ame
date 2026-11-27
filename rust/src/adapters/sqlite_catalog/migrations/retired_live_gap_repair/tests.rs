@@ -3,17 +3,17 @@ use tempfile::NamedTempFile;
 
 use crate::adapters::SqliteCatalog;
 
+use super::super::initialize_schema;
 use super::super::retired_live_gap_repair::test_catalog::{
     advance_live_gap_root_generation, assert_retired_live_gap_claim_repaired, retire_live_gap_root,
     seed_current_explicit_live_gap_claim, seed_current_pending_journal_live_gap_claim,
 };
-use super::super::{SCHEMA_VERSION, migrate_schema};
 
 #[test]
 fn current_schema_repairs_removed_root_explicit_claim_idempotently() {
     let catalog = NamedTempFile::new().expect("retired explicit catalog");
     let mut connection = Connection::open(catalog.path()).expect("open retired catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
+    initialize_schema(&mut connection).expect("create current catalog");
     seed_current_explicit_live_gap_claim(&connection, "removed-explicit-root", 4_001);
     retire_live_gap_root(&connection, "removed-explicit-root", 4_001);
     drop(connection);
@@ -52,7 +52,7 @@ fn current_schema_repairs_removed_root_explicit_claim_idempotently() {
 fn current_schema_repairs_explicit_claim_from_an_older_generation() {
     let catalog = NamedTempFile::new().expect("advanced explicit catalog");
     let mut connection = Connection::open(catalog.path()).expect("open advanced catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
+    initialize_schema(&mut connection).expect("create current catalog");
     seed_current_explicit_live_gap_claim(&connection, "advanced-explicit-root", 4_002);
     advance_live_gap_root_generation(&connection, "advanced-explicit-root", 4_002);
     drop(connection);
@@ -83,7 +83,7 @@ fn current_schema_repairs_explicit_claim_from_an_older_generation() {
 fn current_schema_repairs_the_retained_two_removed_one_advanced_shape() {
     let catalog = NamedTempFile::new().expect("retained live-gap catalog");
     let mut connection = Connection::open(catalog.path()).expect("open retained catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
+    initialize_schema(&mut connection).expect("create current catalog");
     for (root_id, gap_change_id) in [("removed-explicit-a", 4_011), ("removed-explicit-b", 4_012)] {
         seed_current_explicit_live_gap_claim(&connection, root_id, gap_change_id);
         retire_live_gap_root(&connection, root_id, gap_change_id);
@@ -121,7 +121,7 @@ fn current_schema_repairs_the_retained_two_removed_one_advanced_shape() {
 fn current_schema_repairs_retired_pending_journal_claim() {
     let catalog = NamedTempFile::new().expect("retired pending-journal catalog");
     let mut connection = Connection::open(catalog.path()).expect("open pending catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
+    initialize_schema(&mut connection).expect("create current catalog");
     seed_current_pending_journal_live_gap_claim(&connection, "removed-pending-root", 4_021);
     retire_live_gap_root(&connection, "removed-pending-root", 4_021);
     drop(connection);
@@ -135,32 +135,10 @@ fn current_schema_repairs_retired_pending_journal_claim() {
 }
 
 #[test]
-fn v30_to_v31_repairs_retired_live_gap_claim_before_validation() {
-    let catalog = NamedTempFile::new().expect("v30 retired claim catalog");
-    let mut connection = Connection::open(catalog.path()).expect("open v30 claim catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
-    seed_current_explicit_live_gap_claim(&connection, "v30-removed-root", 4_041);
-    retire_live_gap_root(&connection, "v30-removed-root", 4_041);
-    super::super::downgrade_source_revision_contract_to_v30_for_test(&connection);
-    drop(connection);
-
-    drop(SqliteCatalog::open(catalog.path().to_path_buf()).expect("migrate repaired v30 claim"));
-    let evidence = Connection::open(catalog.path()).expect("inspect migrated claim repair");
-    assert_eq!(
-        evidence
-            .query_row("SELECT version FROM schema_info", [], |row| row
-                .get::<_, i64>(0))
-            .expect("migrated schema version"),
-        SCHEMA_VERSION,
-    );
-    assert_retired_live_gap_claim_repaired(&evidence, 4_041);
-}
-
-#[test]
 fn current_schema_preserves_legal_explicit_and_pending_journal_claims() {
     let catalog = NamedTempFile::new().expect("legal live-gap catalog");
     let mut connection = Connection::open(catalog.path()).expect("open legal claim catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
+    initialize_schema(&mut connection).expect("create current catalog");
     seed_current_explicit_live_gap_claim(&connection, "legal-explicit-root", 4_051);
     seed_current_pending_journal_live_gap_claim(&connection, "legal-pending-root", 4_052);
     drop(connection);
@@ -202,7 +180,7 @@ fn current_schema_preserves_legal_explicit_and_pending_journal_claims() {
 fn current_schema_live_gap_repair_rolls_back_when_another_claim_is_invalid() {
     let catalog = NamedTempFile::new().expect("mixed valid-invalid claim catalog");
     let mut connection = Connection::open(catalog.path()).expect("open rollback catalog");
-    migrate_schema(&mut connection).expect("create current catalog");
+    initialize_schema(&mut connection).expect("create current catalog");
     seed_current_explicit_live_gap_claim(&connection, "repairable-removed-root", 4_061);
     retire_live_gap_root(&connection, "repairable-removed-root", 4_061);
     seed_current_explicit_live_gap_claim(&connection, "invalid-active-root", 4_062);
@@ -243,7 +221,7 @@ fn current_schema_live_gap_repair_keeps_malformed_states_fail_closed() {
         let catalog = NamedTempFile::new().expect("malformed live-gap catalog");
         let mut connection =
             Connection::open(catalog.path()).expect("open malformed live-gap catalog");
-        migrate_schema(&mut connection).expect("create current catalog");
+        initialize_schema(&mut connection).expect("create current catalog");
         let gap_change_id = 4_100 + case;
         let root_id = format!("malformed-live-gap-{case}");
         if case == 5 {

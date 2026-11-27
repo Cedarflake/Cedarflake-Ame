@@ -265,7 +265,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get startupUnsupportedCatalog =>
-      'このライブラリは未対応のバージョンで作成されています。問題を調べるには、診断情報をエクスポートしてください。';
+      'このバージョンの Ame は、このライブラリのデータ形式に対応していません。問題を調べるには、診断情報をエクスポートしてください。';
 
   @override
   String get startupDatabaseError =>

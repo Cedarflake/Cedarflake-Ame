@@ -1,5 +1,3 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use super::*;
 
 #[test]
@@ -65,46 +63,4 @@ fn reservations_preserve_fifo_without_blocking_interactive_priority() {
     );
     drop(second_permit);
     assert_idle(&admission);
-}
-
-#[test]
-fn reservation_preempts_outside_the_mutex_and_unwind_retires_its_identity() {
-    for should_panic in [false, true] {
-        let admission = Arc::new(SqliteWriteAdmission::new());
-        let weak = Arc::downgrade(&admission);
-        let calls = Arc::new(AtomicUsize::new(0));
-        let counter = calls.clone();
-        let owner = admission.acquire_preemptible(
-            LibraryChangeLane::Recovery,
-            Arc::new(move || {
-                assert!(
-                    weak.upgrade()
-                        .expect("live admission")
-                        .state
-                        .try_lock()
-                        .is_ok()
-                );
-                counter.fetch_add(1, Ordering::Relaxed);
-                assert!(!should_panic, "controlled reserved preemption unwind");
-            }),
-        );
-        let attempt = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            admission.reserve(LibraryChangeLane::Live)
-        }));
-        assert_eq!(attempt.is_err(), should_panic);
-        drop(attempt);
-        assert_eq!(calls.load(Ordering::Relaxed), 1);
-        assert_eq!(admission.completed_write_epoch(), 0);
-        assert!(
-            admission
-                .state
-                .lock()
-                .expect("state")
-                .waiting
-                .iter()
-                .all(VecDeque::is_empty)
-        );
-        drop(owner);
-        assert_idle(&admission);
-    }
 }

@@ -83,7 +83,7 @@
   "startupFailureTitle": "Cedarflake Ame 无法启动",
   "copyDiagnostics": "复制诊断信息",
   "diagnosticsCopied": "诊断信息已复制",
-  "startupUnsupportedCatalog": "图库数据来自不受支持的版本，无法安全打开。请导出诊断信息以便排查。",
+  "startupUnsupportedCatalog": "当前版本不支持这份图库数据。请导出诊断信息以便排查。",
   "startupDatabaseError": "图库数据暂时无法读取。请确认磁盘可用后重新启动；如果仍然失败，请导出诊断信息以便排查。",
   "startupCatalogError": "图库加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。",
   "startupComponentError": "应用组件加载失败。请重新启动 Ame；如果仍然失败，请导出诊断信息以便排查。",

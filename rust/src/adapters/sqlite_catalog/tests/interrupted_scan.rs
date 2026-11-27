@@ -1,8 +1,8 @@
 use crate::ports::scan_recovery::ForegroundScanRecovery;
 
 use crate::adapters::sqlite_catalog::tests::support::{
-    fixture_request, migrate_v29_ambiguous_gap_fixture, publication_identity,
-    seed_current_explicit_recovery_claim,
+    fixture_request, publication_identity, seed_current_explicit_recovery_claim,
+    seed_explicit_recovery_fixture,
 };
 
 use tempfile::tempdir;
@@ -14,7 +14,7 @@ fn interrupted_explicit_foreground_with_handoff_assets(
 ) -> (String, String, ScanRequest) {
     let root_id = "crash-cleanup-root".to_owned();
     let root_path = "C:\\CrashCleanupRoot".to_owned();
-    migrate_v29_ambiguous_gap_fixture(catalog_path, &root_id, &root_path, false);
+    seed_explicit_recovery_fixture(catalog_path, &root_id, &root_path, false);
     let mut catalog =
         SqliteCatalog::open(catalog_path.to_path_buf()).expect("migrate explicit crash fixture");
     let request = fixture_request("crash-cleanup-scan", &root_path);

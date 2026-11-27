@@ -1,9 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
 use super::schema_shape::schema_object_sql_matches;
-use super::{current_schema, database_error};
 
 const INDEXES: &[(&str, &str)] = &[
     (
@@ -22,39 +21,6 @@ const INDEXES: &[(&str, &str)] = &[
          ON library_media_admission_rechecks(asset_id)",
     ),
 ];
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::terminal_inventory_repair::apply(transaction, 38)?;
-    super::retired_live_gap_repair::apply(transaction, 38)?;
-    super::retired_root_authority::repair_for_schema(transaction, 38)?;
-    current_schema::validate_schema_version(transaction, 38)?;
-    for (name, ddl) in INDEXES {
-        let exists: bool = transaction
-            .query_row(
-                "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = ?1)",
-                [name],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if exists {
-            require_index(transaction, name, ddl)?;
-        } else {
-            transaction.execute_batch(ddl).map_err(database_error)?;
-        }
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 39; PRAGMA user_version = 39;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 39)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (name, ddl) in INDEXES {

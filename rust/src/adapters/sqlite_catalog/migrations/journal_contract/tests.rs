@@ -1,12 +1,12 @@
 use rusqlite::Connection;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 use super::super::schema_shape::normalize_schema_sql;
 
 #[test]
-fn current_v22_malformed_source_range_shape_fails_closed() {
+fn current_malformed_source_range_shape_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP INDEX library_persistent_journal_source_ranges_volume;
@@ -17,7 +17,7 @@ fn current_v22_malformed_source_range_shape_fails_closed() {
         )
         .expect("malformed v22 index fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("malformed v22 shape");
+    let error = initialize_schema(&mut connection).expect_err("malformed v22 shape");
 
     assert_eq!(
         error.code,
@@ -26,9 +26,9 @@ fn current_v22_malformed_source_range_shape_fails_closed() {
 }
 
 #[test]
-fn current_v22_rejects_replaced_check_with_the_same_check_count() {
+fn current_rejects_replaced_check_with_the_same_check_count() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     let original = connection
         .query_row(
             "SELECT sql FROM sqlite_master
@@ -57,7 +57,7 @@ fn current_v22_rejects_replaced_check_with_the_same_check_count() {
         .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 999")
         .expect("publish controlled schema mutation");
 
-    let error = migrate_schema(&mut connection).expect_err("weakened CHECK must fail closed");
+    let error = initialize_schema(&mut connection).expect_err("weakened CHECK must fail closed");
     assert_eq!(
         error.code,
         "catalog_persistent_journal_contract_unverifiable"
@@ -65,7 +65,7 @@ fn current_v22_rejects_replaced_check_with_the_same_check_count() {
 }
 
 #[test]
-fn current_v24_rejects_quoted_schema_literal_mutations() {
+fn current_rejects_quoted_schema_literal_mutations() {
     let mutations = [
         (
             "trigger",
@@ -100,7 +100,7 @@ fn current_v24_rejects_quoted_schema_literal_mutations() {
     ];
     for (index, (object_type, name, original, replacement)) in mutations.into_iter().enumerate() {
         let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh current catalog");
+        initialize_schema(&mut connection).expect("fresh current catalog");
         let sql = connection
             .query_row(
                 "SELECT sql FROM sqlite_master WHERE type = ?1 AND name = ?2",
@@ -123,7 +123,7 @@ fn current_v24_rejects_quoted_schema_literal_mutations() {
             .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1001")
             .expect("publish controlled schema mutation");
 
-        let error = migrate_schema(&mut connection)
+        let error = initialize_schema(&mut connection)
             .expect_err("quoted schema token mutation must fail closed");
         assert_eq!(
             error.code, "catalog_persistent_journal_contract_unverifiable",

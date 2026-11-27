@@ -47,16 +47,11 @@ fn namespace_replacement_retires_unstarted_recovery_before_catalog_reopen() {
 
 #[test]
 fn namespace_replacement_legacy_repair_preserves_history_and_rejects_unrelated_damage() {
-    for version in [81, crate::adapters::sqlite_catalog::SCHEMA_VERSION] {
+    {
         let mut fixture = Fixture::new(&["retained", "unrelated"]);
         fixture.authorize("unrelated", "unrelated-inventory", 2_100);
         fixture.advance("unrelated-inventory", "unrelated", InventoryPhase::Running);
         let replaced = relocate(&mut fixture);
-        if version == 81 {
-            crate::adapters::sqlite_catalog::migrations::downgrade_to_v81_for_test(
-                &fixture.catalog.connection,
-            );
-        }
         fixture.catalog.connection.execute(
             "UPDATE library_recovery_authorities SET retired_unix_ms = NULL WHERE change_id = ?1",
             [i64::try_from(replaced.value()).unwrap()],

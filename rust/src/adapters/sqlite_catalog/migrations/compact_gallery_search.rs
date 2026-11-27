@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const DOCUMENT_COLUMN: &str = "gallery_search_id INTEGER CHECK(gallery_search_id IS NULL OR (
     typeof(gallery_search_id) = 'integer' AND gallery_search_id > 0
@@ -47,44 +47,6 @@ const OBJECTS: [(&str, &str, &str); 6] = [
     ("trigger", "gallery_search_identity", IDENTITY_TRIGGER),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 62)?;
-    transaction
-        .execute_batch(&format!(
-            "DROP TRIGGER gallery_search_insert;
-             DROP TRIGGER gallery_search_update;
-             DROP TRIGGER gallery_search_delete;
-             DROP TABLE gallery_search_terms;
-             ALTER TABLE asset_locations ADD COLUMN {DOCUMENT_COLUMN};
-             UPDATE asset_locations SET gallery_search_id = (
-               SELECT id FROM gallery_search_documents AS documents
-               WHERE documents.scan_id = asset_locations.scan_id
-                 AND documents.location_id = asset_locations.location_id
-             );"
-        ))
-        .map_err(database_error)?;
-    validate_rows(transaction)?;
-    transaction
-        .execute_batch("DROP TABLE gallery_search_documents;")
-        .map_err(database_error)?;
-    for (_, _, sql) in OBJECTS {
-        transaction.execute_batch(sql).map_err(database_error)?;
-    }
-    backfill_terms(transaction)?;
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 63; PRAGMA user_version = 63;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 63)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, sql) in OBJECTS {
         if !schema_shape::schema_object_sql_matches(connection, kind, name, sql)? {
@@ -106,15 +68,6 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     Ok(())
 }
 
-fn backfill_terms(connection: &Connection) -> Result<(), ScanError> {
-    connection
-        .execute_batch(
-            "INSERT INTO gallery_search_terms(rowid, absolute_path, relative_path)
-             SELECT gallery_search_id, absolute_path, relative_path FROM asset_locations;",
-        )
-        .map_err(database_error)
-}
-
 pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
     let missing: bool = connection
         .query_row(
@@ -134,32 +87,6 @@ fn invalid() -> ScanError {
         "catalog_search_index_invalid",
         "The catalog text search index requires its canonical identity, table and triggers",
     )
-}
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v62_for_test(connection: &Connection) {
-    super::organization_review_filters::downgrade_to_v63_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() != 63 {
-        return;
-    }
-    for (kind, name, _) in OBJECTS {
-        connection
-            .execute_batch(&format!("DROP {kind} {name}"))
-            .unwrap();
-    }
-    for (_, _, sql) in super::gallery_search::OBJECTS {
-        connection.execute_batch(sql).unwrap();
-    }
-    connection
-        .execute_batch(
-            "INSERT INTO gallery_search_documents(id, scan_id, location_id)
-           SELECT gallery_search_id, scan_id, location_id FROM asset_locations;
-         INSERT INTO gallery_search_terms(rowid, absolute_path, relative_path)
-           SELECT gallery_search_id, absolute_path, relative_path FROM asset_locations;
-         ALTER TABLE asset_locations DROP COLUMN gallery_search_id;
-         UPDATE schema_info SET version = 62; PRAGMA user_version = 62;",
-        )
-        .unwrap();
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
+use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::ScanError;
 
@@ -65,111 +65,6 @@ pub(super) fn validate_recovery_base_marker(connection: &Connection) -> Result<(
     Ok(())
 }
 
-pub(super) fn repair(connection: &mut Connection) -> Result<(), ScanError> {
-    validate_queue_authority(connection)?;
-    validate_recovery_base_marker(connection)?;
-    let (has_scan_runs, has_single_scan_owner_index, has_scan_owner, has_ownership_marker) =
-        connection
-            .query_row(
-                "SELECT
-               EXISTS(SELECT 1 FROM sqlite_master
-                 WHERE type = 'table' AND name = 'scan_runs'),
-               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
-                 WHERE name = 'scan_runs_one_active_root'
-                   AND \"unique\" = 1 AND partial = 1),
-               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
-                 WHERE name = 'scan_owner'),
-               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
-                 WHERE name = 'scan_ownership_complete')",
-                [],
-                |row| {
-                    Ok((
-                        row.get::<_, bool>(0)?,
-                        row.get::<_, bool>(1)?,
-                        row.get::<_, bool>(2)?,
-                        row.get::<_, bool>(3)?,
-                    ))
-                },
-            )
-            .map_err(database_error)?;
-    if (!has_scan_runs || has_single_scan_owner_index && has_scan_owner) && has_ownership_marker {
-        return Ok(());
-    }
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    let (has_single_scan_owner_index, has_scan_owner, has_ownership_marker) = transaction
-        .query_row(
-            "SELECT
-               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
-                 WHERE name = 'scan_runs_one_active_root'
-                   AND \"unique\" = 1 AND partial = 1),
-               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
-                 WHERE name = 'scan_owner'),
-               EXISTS(SELECT 1 FROM pragma_table_info('library_change_queue_contract')
-                 WHERE name = 'scan_ownership_complete')",
-            [],
-            |row| {
-                Ok((
-                    row.get::<_, bool>(0)?,
-                    row.get::<_, bool>(1)?,
-                    row.get::<_, bool>(2)?,
-                ))
-            },
-        )
-        .map_err(database_error)?;
-    if has_single_scan_owner_index && has_scan_owner && has_ownership_marker {
-        return transaction.commit().map_err(database_error);
-    }
-    let has_conflicting_scan = if has_scan_runs {
-        transaction
-            .query_row(
-                "SELECT EXISTS(
-                   SELECT 1 FROM scan_runs
-                   WHERE status IN ('running', 'paused')
-                   GROUP BY root_id HAVING COUNT(*) > 1
-                 )",
-                [],
-                |row| row.get::<_, bool>(0),
-            )
-            .map_err(database_error)?
-    } else {
-        false
-    };
-    if has_conflicting_scan {
-        return Err(unverifiable_recovery_contract());
-    }
-    if has_scan_runs && !has_scan_owner {
-        transaction
-            .execute_batch(
-                "ALTER TABLE scan_runs ADD COLUMN scan_owner TEXT NOT NULL DEFAULT 'foreground'
-                   CHECK(scan_owner IN ('foreground', 'authoritative_recovery'));
-                 UPDATE scan_runs SET scan_owner = 'authoritative_recovery'
-                 WHERE id LIKE 'sync-recovery-%';",
-            )
-            .map_err(database_error)?;
-    }
-    if !has_ownership_marker {
-        transaction
-            .execute_batch(
-                "ALTER TABLE library_change_queue_contract
-                   ADD COLUMN scan_ownership_complete INTEGER NOT NULL DEFAULT 1
-                   CHECK(scan_ownership_complete = 1);",
-            )
-            .map_err(database_error)?;
-    }
-    if has_scan_runs && !has_single_scan_owner_index {
-        transaction
-            .execute(
-                "CREATE UNIQUE INDEX scan_runs_one_active_root
-                 ON scan_runs(root_id) WHERE status IN ('running', 'paused')",
-                [],
-            )
-            .map_err(database_error)?;
-    }
-    transaction.commit().map_err(database_error)
-}
-
 pub(super) fn validate_queue_authority(connection: &Connection) -> Result<(), ScanError> {
     let has_contract = connection
         .query_row(
@@ -213,6 +108,3 @@ pub(super) fn unverifiable_recovery_contract() -> ScanError {
         "This prerelease schema 18 catalog cannot prove its authoritative recovery contract",
     )
 }
-
-#[cfg(test)]
-mod tests;

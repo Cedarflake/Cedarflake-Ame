@@ -31,10 +31,12 @@ MSI, portable and Store versions share their default library data. Removing the 
 those shared data; MSI removal offers an initially unchecked data-removal option. Deleting portable
 program files leaves the data in place. Catalog and cache folders selected outside the default
 location remain, as do original images. Choose custom locations in Settings → Storage.
+To choose whether to remove data, reopen the installer and select Remove. Basic system removal
+retains data.
 
-Earlier versions' data folders remain untouched and are not loaded automatically. This Alpha
-version starts directly with the common data location; normal future updates retain those shared
-data and your configured custom locations.
+This version uses the common location and current data formats. It does not automatically load
+earlier data folders or convert early Alpha formats. If a format is unsupported, the startup page
+offers diagnostic export. Normal future updates retain shared data and configured custom locations.
 
 ## Back up and recover organization
 

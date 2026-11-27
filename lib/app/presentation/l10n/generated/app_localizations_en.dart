@@ -274,7 +274,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startupUnsupportedCatalog =>
-      'This library was created with an unsupported version. Export the diagnostics for troubleshooting.';
+      'This version of Ame does not support this library\'s data format. Export the diagnostics for troubleshooting.';
 
   @override
   String get startupDatabaseError =>

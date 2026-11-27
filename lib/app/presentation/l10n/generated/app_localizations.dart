@@ -603,7 +603,7 @@ abstract class AppLocalizations {
   /// No description provided for @startupUnsupportedCatalog.
   ///
   /// In zh, this message translates to:
-  /// **'图库数据来自不受支持的版本，无法安全打开。请导出诊断信息以便排查。'**
+  /// **'当前版本不支持这份图库数据。请导出诊断信息以便排查。'**
   String get startupUnsupportedCatalog;
 
   /// No description provided for @startupDatabaseError.
