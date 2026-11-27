@@ -53,6 +53,27 @@ function Test-AmeInstallerPolicyRegressions {
         source_deletion = { param($value) $value.RemoveFile[0].FileName = '*' }
         optional_broker = { param($value) ($value.Feature | Where-Object Feature -CEQ 'Ame').Attributes = '0' }
         wrong_native_module = { param($value) $value.AdmissionHash = '0' * 64 }
+        default_data_deletion = {
+            param($value)
+            $value.Property += [pscustomobject]@{ Property = 'AME_REMOVE_USER_DATA'; Value = '1' }
+        }
+        lost_elevated_data_choice = {
+            param($value)
+            $property = $value.Property | Where-Object Property -CEQ 'SecureCustomProperties'
+            $property.Value = (($property.Value -split ';') | Where-Object { $_ -cne 'AME_REMOVE_USER_DATA' }) -join ';'
+        }
+        upgrade_data_deletion = {
+            param($value)
+            ($value.InstallExecuteSequence | Where-Object Action -CEQ 'AmeRemoveUserData').Condition = 'Installed'
+        }
+        precommit_data_deletion = {
+            param($value)
+            ($value.CustomAction | Where-Object Action -CEQ 'AmeRemoveUserData').Type = '1025'
+        }
+        system_data_deletion = {
+            param($value)
+            ($value.CustomAction | Where-Object Action -CEQ 'AmeRemoveUserData').Type = '3649'
+        }
         detached_payload = { param($value) $value.Media[0].Cabinet = 'external.cab' }
         detached_last_cabinet = { param($value) $value.Media[-1].Cabinet = 'external.cab' }
         missing_payload = { param($value) $value.Media = @() }

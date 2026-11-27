@@ -10,12 +10,15 @@ Both kinds reject new or stale dependencies. The fixed legacy inventory is never
 
 ## Application update composition
 
-`application/application_updates/production.rs::open` selects the Windows installed/portable update
-source through `ApplicationUpdateSource`. Domain SemVer/channel policy and the retained download
-controller remain engine-independent. Checks and downloads acquire no catalog or source-media handle.
+`application/application_updates/production.rs::open` selects the Store or direct Windows update
+source through `ApplicationUpdateSource` and the distribution adapter under
+[ADR 0045](../0045-microsoft-store-distribution.md). Domain SemVer/channel policy and the retained
+download controller remain engine-independent. Checks and downloads acquire no catalog or source-media handle.
 `application_update_runtime::ame_application_update_startup` is the runner's no-argument startup
-export under [ADR 0043](../0043-application-update-coordination.md). It selects the portable hook
-adapter before the single-instance lock; no other caller inherits its concrete dependency.
+export under [ADR 0043](../0043-application-update-coordination.md). The distribution adapter admits
+the portable hook only for unpackaged execution before the single-instance lock; no other caller
+inherits its concrete dependency. Store execution uses Windows-managed updates and cannot enter
+direct download or replacement.
 
 The native handoff owns a verified package lease, prepared helper and explicit commit. It waits for
 the parent to exit after joined shutdown, then invokes the admitted installer or portable engine.
@@ -133,7 +136,10 @@ move preview recovery, catalog publication or source-read authority.
 ## Storage resources and layout
 
 `storage/production.rs` selects settings through `StorageSettingsRepository`, cache capabilities
-through `PreviewCacheStorage`, and default locations through the existing OS directory provider.
+through `PreviewCacheStorage`, and shared default locations through the application-data adapter.
+`application/application_data.rs::preferences_directory` projects that same layout for desktop
+preference persistence. These exact path queries select no additional runtime policy and retain
+the shared distribution lifecycle under ADR 0045.
 The cache adapter owns versioned layout, format recognition, algorithm identity, read-only accounting,
 namespace acquisition and root preparation. Accounting does not traverse nested directories.
 `PreviewCacheDirectory` retains the original root/ancestor guards; an absent root grants no later
@@ -212,8 +218,9 @@ catalog revision, cancellation, bounded sampling and the existing prepared-plan 
 ## Classification installation resources
 
 `classification_model_installation/production.rs` selects the installation repository, pinned model
-package and OS model-storage directory. Configuration, desktop startup and installation recovery use
-the same repository and model-package contracts. Installation paths and download intent generations
+package and the model-storage directory from the same application-data adapter. Configuration,
+desktop startup and installation recovery use the same repository and model-package contracts.
+Installation paths and download intent generations
 are Ame-owned values; a token acquires authority only through the repository's current-intent checks.
 Persistence retains the immediate transaction that compares selection, completes the matching intent
 and checks cancellation before commit. Merely constructing either adapter opens no resource.

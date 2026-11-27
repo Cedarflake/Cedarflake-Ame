@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::schema_shape;
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -52,25 +52,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
     ),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection.transaction().map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 69)?;
-    for (_, _, statement) in OBJECTS {
-        transaction
-            .execute_batch(statement)
-            .map_err(database_error)?;
-    }
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 70; PRAGMA user_version = 70;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 70)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, statement) in OBJECTS {
         if !schema_shape::schema_object_sql_matches(connection, kind, name, statement)? {
@@ -81,21 +62,6 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
         }
     }
     Ok(())
-}
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v69_for_test(connection: &Connection) {
-    super::classification_maintenance::downgrade_to_v70_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() != 70 {
-        return;
-    }
-    connection
-        .execute_batch(
-            "DROP VIEW classification_prediction_projection;
-         DROP VIEW classification_human_projection;
-         UPDATE schema_info SET version = 69; PRAGMA user_version = 69;",
-        )
-        .unwrap();
 }
 
 #[cfg(test)]

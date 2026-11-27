@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-11-26
+Last planning update: 2026-11-27
 
 This file owns current stage disposition, execution order, blockers, decomposition obligations and
 exit decisions. Read the linked active plan before implementation. Product requirements, technical
@@ -80,6 +80,40 @@ and [release preparation record](acceptance/unsigned-windows-release.md#beta-1-p
 own the reproduced failure, upstream checks and retained acceptance. The
 [execution plan](plans/r10-beta-readiness.md#r10-05--beta-candidate-and-publication) owns the remaining
 candidate, packaging and publication steps. No Beta tag or release has been created.
+
+### Microsoft Store distribution
+
+MSIX distribution was integrated through [PR 76](https://github.com/Cedarflake/Cedarflake-Ame/pull/76)
+on 2026-11-27, following the
+[Store distribution plan](plans/store-msix.md) and
+[ADR 0045](architecture/0045-microsoft-store-distribution.md). Package construction, Store-managed
+updates, shared data across MSI/portable/MSIX and the MSI uninstall data-removal choice have passed
+their isolated lifecycle checks. The [acceptance record](acceptance/store-msix.md) owns exact
+artifacts, hosted verification and entry-point limits. The common directory is used
+directly; legacy-data migration and a new backup/restore feature remain outside this scope.
+MSI/portable delivery and R10-05's separate
+candidate work retain their existing scope. Store submission and publication are not yet authorized.
+The user-facing MSIX upload package will be generated with the Beta release; interim local packages
+remain verification artifacts.
+
+The selected [distribution follow-up](plans/store-msix.md#store-signed-github-release-asset) retrieves
+the matching Store-signed package after Store publication and attaches it to the same GitHub Release.
+The preparation/submission workflow and authenticated-Windows retrieval command are implemented;
+the [procedure](acceptance/quality/store-release.md) owns configuration and recovery. End-to-end
+verification awaits first Store publication, Entra submission credentials and a Windows user session
+eligible for Store downloads. The normal hosted runner cannot authenticate WinGet with submission
+client credentials. Actual submission and attachment publication remain separate release actions.
+
+### Prerelease compatibility cleanup
+
+The requested [compatibility cleanup](plans/prerelease-compatibility.md) was integrated with
+the Store MSIX delivery through PR 76. It uses current data contracts
+directly, retires obsolete Alpha migration paths and updates their messages and guidance.
+Preserve current user decisions, normal upgrade retention, source
+safety and active operational recovery. The authorized workstation relocation is a one-time local
+operation and is not a product compatibility feature. The
+[verification record](acceptance/prerelease-compatibility.md) owns the independent baseline
+comparison and retained current-format coverage.
 
 ### Diagnostics and recovery guidance
 

@@ -26,6 +26,7 @@
     <UIRef Id="AmeInstallerUI" />
     <SetProperty Id="ARPINSTALLLOCATION" Value="[AMEAPPDIR]" Before="InstallValidate" Sequence="execute" />
     <Property Id="AMEAPPDIR" Secure="yes" />
+    <Property Id="AME_REMOVE_USER_DATA" Secure="yes" />
     <Property Id="AME_PREVIOUSAPPDIR">
       <RegistrySearch Id="PreviousApplicationDirectory" Root="HKLM" Key="SOFTWARE\Cedarflake\Ame\Installer"
                       Name="InstallFolder" Type="raw" Bitness="always64" />
@@ -96,8 +97,14 @@
                  Before="AmeStartInstalledService" Sequence="execute" />
     <CustomAction Id="AmeStartInstalledService" BinaryRef="AmeInstallerAdmission"
                   DllEntry="AmeStartInstalledService" Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="AmePrepareUserDataRemoval" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmePrepareUserDataRemoval" Execute="immediate" Return="check" />
+    <CustomAction Id="AmeRemoveUserData" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeRemoveUserData" Execute="commit" Impersonate="yes" Return="ignore" />
     <InstallExecuteSequence>
       <Custom Action="AmeValidateInstallation" Before="InstallValidate" />
+      <Custom Action="AmePrepareUserDataRemoval" After="InstallValidate"
+              Condition="Installed AND REMOVE = &quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND AME_REMOVE_USER_DATA = &quot;1&quot;" />
       <Custom Action="AmeRequireRollback" Before="AmeRestorePreviousBroker"
               Condition="RollbackDisabled OR DISABLEROLLBACK" />
       <Custom Action="AmeRestorePreviousBroker" After="InstallInitialize"
@@ -106,6 +113,8 @@
       <Custom Action="AmeVerifyInstalledService" After="MsiConfigureServices" Condition="$AmeBroker = 3" />
       <Custom Action="AmeStopInstalledService" After="AmeVerifyInstalledService" Condition="$AmeBroker = 3" />
       <Custom Action="AmeStartInstalledService" After="AmeStopInstalledService" Condition="$AmeBroker = 3" />
+      <Custom Action="AmeRemoveUserData" Before="InstallFinalize"
+              Condition="Installed AND REMOVE = &quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND AME_REMOVE_USER_DATA = &quot;1&quot; AND AmeRemoveUserData" />
     </InstallExecuteSequence>
 
     <Feature Id="Ame" Title="Ame 主程序与读取助手" Description="安装 Ame，保留图库和个人设置。"

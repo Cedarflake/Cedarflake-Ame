@@ -6,10 +6,6 @@ use super::current_schema::{ContractValidationDepth, record_current_schema_row_a
 use super::database_error;
 use super::schema_shape::{cascade_foreign_key_matches, schema_version, table_columns_match};
 
-pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
-    validate_with_depth(connection, ContractValidationDepth::Full)
-}
-
 pub(super) fn validate_with_depth(
     connection: &Connection,
     depth: ContractValidationDepth,

@@ -17,7 +17,11 @@ Override inertApplicationUpdates() =>
 
 class _Service implements ApplicationUpdateService {
   @override
-  Future<bool> isSupported() async => false;
+  Future<ApplicationUpdateDelivery> delivery() async =>
+      ApplicationUpdateDelivery.unavailable;
+  @override
+  Future<void> openStore() =>
+      throw StateError("Store navigation is not part of this fixture");
   @override
   Future<ApplicationUpdateResult?> takeResult() async => null;
   @override

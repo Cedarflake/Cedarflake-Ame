@@ -81,6 +81,7 @@ class ApplicationUpdateNotices {
 }
 
 AmeLabel _failure(ApplicationUpdateFailureCode code) => switch (code) {
+  ApplicationUpdateFailureCode.store => AmeLabel.updateStoreOpenFailure,
   ApplicationUpdateFailureCode.unavailable => AmeLabel.updateUnavailable,
   ApplicationUpdateFailureCode.network => AmeLabel.updateNetworkFailure,
   ApplicationUpdateFailureCode.invalidRelease => AmeLabel.updateReleaseFailure,

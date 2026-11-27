@@ -79,27 +79,55 @@ void main() {
     },
   );
 
-  test("only shipped category names follow the display language", () {
-    LibraryClassificationCategory category(String id, String label) =>
-        LibraryClassificationCategory(
-          id: id,
-          label: label,
-          descriptions: const ["model input"],
-        );
-    final original = category("illustration", "插画");
-    expect(libraryCategoryLabel(english, original), "Illustration");
-    expect(libraryCategoryLabel(chinese, original), "插画");
-    expect(libraryCategoryLabel(japanese, original), "イラスト");
-    expect(
-      libraryCategoryLabel(japanese, category("illustration", "うちの猫")),
-      "うちの猫",
+  test("automatic category names follow the active language by stable ID", () {
+    final categories = <(String, String Function(AppLocalizations))>[
+      ("illustration", (strings) => strings.categoryIllustration),
+      ("comic", (strings) => strings.categoryComic),
+      ("meme", (strings) => strings.categoryMeme),
+      ("screenshot", (strings) => strings.categoryScreenshot),
+      ("photo", (strings) => strings.categoryPhoto),
+      ("other", (strings) => strings.categoryOther),
+      (
+        "b3642c574eec3080310e55f0847cf59db9a5f76a5f98b6be2aa8749e4573a15e",
+        (strings) => strings.categoryFoodPhoto,
+      ),
+      (
+        "aeb8eeab8b8a3926a244a892ea22a910f2869c6cf773619d7b1351424c6510ab",
+        (strings) => strings.categoryCoastPhoto,
+      ),
+      (
+        "a284ea94060ab180bca6779062194ffd6c99ca7e9443e53c1019c042455f8808",
+        (strings) => strings.categoryCoastIllustration,
+      ),
+      (
+        "951e57580a2a7562cdf95539d06ebb93f09ba39bcffd91950a037a1da1528641",
+        (strings) => strings.categoryFlowersPhoto,
+      ),
+    ];
+    for (final (id, localized) in categories) {
+      final category = LibraryClassificationCategory(
+        id: id,
+        label: "Catalog label",
+        descriptions: const ["model input"],
+      );
+      for (final strings in [chinese, english, japanese]) {
+        expect(libraryCategoryLabel(strings, category), localized(strings));
+      }
+      expect(category.id, id);
+      expect(category.label, "Catalog label");
+      expect(category.descriptions, ["model input"]);
+    }
+  });
+
+  test("unknown category IDs retain the returned label in every language", () {
+    const category = LibraryClassificationCategory(
+      id: "unknown-category",
+      label: "花草",
+      descriptions: ["model input"],
     );
-    expect(
-      libraryCategoryLabel(english, category("illustration", "我的插画")),
-      "我的插画",
-    );
-    expect(libraryCategoryLabel(english, category("discovered-1", "插画")), "插画");
-    expect(original.descriptions, ["model input"]);
+    for (final strings in [chinese, english, japanese]) {
+      expect(libraryCategoryLabel(strings, category), category.label);
+    }
   });
 
   test("a scan admission error is displayed in the active language", () {

@@ -14,7 +14,8 @@ dialog translation and an external translation service have separate owners.
    file operations, confirmations, notifications, tooltips and accessibility labels. Format quantities
    and dates for the active language. Preserve navigation, selection, ongoing tasks, file paths,
    source and user-entered names. Render recorded events and their actions in the selected language.
-3. Translate built-in category display names while retaining user renames and discovered names.
+3. Translate all application-managed smart-album names by stable category ID, including the broad
+   purposes and supported curated topic/purpose pairs. Smart albums have no rename action.
    Preserve classification identities, model inputs, semantic revisions and existing results.
 4. Generate and check all shipped catalogs in the existing static gate. Verify matching keys and arguments,
    complete supported languages and the absence of stray fixed copy in migrated application surfaces.
@@ -40,8 +41,9 @@ dialog translation and an external translation service have separate owners.
 - Translated labels and values have visible separation, common columns remain aligned, and actions
   stay reachable at 150% text. A preview notification without a recovery action can be acknowledged;
   transient outcomes disappear through their existing five-second owner.
-- Default category names follow the language. A saved custom name, a file path and a user album name
-  retain their exact spelling. Switching languages performs no catalog writes or model analysis.
+- Automatic smart-album names follow the language by stable ID; an unknown ID displays its returned
+  label. File paths and user album names retain their exact spelling. Switching languages performs
+  no catalog writes or model analysis.
 - Verify the desktop language workflow in all three languages with disposable data, inspect
   applicable exact-revision CI and record any outstanding evidence before accepting delivery.
 

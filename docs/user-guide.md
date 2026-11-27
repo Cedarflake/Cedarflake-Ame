@@ -26,6 +26,18 @@ Beta and RC releases. If the update fails, use the action in its feedback or dow
 the [release page](https://github.com/Cedarflake/Cedarflake-Ame/releases). For manual updates, close Ame,
 run the newer MSI or extract the entire portable ZIP into a new folder and launch it.
 
+The Microsoft Store version uses Store-managed updates. Settings → About opens its Store page.
+MSI, portable and Store versions share their default library data. Removing the Store version clears
+those shared data; MSI removal offers an initially unchecked data-removal option. Deleting portable
+program files leaves the data in place. Catalog and cache folders selected outside the default
+location remain, as do original images. Choose custom locations in Settings → Storage.
+To choose whether to remove data, reopen the installer and select Remove. Basic system removal
+retains data.
+
+This version uses the common location and current data formats. It does not automatically load
+earlier data folders or convert early Alpha formats. If a format is unsupported, the startup page
+offers diagnostic export. Normal future updates retain shared data and configured custom locations.
+
 ## Back up and recover organization
 
 Settings → Organization records → Export saves favorites, albums and review decisions. Keep that file

@@ -88,6 +88,58 @@ void main() {
     },
   );
 
+  for (final letters in [
+    const ["A", "Z"],
+    const ["Z", "A"],
+  ]) {
+    testWidgets("${letters.first} first aligns with the padded gallery start", (
+      tester,
+    ) async {
+      final buckets = projection(
+        [
+          LibraryScrollSection(
+            kind: LibraryScrollSectionKind.name,
+            key: letters.first,
+            startOrdinal: 0,
+            itemCount: 3,
+          ),
+          LibraryScrollSection(
+            kind: LibraryScrollSectionKind.name,
+            key: letters.last,
+            startOrdinal: 3,
+            itemCount: 1,
+          ),
+        ],
+        itemOffsets: const [18, 218, 218, 718],
+      ).buckets(testChinese, 800);
+      expect(buckets.map((bucket) => bucket.scrollOffset), [0, 718]);
+      expect(buckets.first.contentExtent, 718);
+      for (final value in [0.0, 1.0]) {
+        await tester.pumpWidget(
+          LocalizedTestApp(
+            home: Scaffold(
+              body: AnnotatedTimeRail(
+                value: value,
+                buckets: buckets,
+                maximumScrollOffset: 800,
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final marker = value == 0
+            ? ValueKey("time-marker-sort-${letters.first}")
+            : const Key("timeline-end-marker");
+        expect(
+          tester.getCenter(find.byKey(const Key("timeline-current-line"))).dy,
+          closeTo(tester.getCenter(find.byKey(marker)).dy, 0.001),
+        );
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets("new-arrival highlight ends at the first earlier row", (
     tester,
   ) async {

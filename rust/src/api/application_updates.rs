@@ -1,7 +1,7 @@
 use crate::application::application_updates::{ApplicationUpdateDownload, ApplicationUpdates};
 use crate::domain::application_update::{
     ApplicationDownloadProgress, ApplicationRelease, ApplicationUpdateChannel,
-    ApplicationUpdateError,
+    ApplicationUpdateDelivery, ApplicationUpdateError,
 };
 
 #[flutter_rust_bridge::frb(opaque)]
@@ -33,8 +33,11 @@ impl DesktopApplicationUpdates {
         self.inner.take_result()
     }
     #[flutter_rust_bridge::frb(sync)]
-    pub fn is_supported(&self) -> Result<bool, ApplicationUpdateError> {
-        self.inner.is_supported()
+    pub fn delivery(&self) -> ApplicationUpdateDelivery {
+        self.inner.delivery()
+    }
+    pub fn open_store(&self) -> Result<(), ApplicationUpdateError> {
+        self.inner.open_store()
     }
     pub fn check(
         &self,

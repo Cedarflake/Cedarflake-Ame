@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -49,31 +49,6 @@ const OBJECTS: &[(&str, &str, &str)] = &[
     ),
 ];
 
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 57)?;
-    for (_, _, ddl) in OBJECTS {
-        transaction.execute_batch(ddl).map_err(database_error)?;
-    }
-    transaction
-        .execute_batch(
-            "INSERT INTO library_sidebar_root_order
-               SELECT id, ROW_NUMBER() OVER(ORDER BY created_unix_ms, id) - 1 FROM library_roots;
-             INSERT INTO organization_sidebar_album_order
-               SELECT album_id, ROW_NUMBER() OVER(ORDER BY album_id) - 1 FROM organization_albums;
-             UPDATE schema_info SET version = 58; PRAGMA user_version = 58;",
-        )
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 58)
-}
-
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (kind, name, ddl) in OBJECTS {
         if !schema_shape::schema_object_sql_matches(connection, kind, name, ddl)? {
@@ -112,21 +87,3 @@ fn invalid() -> ScanError {
         "Sidebar ordering requires complete, distinct positions for its items",
     )
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v57_for_test(connection: &Connection) {
-    super::preferred_copy_index::downgrade_to_v58_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 58 {
-        for (kind, name, _) in OBJECTS.iter().rev() {
-            connection
-                .execute_batch(&format!("DROP {kind} {name}"))
-                .unwrap();
-        }
-        connection
-            .execute_batch("UPDATE schema_info SET version = 57; PRAGMA user_version = 57;")
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests;

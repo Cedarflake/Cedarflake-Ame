@@ -4,7 +4,7 @@
 
 Ame 是一款在本地浏览、搜索和整理大量图片的 Windows 应用。把平时存放图片的文件夹添加到图库，就可以查找重复或相似的图片，用收藏和相册整理它们，也可以直接管理文件。
 
-![Ame 的 Windows 图库界面，左侧是文件夹导航，中间是图片墙，右侧是日期时间轴](docs/images/ame-gallery.png)
+![Ame 的图库、图片查看、搜索、相册、重复分组和文件整理界面](docs/images/ame-showcase.webp)
 
 ## 下载
 
@@ -57,3 +57,4 @@ flutter run -d windows
 除另有说明外，Cedarflake Ame 使用 [Apache 许可证 2.0](LICENSE)（`Apache-2.0`）。第三方代码、依赖项、模型权重和资源各自适用其原有的许可证和声明。
 
 使用条款见[最终用户许可协议](EULA.md)（英文）。
+信息处理方式见[隐私声明](PRIVACY.md)（英文）。

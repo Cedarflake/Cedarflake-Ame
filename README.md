@@ -6,7 +6,7 @@ Ame is a local-first Windows app for browsing, searching, and organizing large i
 Add the folders you already use, find duplicates and similar images, and organize your collection
 with favorites, albums, or file operations.
 
-![Ame's Windows gallery with image cards, folder navigation, and a date timeline](docs/images/ame-gallery.png)
+![Ame gallery, image viewer, search, albums, duplicate groups, and file organization](docs/images/ame-showcase.webp)
 
 ## Download
 
@@ -95,3 +95,4 @@ Except where otherwise noted, Cedarflake Ame is licensed under the
 Third-party code, dependencies, model weights, and resources retain their own licenses and notices.
 
 End-user terms are described in [EULA.md](EULA.md).
+Information handling is described in the [Privacy Statement](PRIVACY.md).

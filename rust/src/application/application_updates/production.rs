@@ -7,9 +7,7 @@ pub(super) fn open(
 ) -> Result<Box<dyn ApplicationUpdateSource>, ApplicationUpdateError> {
     #[cfg(windows)]
     {
-        Ok(Box::new(
-            crate::adapters::application_updates::WindowsApplicationUpdates::new(version, build)?,
-        ))
+        crate::adapters::application_updates::open(version, build)
     }
     #[cfg(not(windows))]
     {

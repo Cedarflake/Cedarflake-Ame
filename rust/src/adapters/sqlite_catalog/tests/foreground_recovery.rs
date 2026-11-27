@@ -1,6 +1,6 @@
 use crate::adapters::sqlite_catalog::tests::support::{
-    fixture_request, migrate_v29_ambiguous_gap_fixture, publication_identity,
-    seed_current_explicit_recovery_claim,
+    fixture_request, publication_identity, seed_current_explicit_recovery_claim,
+    seed_explicit_recovery_fixture,
 };
 
 use tempfile::tempdir;
@@ -83,8 +83,9 @@ fn explicit_recovery_claim_is_consumed_only_by_its_foreground_scan_publication()
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "explicit-publication-root";
     let root_path = "C:\\ExplicitPublication";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
-    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    seed_explicit_recovery_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("open explicit recovery fixture");
     let request = fixture_request("explicit-publication-scan", root_path);
     catalog
         .begin_scan_with_publication_namespace(
@@ -312,8 +313,9 @@ fn reopening_an_interrupted_explicit_recovery_scan_restores_the_claim_atomically
     let catalog_path = directory.path().join("catalog.sqlite3");
     let root_id = "explicit-crash-root";
     let root_path = "C:\\ExplicitCrash";
-    migrate_v29_ambiguous_gap_fixture(&catalog_path, root_id, root_path, false);
-    let mut catalog = SqliteCatalog::open(catalog_path.clone()).expect("migrate ambiguous v29 gap");
+    seed_explicit_recovery_fixture(&catalog_path, root_id, root_path, false);
+    let mut catalog =
+        SqliteCatalog::open(catalog_path.clone()).expect("open explicit recovery fixture");
     let request = fixture_request("explicit-crash-scan", root_path);
     catalog
         .begin_scan_with_publication_namespace(

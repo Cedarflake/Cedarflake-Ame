@@ -1,11 +1,11 @@
 use rusqlite::Connection;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 #[test]
-fn current_v25_rejects_weakened_lane_constraint_and_missing_lane_rows() {
+fn current_rejects_weakened_lane_constraint_and_missing_lane_rows() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     let original = connection
         .query_row(
             "SELECT sql FROM sqlite_master
@@ -34,11 +34,11 @@ fn current_v25_rejects_weakened_lane_constraint_and_missing_lane_rows() {
         .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1002")
         .expect("publish controlled schema mutation");
 
-    let error = migrate_schema(&mut connection).expect_err("weakened v25 CHECK must fail");
+    let error = initialize_schema(&mut connection).expect_err("weakened v25 CHECK must fail");
     assert_eq!(error.code, "catalog_change_lane_contract_unverifiable");
 
     let mut connection = Connection::open_in_memory().expect("second catalog");
-    migrate_schema(&mut connection).expect("fresh current catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_change_queue(
@@ -54,6 +54,6 @@ fn current_v25_rejects_weakened_lane_constraint_and_missing_lane_rows() {
              DELETE FROM library_change_queue_lanes WHERE change_id = 201;",
         )
         .expect("missing lane fixture");
-    let error = migrate_schema(&mut connection).expect_err("missing lane row must fail");
+    let error = initialize_schema(&mut connection).expect_err("missing lane row must fail");
     assert_eq!(error.code, "catalog_change_lane_contract_unverifiable");
 }

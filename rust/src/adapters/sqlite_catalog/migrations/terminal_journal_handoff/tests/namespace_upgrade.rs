@@ -1,7 +1,6 @@
 use crate::adapters::sqlite_catalog::change_queue::{
     activate_root_change_queue, retire_root_change_queue,
 };
-use crate::adapters::sqlite_catalog::migrations::{SCHEMA_VERSION, downgrade_to_v81_for_test};
 use crate::domain::{
     LibraryChangeId, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
     LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRecoveryAuthority,
@@ -83,13 +82,10 @@ fn replace_unstarted_namespace(fixture: &mut RecoveryFixture) -> LibraryChangeId
 
 #[test]
 fn namespace_and_journal_repairs_commit_together_before_upgrade() {
-    for version in [81, SCHEMA_VERSION] {
+    {
         let mut fixture = RecoveryFixture::new();
         let replaced = replace_unstarted_namespace(&mut fixture);
         fixture.retain_legacy_completion();
-        if version == 81 {
-            downgrade_to_v81_for_test(&fixture.catalog.connection);
-        }
         let original = fixture
             .catalog
             .load_metadata_inventory_recovery_authority(replaced)

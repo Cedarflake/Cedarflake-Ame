@@ -96,6 +96,46 @@ void main() {
       GalleryThumbnailSize.small,
     );
     expect(preferenceStore.saved.last.sortKey, LibraryGallerySortKey.fileName);
+    expect(
+      preferenceStore.saved.last.sortDirection,
+      LibraryGallerySortDirection.ascending,
+    );
+    expect(
+      catalog.loadQueries.last.sortDirection,
+      LibraryGallerySortDirection.ascending,
+    );
+
+    for (final choice in [testChinese.descending, testChinese.fileName]) {
+      await tester.tap(find.byKey(const Key("library-sort-menu")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(choice).last);
+      await tester.pumpAndSettle();
+      expect(
+        preferenceStore.saved.last.sortDirection,
+        LibraryGallerySortDirection.descending,
+      );
+    }
+
+    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(testChinese.ascending));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("library-sort-menu")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(testChinese.captureDate));
+    await tester.pumpAndSettle();
+    expect(
+      preferenceStore.saved.last.sortKey,
+      LibraryGallerySortKey.captureTime,
+    );
+    expect(
+      preferenceStore.saved.last.sortDirection,
+      LibraryGallerySortDirection.descending,
+    );
+    expect(
+      catalog.loadQueries.last.sortDirection,
+      LibraryGallerySortDirection.descending,
+    );
   });
 }
 

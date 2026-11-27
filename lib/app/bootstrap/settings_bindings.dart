@@ -1,4 +1,5 @@
 import "package:flutter_riverpod/misc.dart";
+import "package:shared_preferences/shared_preferences.dart";
 
 import "../../features/library/application/ports/library_view_preference_store.dart";
 import "../../features/settings/adapters/platform/organization_archive_picker.dart";
@@ -18,8 +19,10 @@ class AmePreferenceStores {
     required this.window,
   });
 
-  factory AmePreferenceStores.production() {
-    final store = SharedPreferencesAmeStore();
+  factory AmePreferenceStores.production({
+    SharedPreferencesAsync? preferences,
+  }) {
+    final store = SharedPreferencesAmeStore(preferences: preferences);
     return AmePreferenceStores(
       application: store,
       library: store,

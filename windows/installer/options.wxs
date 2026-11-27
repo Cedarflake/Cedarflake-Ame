@@ -5,7 +5,33 @@
                  Condition="&amp;AmeStartMenuFeature = 3" />
     <SetProperty Id="AmeDesktopChoice" Value="1" Before="AmeInstallOptionsDlg" Sequence="ui"
                  Condition="&amp;AmeDesktopFeature = 3" />
+    <SetProperty Id="WixUI_InstallMode" Value="Remove" Before="AmeRemoveOptionsDlg" Sequence="ui"
+                 Condition="Installed AND REMOVE = &quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
     <UI>
+      <Dialog Id="AmeRemoveOptionsDlg" Width="370" Height="270" Title="卸载 Ame">
+        <Control Id="RemoveData" Type="CheckBox" X="20" Y="102" Width="330" Height="20"
+                 Property="AME_REMOVE_USER_DATA" CheckBoxValue="1" Text="删除 Ame 数据(&amp;D)" />
+        <Control Id="Back" Type="PushButton" X="156" Y="243" Width="56" Height="17"
+                 Text="&lt; 上一步(&amp;B)" DisableCondition="REMOVE = &quot;ALL&quot;">
+          <Publish Event="NewDialog" Value="MaintenanceTypeDlg" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="218" Y="243" Width="74" Height="17"
+                 Default="yes" Text="下一步(&amp;N) &gt;">
+          <Publish Property="AmeRemoveOptionsShown" Value="1" Order="1" />
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="2" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17"
+                 Cancel="yes" Text="取消(&amp;C)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+        <Control Id="Title" Type="Text" X="20" Y="18" Width="330" Height="25"
+                 NoPrefix="yes" Text="{\WixUI_Font_Bigger}卸载 Ame" />
+        <Control Id="Description" Type="Text" X="20" Y="50" Width="330" Height="34"
+                 NoPrefix="yes" Text="卸载程序后，默认保留图库和个人设置。" />
+        <Control Id="DataScope" Type="Text" X="35" Y="132" Width="315" Height="72"
+                 NoPrefix="yes" Text="勾选后将删除当前账户默认位置中的图库记录、设置、缓存和已下载模型。默认位置外的自选目录和原图片会保留。MSI、便携版和 Microsoft Store 版共用默认数据。" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+      </Dialog>
       <Dialog Id="AmeInstallOptionsDlg" Width="370" Height="270" Title="安装 Ame">
         <Control Id="InstallPath" Type="PathEdit" X="20" Y="105" Width="266" Height="18"
                  Property="AMEAPPDIR" />
@@ -46,6 +72,8 @@
       </Dialog>
       <InstallUISequence>
         <Show Dialog="AmeInstallOptionsDlg" Before="ProgressDlg" Condition="NOT Installed" />
+        <Show Dialog="AmeRemoveOptionsDlg" After="AmeInstallOptionsDlg"
+              Condition="Installed AND REMOVE = &quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND NOT AmeRemoveOptionsShown" />
       </InstallUISequence>
     </UI>
   </Fragment>

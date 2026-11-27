@@ -32,6 +32,8 @@ function Get-AmeReleaseReuseStage {
 function Test-AmeReleaseToolingPath {
     param([string]$Path)
 
+    if ($Path -cmatch '^tool/release_(store_[^/]+|prepare_store|submit_store|retrieve_store|test_store|msix_[^/]+|test_msix_payload)\.ps1$' -or
+        $Path -ceq '.github/workflows/release_store_windows.yml') { return $true }
     return $Path -cmatch '^tool/release_(reuse_[^/]+|prepare_reuse|validate_reuse|test_reuse|test_tooling|package_[^/]+|installer_[^/]+|prepare_installer_[^/]+|prepare_update_[^/]+|update_[^/]+|portable_[^/]+|verify_portable_[^/]+|test_portable_[^/]+|test_update_[^/]+|test_windows_publication[^/]*)\.ps1$' -or
         $Path -cmatch '^tool/patches/velopack-[^/]+\.patch$' -or
         $Path -cmatch '^\.github/workflows/release_(candidate_windows|package_windows|publish_windows|verify_published|tooling_checks)\.yml$' -or

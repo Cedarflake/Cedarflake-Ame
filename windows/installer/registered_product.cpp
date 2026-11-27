@@ -113,7 +113,7 @@ std::optional<RegisteredProduct> ReadRegisteredProduct() {
   wchar_t other_product[39]{};
   const UINT other = MsiEnumRelatedProductsW(AME_OTHER_UPGRADE_CODE, 0, 0, other_product);
   if (other == ERROR_SUCCESS) {
-    throw std::runtime_error("Uninstall the other architecture of Cedarflake Ame before switching. Your library is retained.");
+    throw std::runtime_error("Uninstall the other architecture of Cedarflake Ame before switching. Leave data removal unchecked to retain your library.");
   }
   if (other != ERROR_NO_MORE_ITEMS) {
     throw std::runtime_error("Cannot check the other architecture's product registration");

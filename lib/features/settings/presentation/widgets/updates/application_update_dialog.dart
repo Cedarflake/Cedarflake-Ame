@@ -84,6 +84,8 @@ class ApplicationUpdateDialog extends StatelessWidget {
             ],
             if (state.failure case final failure?)
               AmeDialogError(updateFailureLabel(strings, failure))
+            else if (state.storeManaged)
+              Text(strings.updateStoreManaged)
             else if (!state.supported && !checking)
               Text(strings.updateUnavailable)
             else if (phase == ApplicationUpdatePhase.current)
@@ -107,7 +109,12 @@ class ApplicationUpdateDialog extends StatelessWidget {
             onPressed: () => Navigator.of(context).pop(),
             child: Text(release == null ? strings.close : strings.updateLater),
           ),
-          if (transferring)
+          if (state.storeManaged)
+            FilledButton(
+              onPressed: () => unawaited(controller.openStore()),
+              child: Text(strings.updateOpenStore),
+            )
+          else if (transferring)
             TextButton(
               onPressed: phase == ApplicationUpdatePhase.stopping
                   ? null

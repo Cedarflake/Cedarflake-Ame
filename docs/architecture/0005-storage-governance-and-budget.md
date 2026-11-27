@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-10-30
+- Last updated: 2026-11-27
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -26,8 +26,11 @@ must never erase dimensions or move the viewport.
 
 ### Storage control plane
 
-- A small SQLite settings database remains at the operating-system configuration location. It
+- A small SQLite settings database remains at the application configuration location. It
   stores the configured catalog file, versioned preview-cache root, and preview byte budget.
+  [ADR 0045](0045-microsoft-store-distribution.md#default-data-preparation) owns the shared Windows
+  default layout and startup path resolution. Earlier default directories are not imported. Custom
+  storage selection continues to follow this decision's existing controls.
 - Active storage is resolved once per process. Saving a changed location or budget does not change
   paths used by the running process; the UI reports that a restart is required.
 - Ame creates target storage directories only after validating the complete update. Catalog and

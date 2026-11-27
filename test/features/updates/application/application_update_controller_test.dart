@@ -217,7 +217,11 @@ class _Service implements ApplicationUpdateService {
   final started = Completer<void>();
 
   @override
-  Future<bool> isSupported() async => true;
+  Future<ApplicationUpdateDelivery> delivery() async =>
+      ApplicationUpdateDelivery.direct;
+  @override
+  Future<void> openStore() =>
+      throw StateError("Store navigation is not part of this fixture");
 
   @override
   Future<ApplicationUpdateResult?> takeResult() async => null;

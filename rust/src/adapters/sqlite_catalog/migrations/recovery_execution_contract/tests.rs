@@ -5,14 +5,14 @@ use super::super::recovery_test_catalog::{
 };
 
 #[test]
-fn current_v27_reopens_a_legal_restart_safe_inventory_frontier() {
+fn current_reopens_a_legal_restart_safe_inventory_frontier() {
     let catalog = active_frontier_catalog();
 
     reopen_recovery_lifecycle_catalog(&catalog).expect("reopen legal active frontier");
 }
 
 #[test]
-fn current_v27_rejects_an_active_run_that_lost_its_frontier_on_reopen() {
+fn current_rejects_an_active_run_that_lost_its_frontier_on_reopen() {
     let catalog = active_frontier_catalog();
     let connection = Connection::open(catalog.path()).expect("mutate active frontier");
     connection
@@ -29,7 +29,7 @@ fn current_v27_rejects_an_active_run_that_lost_its_frontier_on_reopen() {
 }
 
 #[test]
-fn current_v27_rejects_a_frontier_ordinal_gap_on_reopen() {
+fn current_rejects_a_frontier_ordinal_gap_on_reopen() {
     let catalog = active_frontier_catalog();
     let connection = Connection::open(catalog.path()).expect("mutate frontier ordinal");
     connection
@@ -50,7 +50,7 @@ fn current_v27_rejects_a_frontier_ordinal_gap_on_reopen() {
 }
 
 #[test]
-fn current_v27_rejects_a_pending_frontier_without_its_staged_directory() {
+fn current_rejects_a_pending_frontier_without_its_staged_directory() {
     let catalog = active_frontier_catalog();
     let connection = Connection::open(catalog.path()).expect("mutate pending frontier");
     connection
@@ -77,7 +77,7 @@ fn current_v27_rejects_a_pending_frontier_without_its_staged_directory() {
 }
 
 #[test]
-fn current_v27_rejects_a_running_frontier_marked_completed_on_reopen() {
+fn current_rejects_a_running_frontier_marked_completed_on_reopen() {
     let catalog = active_frontier_catalog();
     let connection = Connection::open(catalog.path()).expect("mutate frontier state");
     connection

@@ -109,7 +109,7 @@
       ]
     },
     "storage-composition": {
-      "responsibility": "Select settings persistence, preview-cache capabilities and OS default locations",
+      "responsibility": "Select settings persistence, preview-cache capabilities and shared application-data locations",
       "reason": "Only these factories select native implementations; application retains validation, transition admission, budgets and activation policy.",
       "lifetime": "Settings callers own the original connection scope; cleanup and recovery retain observed namespace guards through completion, while default-path selection acquires no resource.",
       "replacement": "Replace the settings/cache ports and OS directory selection without changing restart policy, overlap checks or pending-root retirement.",
@@ -352,7 +352,7 @@
       ]
     },
     "application-update-composition": {
-      "responsibility": "Select the packaged Windows update source and initialize portable startup before the desktop single-instance lock",
+      "responsibility": "Select Store or direct Windows updates and admit unpackaged portable startup before the desktop single-instance lock",
       "reason": "Only these composition entrypoints select native engines; release policy, retained download state and joined restart remain behind Ame ports.",
       "lifetime": "One source per process and one bounded download; the explicit restart retains the verified handoff until the original process exits.",
       "replacement": "Replace the Windows update adapter and distribution tooling together while preserving source-free checks, package integrity and joined shutdown.",
@@ -360,6 +360,7 @@
       "coverage": [
         "rust/src/domain/application_update/tests.rs",
         "rust/src/adapters/application_updates/package/tests.rs",
+        "rust/src/adapters/application_updates/distribution.rs",
         "windows/updater/tests/handoff_test.cpp"
       ]
     }
@@ -701,8 +702,18 @@
       "dependency": {
         "source": "rust/src/application/storage/production.rs",
         "symbol": "crate::application::storage::production::default_storage",
-        "target": "directories::ProjectDirs::from",
-        "rule": "external-engine"
+        "target": "crate::adapters::application_data::directories::directories",
+        "rule": "concrete-adapter"
+      }
+    },
+    {
+      "id": "application-preferences-directory",
+      "owner": "storage-composition",
+      "dependency": {
+        "source": "rust/src/application/application_data.rs",
+        "symbol": "crate::application::application_data::preferences_directory",
+        "target": "crate::adapters::application_data::directories::directories",
+        "rule": "concrete-adapter"
       }
     },
     {
@@ -901,8 +912,8 @@
       "dependency": {
         "source": "rust/src/application/classification_model_installation/production.rs",
         "symbol": "crate::application::classification_model_installation::production::model_storage",
-        "target": "directories::ProjectDirs::from",
-        "rule": "external-engine"
+        "target": "crate::adapters::application_data::directories::directories",
+        "rule": "concrete-adapter"
       }
     },
     {
@@ -1321,7 +1332,7 @@
       "dependency": {
         "symbol": "crate::application::application_updates::production::open",
         "rule": "concrete-adapter",
-        "target": "crate::adapters::application_updates::WindowsApplicationUpdates",
+        "target": "crate::adapters::application_updates::distribution::open",
         "source": "rust/src/application/application_updates/production.rs"
       }
     },
@@ -1331,7 +1342,7 @@
       "dependency": {
         "symbol": "crate::application_update_runtime::ame_application_update_startup",
         "rule": "concrete-adapter",
-        "target": "crate::adapters::application_updates::portable::startup",
+        "target": "crate::adapters::application_updates::distribution::startup",
         "source": "rust/src/application_update_runtime.rs"
       }
     }

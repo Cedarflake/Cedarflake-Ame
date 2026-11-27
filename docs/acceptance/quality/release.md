@@ -52,6 +52,8 @@ before publishing it. A failed upload leaves a new release in draft. Existing ma
 are retained; conflicting attachments are never overwritten.
 
 The [command reference](commands.md#repository-command-reference) retains local installer commands.
+A separate [Store release procedure](store-release.md) owns MSIX preparation, submission and
+authenticated retrieval of Store-signed attachments after publication.
 A supplemental installer uses the same verified candidate source and payload, actual installer
 checks and a retained receipt; it must preserve existing assets and the version tag. Candidate
 runtime results remain reusable for identical bytes.

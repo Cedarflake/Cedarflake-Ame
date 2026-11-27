@@ -26,11 +26,21 @@ with its arguments. Resolve the text when displaying it so an existing entry fol
 switch. Use stable IDs for actions and Rust error codes for localized recovery guidance.
 Keep the original diagnostic available in technical details.
 
-Preserve filenames, paths, metadata and user-entered names verbatim. For built-in categories,
-translate the [shipped label](../../lib/features/library/presentation/library_category_label.dart)
-only while the category still has its original ID and default name. Preserve renamed and
-discovered labels. Model descriptions are classification inputs and affect the semantic revision.
-Keep them outside the translation catalogs.
+Preserve filenames, paths, metadata and user-entered album names verbatim. Automatic smart-album
+names follow the active language through their stable category IDs in the
+[display-label resolver](../../lib/features/library/presentation/library_category_label.dart).
+This covers the six broad purposes and every supported topic/purpose pair in the
+[curated catalog](../../resources/classification/curated-topics.json). Smart albums are
+application-managed and have no rename action. An unknown category ID displays its returned label.
+
+Keep the static display-ID mapping aligned with the curated catalog. Its concept IDs come from
+[`resource::identity`](../../rust/src/adapters/classification_vocabulary/resource.rs), using
+`ame.managed-naming-context` and `topic-<topic ID>`; the category IDs then come from
+[`managed_category_identity`](../../rust/src/domain/classification/maintenance.rs) with the declared
+purpose ID. Generate these values from the existing identity rules rather than reimplementing
+hashing in the UI. Keep complete translated names in ARB. Do not translate the classification
+resources in place: their labels, purpose names and comparison descriptions participate in
+classification revisions. Switching display language performs no catalog writes or model analysis.
 
 ## Language tags and new languages
 

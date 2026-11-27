@@ -1,8 +1,8 @@
-use rusqlite::{Connection, Transaction};
+use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
+use super::{database_error, schema_shape};
 
 const OBJECTS: &[(&str, &str)] = &[
     (
@@ -23,29 +23,6 @@ const OBJECTS: &[(&str, &str)] = &[
     ) STRICT",
     ),
 ];
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection.transaction().map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 66)?;
-    for (_, statement) in OBJECTS {
-        transaction
-            .execute_batch(statement)
-            .map_err(database_error)?;
-    }
-    transaction
-        .execute_batch(
-            "INSERT INTO classification_dispatch_admission(singleton, backlog_ceiling, arrival_cursor)
-             SELECT 1, next_source_generation - 1, next_source_generation - 1 FROM catalog_state;
-         UPDATE schema_info SET version = 67; PRAGMA user_version = 67;",
-        )
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 67)
-}
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     for (name, statement) in OBJECTS {
@@ -79,22 +56,6 @@ fn invalid() -> ScanError {
         "classification_setup_invalid",
         "Classification setup or source admission records are inconsistent",
     )
-}
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v66_for_test(connection: &Connection) {
-    super::classification_availability::downgrade_to_v67_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() != 67 {
-        return;
-    }
-    for (name, _) in OBJECTS.iter().rev() {
-        connection
-            .execute_batch(&format!("DROP TABLE {name}"))
-            .unwrap();
-    }
-    connection
-        .execute_batch("UPDATE schema_info SET version = 66; PRAGMA user_version = 66;")
-        .unwrap();
 }
 
 #[cfg(test)]

@@ -157,7 +157,9 @@ The compact sort action opens two independent choice groups:
 升序 | 降序
 ```
 
-The initial default is `拍摄日期 + 降序`. A capture-time sort keeps missing evidence in an explicit
+The initial default is `拍摄日期 + 降序`. Selecting Name starts in ascending order; selecting a
+date source starts with newest first. Reselecting the active source preserves its manually chosen
+direction. A capture-time sort keeps missing evidence in an explicit
 unknown section rather than substituting another timestamp. Date headers use the selected date
 source. Name sorting uses letter annotations on the shared scroll rail and omits date headers.
 

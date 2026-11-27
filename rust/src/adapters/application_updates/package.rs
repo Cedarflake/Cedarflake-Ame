@@ -151,9 +151,9 @@ pub(super) fn cancelled(
 }
 
 pub(super) fn cache_directory() -> Result<PathBuf, ApplicationUpdateError> {
-    directories::ProjectDirs::from("com", "Cedarflake", "Ame")
-        .map(|dirs| dirs.cache_dir().join("application-updates"))
-        .ok_or_else(|| storage("User cache directory is unavailable"))
+    super::super::application_data::directories()
+        .map(|dirs| dirs.cache.join("application-updates"))
+        .map_err(|error| storage(error.message))
 }
 
 pub(super) fn reject_reparse(path: &Path) -> Result<(), ApplicationUpdateError> {

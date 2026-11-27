@@ -66,6 +66,8 @@ class ApplicationRelease {
 
 enum ApplicationUpdateChannel { stable, preview }
 
+enum ApplicationUpdateDelivery { unavailable, direct, microsoftStore }
+
 class ApplicationUpdateError implements FrbException {
   final ApplicationUpdateFailureCode code;
   final String diagnostic;
@@ -85,6 +87,7 @@ class ApplicationUpdateError implements FrbException {
 }
 
 enum ApplicationUpdateFailureCode {
+  store,
   unavailable,
   network,
   invalidRelease,

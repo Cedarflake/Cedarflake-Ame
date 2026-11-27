@@ -1,48 +1,9 @@
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::Connection;
 
 use super::super::metadata_filter_payload;
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_shape};
-
-pub(super) const TABLE: &str = "CREATE TABLE organization_review_filters (
-    scope_slot TEXT PRIMARY KEY NOT NULL REFERENCES organization_review_scopes(slot) ON DELETE CASCADE,
-    version INTEGER NOT NULL CHECK(version = 1),
-    payload TEXT NOT NULL CHECK(length(CAST(payload AS BLOB)) <= 4096 AND json_valid(payload))
-)";
-
-pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    migrate_transaction(&transaction)?;
-    transaction.commit().map_err(database_error)
-}
-
-pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    current_schema::validate_schema_version(transaction, 63)?;
-    transaction.execute_batch(TABLE).map_err(database_error)?;
-    transaction.execute(
-        "INSERT INTO organization_review_filters SELECT slot, 1, ?1 FROM organization_review_scopes",
-        [metadata_filter_payload::LEGACY_EMPTY],
-    ).map_err(database_error)?;
-    transaction
-        .execute_batch("UPDATE schema_info SET version = 64; PRAGMA user_version = 64;")
-        .map_err(database_error)?;
-    current_schema::validate_schema_version(transaction, 64)
-}
-
-pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
-    if !schema_shape::schema_object_sql_matches(
-        connection,
-        "table",
-        "organization_review_filters",
-        TABLE,
-    )? {
-        return Err(invalid());
-    }
-    Ok(())
-}
+use super::database_error;
 
 pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
     let incomplete: bool = connection
@@ -79,19 +40,3 @@ fn invalid() -> ScanError {
         "Organization scopes require complete, valid metadata filters",
     )
 }
-
-#[cfg(test)]
-pub(super) fn downgrade_to_v63_for_test(connection: &Connection) {
-    super::classification::downgrade_to_v64_for_test(connection);
-    if schema_shape::schema_version(connection).unwrap() == 64 {
-        connection
-            .execute_batch(
-                "DROP TABLE organization_review_filters;
-            UPDATE schema_info SET version = 63; PRAGMA user_version = 63;",
-            )
-            .unwrap();
-    }
-}
-
-#[cfg(test)]
-mod tests;

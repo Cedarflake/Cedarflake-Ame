@@ -44,6 +44,12 @@ pub(super) fn validate_schema_version(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<(), ScanError> {
+    if schema_version != SCHEMA_VERSION {
+        return Err(ScanError::new(
+            "catalog_schema_unsupported",
+            format!("Expected catalog schema {SCHEMA_VERSION}, found {schema_version}"),
+        ));
+    }
     if connection.is_autocommit() {
         let transaction = connection.unchecked_transaction().map_err(database_error)?;
         validate_in_snapshot(&transaction, schema_version)?;
@@ -60,88 +66,34 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     // reaches this full proof; ordinary connections retain bounded identity/schema checks.
     validate_pre_live_gap_schema_contract(connection, schema_version)?;
     live_gap_contract::validate(connection)?;
-    if schema_version >= 63 {
-        super::compact_gallery_search::validate_rows(connection)?;
-    }
-    if schema_version >= 64 {
-        super::organization_review_filters::validate_rows(connection)?;
-    }
-    if schema_version >= 65 {
-        // The journal proof above checked all foreign keys in this same snapshot.
-        super::classification::validate_content_rows(connection)?;
-    }
-    if schema_version >= 66 {
-        super::classification_work::validate_content_rows(connection)?;
-    }
-    if schema_version >= 67 {
-        super::classification_setup::validate_rows(connection)?;
-    }
-    if schema_version >= 68 {
-        super::classification_availability::validate_rows(connection)?;
-    }
-    if schema_version >= 69 {
-        super::classification_publications::validate_rows(connection)?;
-    }
-    if schema_version >= 71 {
-        super::classification_maintenance::validate_rows(connection)?;
-    }
-    if schema_version >= 74 {
-        super::similar_images::validate_rows(connection)?;
-    }
-    if schema_version >= 78 {
-        super::album_icons::validate_rows(connection)?;
-    }
-    if schema_version >= 79 {
-        super::file_operations::validate_rows(connection)?;
-    }
-    if schema_version >= 33 {
-        super::scan_resume_inventory::validate_rows(connection)?;
-    }
-    if schema_version >= 35 {
-        super::directory_identities::validate_rows(connection)?;
-    }
-    if schema_version >= 37 {
-        super::journal_scope_recovery::validate_rows(connection)?;
-    }
-    if schema_version >= 38 {
-        super::media_admission_rechecks::validate_rows(connection)?;
-    }
-    if schema_version >= 46 {
-        super::metadata_fallback::validate_rows(connection)?;
-    }
-    if schema_version >= 47 {
-        super::organization::validate_rows(connection)?;
-    }
-    if schema_version >= 48 {
-        super::organization_transitions::validate_rows(connection)?;
-    }
-    if schema_version >= 49 {
-        super::organization_reconciliation::validate_rows(connection)?;
-    }
-    if schema_version >= 51 {
-        super::organization_admission::validate_rows(connection)?;
-    }
-    if schema_version >= 52 {
-        super::organization_review::validate_rows(connection)?;
-    }
-    if schema_version >= 54 {
-        super::organization_restoration::validate_rows(connection)?;
-    }
-    if schema_version >= 55 {
-        super::organization_association_index::validate_rows(connection)?;
-    }
-    if schema_version >= 56 {
-        super::organization_history::validate_rows(connection)?;
-    }
-    if schema_version >= 57 {
-        super::organization_review_order::validate_rows(connection)?;
-    }
-    if schema_version >= 58 {
-        super::sidebar_order::validate_rows(connection)?;
-    }
-    if schema_version >= 60 {
-        super::organization_admission_clock::validate_rows(connection)?;
-    }
+    super::compact_gallery_search::validate_rows(connection)?;
+    super::organization_review_filters::validate_rows(connection)?;
+    // The journal proof above checked all foreign keys in this same snapshot.
+    super::classification::validate_content_rows(connection)?;
+    super::classification_work::validate_content_rows(connection)?;
+    super::classification_setup::validate_rows(connection)?;
+    super::classification_availability::validate_rows(connection)?;
+    super::classification_publications::validate_rows(connection)?;
+    super::classification_maintenance::validate_rows(connection)?;
+    super::similar_images::validate_rows(connection)?;
+    super::album_icons::validate_rows(connection)?;
+    super::file_operations::validate_rows(connection)?;
+    super::scan_resume_inventory::validate_rows(connection)?;
+    super::directory_identities::validate_rows(connection)?;
+    super::journal_scope_recovery::validate_rows(connection)?;
+    super::media_admission_rechecks::validate_rows(connection)?;
+    super::metadata_fallback::validate_rows(connection)?;
+    super::organization::validate_rows(connection)?;
+    super::organization_transitions::validate_rows(connection)?;
+    super::organization_reconciliation::validate_rows(connection)?;
+    super::organization_admission::validate_rows(connection)?;
+    super::organization_review::validate_rows(connection)?;
+    super::organization_restoration::validate_rows(connection)?;
+    super::organization_association_index::validate_rows(connection)?;
+    super::organization_history::validate_rows(connection)?;
+    super::organization_review_order::validate_rows(connection)?;
+    super::sidebar_order::validate_rows(connection)?;
+    super::organization_admission_clock::validate_rows(connection)?;
     source_revision_contract::validate_rows(connection)
 }
 
@@ -161,143 +113,49 @@ pub(super) fn validate_schema_structure(
         ContractValidationDepth::StructureOnly,
     )?;
     live_gap_contract::validate_with_depth(connection, ContractValidationDepth::StructureOnly)?;
-    if schema_version >= 46 {
-        super::metadata_fallback::validate(connection)?;
-    }
+    super::metadata_fallback::validate(connection)?;
     source_revision_contract::validate_structure(connection)?;
-    if schema_version >= 33 {
-        super::scan_resume_inventory::validate_structure(connection)?;
-    }
-    if schema_version >= 35 {
-        super::directory_identities::validate_structure(connection)?;
-    }
-    if schema_version >= 36 {
-        super::journal_directory_namespace::validate(connection)?;
-    }
-    if schema_version >= 37 {
-        super::journal_scope_recovery::validate(connection)?;
-    }
-    if schema_version >= 38 {
-        super::media_admission_rechecks::validate(connection)?;
-    }
-    if schema_version >= 39 {
-        super::queue_retirement_indexes::validate(connection)?;
-    }
-    if schema_version >= 40 {
-        super::exact_duplicates::validate(connection)?;
-    }
-    if (40..=42).contains(&schema_version) {
-        super::exact_duplicates::validate_legacy_cursor(connection)?;
-    }
-    if schema_version >= 41 {
-        super::gallery_duplicates::validate(connection)?;
-    }
-    if schema_version >= 42 {
-        super::exact_duplicate_review::validate(connection)?;
-    }
-    if schema_version >= 43 {
-        super::exact_candidate_index_retirement::validate(connection)?;
-    }
-    if schema_version >= 44 {
-        super::metadata_recheck_index::validate(connection)?;
-    }
-    if schema_version >= 45 {
-        super::retained_gallery_membership::validate(connection)?;
-    }
-    if schema_version >= 47 {
-        super::organization::validate(connection)?;
-    }
-    if schema_version >= 48 {
-        super::organization_transitions::validate(connection)?;
-    }
-    if schema_version == 49 {
-        super::organization_reconciliation::validate(connection)?;
-    }
-    if schema_version >= 50 {
-        super::organization_index_retirement::validate(connection)?;
-    }
-    if schema_version >= 51 {
-        super::organization_admission::validate(connection)?;
-    }
-    if schema_version >= 52 {
-        super::organization_review::validate(connection)?;
-    }
-    if schema_version >= 53 {
-        super::organization_native_recovery::validate(connection)?;
-    }
-    if schema_version >= 54 {
-        super::organization_restoration::validate(connection)?;
-    }
-    if schema_version >= 55 {
-        super::organization_association_index::validate(connection)?;
-    }
-    if schema_version >= 56 {
-        super::organization_history::validate(connection)?;
-    }
-    if schema_version >= 57 {
-        super::organization_review_order::validate(connection)?;
-    }
-    if schema_version >= 58 {
-        super::sidebar_order::validate(connection)?;
-    }
-    if schema_version >= 59 {
-        super::preferred_copy_index::validate(connection)?;
-    }
-    if schema_version >= 60 {
-        super::organization_admission_clock::validate(connection)?;
-    }
-    if schema_version >= 63 {
-        super::compact_gallery_search::validate(connection)?;
-    } else if schema_version >= 61 {
-        super::gallery_search::validate(connection)?;
-    }
-    if schema_version >= 62 {
-        super::camera_metadata::validate(connection)?;
-    }
-    if schema_version >= 77 {
-        super::multiple_metadata_formats::validate(connection)?;
-    } else if schema_version >= 64 {
-        super::organization_review_filters::validate(connection)?;
-    }
-    if schema_version >= 65 {
-        super::classification::validate(connection)?;
-    }
-    if schema_version >= 66 {
-        super::classification_work::validate(connection)?;
-    }
-    if schema_version >= 67 {
-        super::classification_setup::validate(connection)?;
-    }
-    if schema_version >= 68 {
-        super::classification_availability::validate(connection)?;
-    }
-    if schema_version >= 69 {
-        super::classification_publications::validate(connection)?;
-    }
-    if schema_version >= 70 {
-        super::classification_projection::validate(connection)?;
-    }
-    if schema_version >= 71 {
-        super::classification_maintenance::validate(connection)?;
-    }
-    if schema_version >= 74 {
-        super::similar_images::validate(connection)?;
-    }
-    if schema_version >= 78 {
-        super::album_icons::validate(connection)?;
-    }
-    if schema_version >= 79 {
-        super::file_operations::validate(connection)?;
-    }
-    if schema_version >= 80 {
-        super::file_operation_notifications::validate(connection)?;
-    }
-    if schema_version >= 81 {
-        super::file_operation_exports::validate(connection, schema_version)?;
-    }
-    if schema_version >= 83 {
-        super::organization_group_filters::validate(connection)?;
-    }
+    super::scan_resume_inventory::validate_structure(connection)?;
+    super::directory_identities::validate_structure(connection)?;
+    super::journal_directory_namespace::validate(connection)?;
+    super::journal_scope_recovery::validate(connection)?;
+    super::media_admission_rechecks::validate(connection)?;
+    super::queue_retirement_indexes::validate(connection)?;
+    super::exact_duplicates::validate(connection)?;
+    super::gallery_duplicates::validate(connection)?;
+    super::exact_duplicate_review::validate(connection)?;
+    super::exact_candidate_index_retirement::validate(connection)?;
+    super::metadata_recheck_index::validate(connection)?;
+    super::retained_gallery_membership::validate(connection)?;
+    super::organization::validate(connection)?;
+    super::organization_transitions::validate(connection)?;
+    super::organization_index_retirement::validate(connection)?;
+    super::organization_admission::validate(connection)?;
+    super::organization_review::validate(connection)?;
+    super::organization_native_recovery::validate(connection)?;
+    super::organization_restoration::validate(connection)?;
+    super::organization_association_index::validate(connection)?;
+    super::organization_history::validate(connection)?;
+    super::organization_review_order::validate(connection)?;
+    super::sidebar_order::validate(connection)?;
+    super::preferred_copy_index::validate(connection)?;
+    super::organization_admission_clock::validate(connection)?;
+    super::compact_gallery_search::validate(connection)?;
+    super::camera_metadata::validate(connection)?;
+    super::multiple_metadata_formats::validate(connection)?;
+    super::classification::validate(connection)?;
+    super::classification_work::validate(connection)?;
+    super::classification_setup::validate(connection)?;
+    super::classification_availability::validate(connection)?;
+    super::classification_publications::validate(connection)?;
+    super::classification_projection::validate(connection)?;
+    super::classification_maintenance::validate(connection)?;
+    super::similar_images::validate(connection)?;
+    super::album_icons::validate(connection)?;
+    super::file_operations::validate(connection)?;
+    super::file_operation_notifications::validate(connection)?;
+    super::file_operation_exports::validate(connection, schema_version)?;
+    super::organization_group_filters::validate(connection)?;
     validate_existing_source_metadata_marker(connection)
 }
 
@@ -310,21 +168,16 @@ fn validate_existing_source_metadata_marker(connection: &Connection) -> Result<(
             |row| row.get(0),
         )
         .map_err(database_error)?;
-    // An absent marker belongs to the exact prerelease repair; a present damaged marker does not.
-    if marker_exists && !source_revision_contract::metadata_contract_is_complete(connection)? {
+    if !marker_exists || !source_revision_contract::metadata_contract_is_complete(connection)? {
         return Err(ScanError::new(
             "catalog_source_revision_contract_unverifiable",
-            "The catalog cannot prove that legacy source metadata was invalidated",
+            "The catalog cannot prove its source metadata contract",
         ));
     }
     Ok(())
 }
 
-pub(super) fn validate_v19_schema_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_v19_schema_contract_with_depth(connection, ContractValidationDepth::Full)
-}
-
-fn validate_v19_schema_contract_with_depth(
+fn validate_scan_authority_with_depth(
     connection: &Connection,
     depth: ContractValidationDepth,
 ) -> Result<(), ScanError> {
@@ -380,7 +233,7 @@ fn validate_pre_live_gap_schema_contract_with_depth(
     schema_version: i64,
     depth: ContractValidationDepth,
 ) -> Result<(), ScanError> {
-    validate_v19_schema_contract_with_depth(connection, depth)?;
+    validate_scan_authority_with_depth(connection, depth)?;
     metadata_inventory_contract::validate_with_depth(connection, depth)?;
     terminal_media_contract::validate_with_depth(connection, depth)?;
     journal_contract::validate_with_depth(connection, depth)?;
@@ -388,18 +241,7 @@ fn validate_pre_live_gap_schema_contract_with_depth(
     recovery_authority_contract::validate_with_depth(connection, depth)?;
     validate_persistent_journal_baseline_contract_with_depth(connection, depth)?;
     recovery_execution_contract::validate_with_depth(connection, depth)?;
-    inventory_spool_contract::validate_version_with_depth(
-        connection,
-        schema_version,
-        if schema_version >= 32 {
-            4
-        } else if schema_version == 31 {
-            3
-        } else {
-            2
-        },
-        depth,
-    )?;
+    inventory_spool_contract::validate_version_with_depth(connection, schema_version, depth)?;
     root_namespace_contract::validate_with_depth(connection, depth)
 }
 

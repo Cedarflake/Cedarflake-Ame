@@ -1,11 +1,11 @@
 use rusqlite::Connection;
 
-use super::super::migrate_schema;
+use super::super::initialize_schema;
 
 #[test]
-fn current_v19_orphan_scan_handoff_batch_fails_closed() {
+fn current_orphan_scan_handoff_batch_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "INSERT INTO library_change_scan_handoff_batches(
@@ -30,15 +30,15 @@ fn current_v19_orphan_scan_handoff_batch_fails_closed() {
         )
         .expect("orphan scan handoff fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("orphan scan handoff batch");
+    let error = initialize_schema(&mut connection).expect_err("orphan scan handoff batch");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }
 
 #[test]
-fn current_v19_scan_handoff_lineage_with_wrong_foreign_key_fails_closed() {
+fn current_scan_handoff_lineage_with_wrong_foreign_key_fails_closed() {
     let mut connection = Connection::open_in_memory().expect("catalog");
-    migrate_schema(&mut connection).expect("fresh v19 catalog");
+    initialize_schema(&mut connection).expect("fresh current catalog");
     connection
         .execute_batch(
             "DROP TABLE library_change_scan_handoff_lineage;
@@ -59,7 +59,7 @@ fn current_v19_scan_handoff_lineage_with_wrong_foreign_key_fails_closed() {
         )
         .expect("wrong-target scan handoff lineage fixture");
 
-    let error = migrate_schema(&mut connection).expect_err("wrong-target scan handoff key");
+    let error = initialize_schema(&mut connection).expect_err("wrong-target scan handoff key");
 
     assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
 }

@@ -1336,6 +1336,9 @@ handoff owner requires the published foreground scan and a live replacement for 
 generation. Startup applies the same handoff to retained overlapping owners. Retired windows remain
 historical evidence and do not reserve a new inventory or hold unlineaged live work.
 Complete inventory, candidate publication and absence checks retire the recovery authority atomically.
+The completed control and retired authority retain the terminal receipt after root removal or bounded
+cleanup deletes the derived inventory run; any retained run must still prove complete enumeration and
+absence verification.
 This can finish the current catalog update without claiming recovered journal continuity. Subsequent
 watcher changes remain normal P0 work, and the failed journal is not retried again in that session.
 At the next startup, a completed fallback permits a fresh attempt from the retained journal cursor;

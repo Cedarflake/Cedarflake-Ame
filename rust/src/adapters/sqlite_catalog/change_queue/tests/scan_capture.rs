@@ -219,7 +219,7 @@ fn recovery_repair_rolls_back_candidates_when_control_restoration_fails() {
             control_id.value()
         ))
         .expect("inject a failure after candidate restoration");
-    super::super::super::migrations::migrate_schema(&mut catalog.connection)
+    super::super::super::migrations::initialize_schema(&mut catalog.connection)
         .expect_err("restore candidates and control in one transaction");
     assert_eq!(recovery_rows(&catalog.connection), before);
 }

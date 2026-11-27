@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "app/ame_app.dart";
 import "app/bootstrap/ame_application_mount.dart";
+import "app/bootstrap/application_data_bootstrap.dart";
 import "app/bootstrap/application_update_bindings.dart";
 import "app/bootstrap/application_update_restart.dart";
 import "app/bootstrap/ame_bootstrap_failure.dart";
@@ -22,7 +23,6 @@ import "app/bootstrap/library_synchronization_bindings.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/dependency_licenses.dart";
 import "app/bootstrap/diagnostics_bindings.dart";
-import "app/bootstrap/rust_library_loader.dart";
 import "app/bootstrap/settings_bindings.dart";
 import "app/bootstrap/storage_bindings.dart";
 import "app/bootstrap/workbench_presentation_bindings.dart";
@@ -42,7 +42,11 @@ import "features/library/domain/library_state.dart";
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   registerDependencyLicenses();
-  final preferenceStores = AmePreferenceStores.production();
+  final dataBootstrap = await ApplicationDataBootstrap.prepare();
+  final preferences = dataBootstrap.preferences();
+  final preferenceStores = AmePreferenceStores.production(
+    preferences: preferences,
+  );
   final shutdownCoordinator = AmeShutdownCoordinator();
   final windowShutdown = AmeShutdownCoordinator();
   windowShutdown.register(shutdownCoordinator.shutdown);
@@ -51,10 +55,12 @@ Future<void> main() async {
   final viewPreferences = await preferenceStores.library
       .loadLibraryViewPreferences();
   final windowActions = await initializeAmeWindow(
-    preferenceStores.window,
+    dataBootstrap.windowPreferences(preferenceStores.window),
     windowShutdown,
   );
-  final diagnostics = DiagnosticsBindings();
+  final diagnostics = DiagnosticsBindings(
+    directory: dataBootstrap.diagnosticDirectory,
+  );
   windowShutdown.register(diagnostics.close);
   final applicationMount = AmeApplicationMount();
   final providerAssembly = AmeProviderAssembly(
@@ -71,10 +77,11 @@ Future<void> main() async {
     application = await acquireAmeApplication(
       shutdown: shutdownCoordinator,
       acquire: () async {
-        await initializeRustLibrary();
+        dataBootstrap.requireReady();
         diagnostics.nativeReady();
         final updateBindings = ApplicationUpdateBindings(
           restarter: ApplicationUpdateRestart(windowActions.retirement),
+          preferences: preferences,
         );
         updates = updateBindings;
         shutdownCoordinator.register(updateBindings.close);
