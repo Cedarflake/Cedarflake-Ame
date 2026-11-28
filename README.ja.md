@@ -2,13 +2,13 @@
 
 <p align="center"><a href="./README.md">English</a> | <a href="./README.zh-Hans.md">简体中文</a> | 日本語</p>
 
-Ame は、大量の画像を自分の PC で閲覧、検索、整理できる Windows アプリです。普段使っているフォルダーを追加すると、重複した写真やよく似た写真を探したり、お気に入りやアルバムにまとめたりできます。
+Ame は、写真や画像を日常的に閲覧・整理するための Windows 向けローカル画像ライブラリアプリです。普段使っているフォルダーを追加して、写真の閲覧、言葉による検索、自動分類、重複・類似画像の整理、ファイル管理を一つのアプリで行えます。[Apache-2.0 ライセンス](LICENSE)で公開されている、無料のオープンソースソフトウェアです。
 
 ![Ame のギャラリー、画像ビューアー、検索、アルバム、重複グループ、ファイル整理の画面](docs/images/ame-showcase.webp)
 
 ## ダウンロード
 
-Ame は現在 **Alpha 版**です。[リリースページ](https://github.com/Cedarflake/Cedarflake-Ame/releases)から **Windows 11 x64** 向けのパッケージをダウンロードできます。
+Ame は現在 **Alpha 版**です。主要機能は実装済みで、Beta 版に向けて性能と安定性の改善を進めています。[リリースページ](https://github.com/Cedarflake/Cedarflake-Ame/releases)から **Windows 11 x64** 向けのパッケージをダウンロードできます。
 
 - **MSI インストーラー**には画像解析モデルとランタイムが含まれています。ライブラリをバックグラウンドで更新する Windows サービスもインストールします。インストールには管理者権限が必要です。
 - **ポータブル版 ZIP** は、すべてのファイルを展開してから `Cedarflake-Ame/Cedarflake Ame.exe`（旧パッケージでは `cedarflake_ame.exe`）を実行してください。画像解析モデルは初めて使うときにダウンロードされます。Windows サービスのインストールは不要です。

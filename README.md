@@ -2,16 +2,18 @@
 
 <p align="center">English | <a href="./README.zh-Hans.md">简体中文</a> | <a href="./README.ja.md">日本語</a></p>
 
-Ame is a local-first Windows app for browsing, searching, and organizing large image collections.
-Add the folders you already use, find duplicates and similar images, and organize your collection
-with favorites, albums, or file operations.
+Ame is a local-first Windows photo library for everyday use, with image browsing, intelligent
+search, automatic classification, and duplicate cleanup. Manage the image folders already on your
+computer, browse by date, and organize your collection with favorites, albums, and file operations.
+It is free and open source under [Apache-2.0](LICENSE).
 
 ![Ame gallery, image viewer, search, albums, duplicate groups, and file organization](docs/images/ame-showcase.webp)
 
 ## Download
 
-Ame is currently in **Alpha**. Each [release](https://github.com/Cedarflake/Cedarflake-Ame/releases)
-provides two packages for **Windows 11 x64**:
+Ame is currently in **Alpha**. Its main features are implemented, with performance and stability
+being refined for Beta. Each [release](https://github.com/Cedarflake/Cedarflake-Ame/releases) provides
+two packages for **Windows 11 x64**:
 
 - **MSI installer**: includes the image-analysis models, runtime, and background library-update
   service. Installation requires administrator permissions.
@@ -57,7 +59,7 @@ separate visual comparison with an adjustable similarity level.
 Choose album icons, collect favorites, add images to albums, and resume reviewing images from
 your saved place.
 
-When you want to change files, Ame supports copying, moving, renaming, and deletion through Windows.
+Ame supports copying, moving, renaming, and deletion through Windows.
 Deletion defaults to the Recycle Bin; permanent deletion requires an explicit choice. Duplicate and
 similar-group cleanup retain your keep choices, or the automatic representative when none was chosen,
 and confirm the number of files before deletion. Operation records show results and support

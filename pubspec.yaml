@@ -1,6 +1,7 @@
 name: cedarflake_ame
 description: >-
-  A local-first Windows image organizer for large personal image libraries.
+  A local-first Windows photo library for everyday browsing, intelligent search,
+  automatic classification, and duplicate cleanup.
 publish_to: "none"
 version: 0.1.0-beta.1+4
 

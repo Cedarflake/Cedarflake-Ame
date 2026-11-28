@@ -37,13 +37,10 @@ names and report exact local execution unavailable.
 
 ## 2. Project context
 
-Ame is a local-first desktop workbench for very large local/cloud-backed image libraries without a
-second full source copy. Ame owns workflow, domain, catalog, orchestration, user decisions and
-presentation; specialized engines sit behind replaceable adapters.
-
-Original media is irreplaceable. Cataloging, browsing and analysis cannot modify it. Move, copy,
-rename, recycle and delete are separate later workflows requiring explicit authorization,
-current-state revalidation, history and applicable recovery. Never silently change or download sources.
+Ame is a local-first Windows photo library for everyday browsing, intelligent search, automatic
+classification, and image organization, with performance designed to support large collections.
+Ame owns workflow, domain, catalog, orchestration, user decisions and presentation; specialized
+engines sit behind replaceable adapters.
 
 ## 3. Instruction and decision precedence
 
@@ -168,8 +165,10 @@ crash could terminate the desktop application.
 
 ## 6. Filesystem and media safety
 
-- Original media is the source of truth; catalogs and analysis data are derived. Modify sources
-  only for the exact operation explicitly authorized by the current request, with required checks.
+- Original media is the source of truth; catalogs and analysis data are derived. Cataloging,
+  browsing and analysis cannot modify original media. File operations require explicit authorization
+  for the exact action, current-state revalidation, history and applicable recovery.
+- Cataloging must not require a second complete copy of configured image folders.
 - Never automatically hydrate OneDrive or other cloud-only placeholders.
 - Revalidate file identity/state before publishing derived results or executing a reviewed plan.
 - Never present partial/failed scans as the last trustworthy completed catalog.

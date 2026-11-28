@@ -4,7 +4,8 @@ Status: canonical active delivery plan
 
 Last planning update: 2026-11-28
 
-Ame is a local-first Windows workbench for browsing, finding and organizing large image libraries.
+Ame is a local-first Windows photo library for everyday browsing, intelligent search,
+automatic classification, and duplicate cleanup.
 The next milestone is `v0.1.0-beta.1`. Product boundaries belong to the
 [workbench contract](product/workbench.md) and [organization workflows](product/organization-workflows.md).
 

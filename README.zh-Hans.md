@@ -2,13 +2,13 @@
 
 <p align="center"><a href="./README.md">English</a> | 简体中文 | <a href="./README.ja.md">日本語</a></p>
 
-Ame 是一款在本地浏览、搜索和整理大量图片的 Windows 应用。把平时存放图片的文件夹添加到图库，就可以查找重复或相似的图片，用收藏和相册整理它们，也可以直接管理文件。
+Ame 是一款面向日常使用的 Windows 本地图库，支持图片浏览、智能搜索、自动分类和重复图片整理。可以直接管理电脑中已有的图片文件夹，按时间浏览图片，用收藏、相册和文件操作整理图库。软件免费、开源，采用 [Apache-2.0 许可证](LICENSE)。
 
 ![Ame 的图库、图片查看、搜索、相册、重复分组和文件整理界面](docs/images/ame-showcase.webp)
 
 ## 下载
 
-Ame 目前处于 **Alpha 阶段**。在[发布页面](https://github.com/Cedarflake/Cedarflake-Ame/releases)可以下载适用于 **Windows 11 x64** 的安装版或便携版。
+Ame 目前处于 **Alpha 阶段**，主要功能已经实现，正在完善性能和稳定性，为 Beta 版本做准备。在[发布页面](https://github.com/Cedarflake/Cedarflake-Ame/releases)可以下载适用于 **Windows 11 x64** 的安装版或便携版。
 
 - **MSI 安装程序**需要管理员权限。安装包自带图片分析模型和运行时，并会安装用于在后台更新图库的 Windows 服务。
 - 使用**便携版 ZIP** 时，请先完整解压，再运行 `Cedarflake-Ame/Cedarflake Ame.exe`（旧包为 `cedarflake_ame.exe`）。便携版不安装 Windows 服务，图片分析模型会在首次使用时下载。

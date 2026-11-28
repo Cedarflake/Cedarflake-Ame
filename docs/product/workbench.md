@@ -9,31 +9,27 @@ owned by the accepted [ADRs](../architecture/README.md), and engineering rules b
 
 ## 1. Product definition
 
-Cedarflake Ame is an independently implemented, local-first Windows organizing workbench for more
-than 70,000 personal images. It is not another general-purpose photo album. Its central workflow is
-to establish a trustworthy catalog, collapse exact repetition, let machines process the bulk of
-image understanding, preserve organization decisions and progress, build virtual organization,
-and only then propose changes to real files.
+Cedarflake Ame is a local-first Windows photo library for everyday use. It supports image browsing,
+intelligent search, automatic classification, duplicate and similar-image cleanup, albums, and
+file management across existing image folders. It is free and open source under Apache-2.0.
 
-The unified gallery remains the primary working canvas, not the product endpoint. Source, time,
-search, duplicate state, classification, albums, and review sessions scope the same canvas rather
-than becoming separate competing applications.
+Large-library performance supports everyday use as collections grow. The interface follows
+Material 3, with Flutter for presentation, Rust for library and file workflows, and SQLite
+for persistence.
 
-Ame must not require a second complete copy of configured sources. Cataloging, browsing, analysis,
-review, and virtual organization do not modify original media. R8 introduces separately authorized
-file organization and recovery, with internal preflight and current-state revalidation. It has no
-organization-preview feature; preparing an internal operation plan never authorizes file changes.
+The unified gallery is the primary working canvas. Folders, time, search, duplicate state,
+classification, albums, and review sessions scope that canvas. Browsing, virtual organization,
+and file management are directly available workflows.
 
 Product success is measured by reduced human work and trustworthy decisions, not only by indexed
 file count or gallery feature breadth. Each applicable stage records:
 
-- exact duplicate groups and physical locations understood without source mutation;
+- exact duplicate groups and physical locations that users can inspect and compare;
 - model coverage, observed errors by confidence band, and automatic refinement outcomes;
 - review throughput, resumable progress, undo behavior, and durable user decisions;
 - virtual organization coverage and unresolved organization conflicts;
 - authorized file-operation outcomes: completed, unchanged, blocked, failed, and recovered items;
-- source-state, cloud-placeholder, and operation-safety evidence proving that Ame never presented
-  guesses as user decisions or changed files before authorization.
+- reliable synchronization, cloud-placeholder handling, and file-operation recovery.
 
 ## 2. Confirmed product decisions
 
@@ -77,10 +73,10 @@ file count or gallery feature breadth. Each applicable stage records:
   [R4 requirements](r4-organization.md) own conflicts, progress, regrouping, and recovery.
 - Person recognition, face clustering, identity naming, pixel editing, RAW development, cloud sync,
   and a Lightroom-style editor are outside the product scope.
-- File-changing controls remain unavailable until the merged R8 workflow connects fresh action
-  authorization, current-state revalidation, an operation journal, and explicit partial-failure
-  and recovery behavior. Its [scope](organization-workflows.md#r8---file-organization-and-recovery)
-  retains the separate exclusion of permanent deletion.
+- File-changing controls use the R8 workflow for action authorization, current-state revalidation,
+  operation history, partial-failure reporting, and recovery. Its
+  [scope](organization-workflows.md#r8---file-organization-and-recovery) covers copying, moving,
+  renaming, recycling, and explicitly selected permanent deletion.
 
 ### 2.1 Stable workbench concepts
 
