@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-12
-- Last amended: 2026-11-27
+- Last amended: 2026-11-28
 
 ## Context and decision drivers
 
@@ -13,8 +13,9 @@ local builds, retain user data and restore the preceding installation if an upgr
 
 ## Decision
 
-Build one per-machine MSI per supported architecture using WiX Toolset 7.0.0. Windows Installer owns file components,
-product registration, service installation/configuration/control and transactional rollback.
+Build one language-neutral, per-machine MSI per supported architecture using WiX Toolset 7.0.0.
+Windows Installer owns file components, product registration, service installation/configuration/control
+and transactional rollback.
 Distribute the MSI alongside the portable ZIP. A native WiX Burn executable using
 `WixInternalUIBootstrapperApplication` remains available for early elevation and cached maintenance.
 The standard bootstrapper detects, plans and applies the per-machine chain before displaying the
@@ -139,6 +140,33 @@ with the broker SID's read/execute access and the same restricted write ownershi
 Both destinations bind to the immutable candidate's runtime bytes; repair, upgrade and uninstall
 remain standard MSI component operations. A system-wide VC++ installer is not added to Ame's chain.
 
+### Installer language
+
+Each installation, repair or uninstall defaults to the invoking user's current Windows preferred
+UI languages, in order. Support English (`en-US`, LANGID `1033`), Simplified Chinese (`zh-CN`,
+`2052`) and Japanese (`ja-JP`, `1041`), with English as the final fallback. An explicit Traditional
+Chinese preference does not select Simplified Chinese. This selection belongs to the MSI session,
+including direct MSI invocation and cached maintenance, and does not read or persist the desktop
+application's language preference. The admitted language value passes across elevation through
+`AME_INSTALLER_LANGUAGE`; it cannot alter installation or data-removal policy.
+
+Keep `ProductLanguage` and the Template Summary language at `0`, with stable English package
+metadata. Major-upgrade matching ignores language so an earlier package language cannot hide an
+installed product. Build the three WiX cultures from identical installation inputs, using Ame's
+`.wxl` catalogs and WiX's stock dialog, error and progress translations. The package builder retains
+the localized presentation rows in a bounded catalog and requires action, control-event and
+installation semantics to remain identical across cultures.
+
+An immediate native action loads only the selected presentation rows as temporary data in the
+active session before either the UI or execute sequence consumes them. Initialization belongs to
+each active database and is idempotent within it; localized rows and their initialization state are
+never written back to the cached MSI. Keep the target-table allowlist fixed and translate
+LaunchCondition and Type 19 messages through dedicated session properties. Runtime transforms are
+excluded: Windows Installer forbids applying a transform from a custom action, and an installed
+transform list would retain the initial choice during maintenance. `MS Shell Dlg` supplies the
+neutral dialog font. Native admission and cleanup messages use localized Error-table templates
+with original technical details as record arguments.
+
 ## Dependency, licensing and alternatives
 
 WiX 7.0.0 is pinned to upstream source commit
@@ -159,9 +187,9 @@ A mandatory core feature owns the application and broker. Independent optional f
 Start Menu and desktop shortcuts; Start Menu is initially selected and desktop is initially
 unselected. Initialize the checkboxes from costed feature states after `MigrateFeatureStates`;
 publish explicit `AddLocal` or `Remove` decisions before leaving the options page. Returning from
-confirmation preserves the selected values, and UI initialization never runs in the execute
-sequence. Windows Installer migrates feature choices across upgrades. A product-owned HKLM setting
-restores the selected application directory before costing; the cached MSI and registered executable
+confirmation preserves the selected values, and shortcut-choice initialization never runs in the
+execute sequence. Windows Installer migrates feature choices across upgrades. A product-owned HKLM
+setting restores the selected application directory before costing; the cached MSI and registered executable
 component independently bind that location for repair and upgrade admission. No UI extension DLL is
 installed with the product.
 The matching `WixToolset.Bal.wixext` package is pinned to SHA-256
@@ -199,6 +227,9 @@ injected upgrade failure after old-product removal and after service configurati
 files, service description, process token and ACLs after success and rollback. Verify early service
 start fails closed and user data remains untouched. Then verify the ordinary client can use the
 installed broker and reopen its retained profile. Compilation alone proves none of these outcomes.
+Verify direct MSI installation, repair and cached removal in all three languages, Windows preference
+order and fallback, formatted native errors, and readable controls. Preserve shortcut choices and
+data-removal defaults throughout those checks.
 
 The fixed upgrade identity and component paths become compatibility commitments. An unsigned MSI
 can trigger Windows publisher warnings; signing remains a separate distribution qualification.
@@ -220,3 +251,6 @@ lifecycle fixtures. Reverting a failed package uses MSI rollback, not source or 
 - [Burn chain rollback and restore-point policy](https://docs.firegiant.com/wix/schema/wxs/chain/)
 - [Windows Installer native checkbox behavior](https://learn.microsoft.com/en-us/windows/win32/msi/checkbox-control)
 - [Windows Installer path control](https://learn.microsoft.com/en-us/windows/win32/msi/pathedit-control)
+- [Windows Installer language-neutral packages](https://learn.microsoft.com/en-us/windows/win32/msi/productlanguage)
+- [Windows Installer session-local custom-action data](https://learn.microsoft.com/en-us/windows/win32/msi/accessing-the-current-installer-session-from-inside-a-custom-action)
+- [Windows Installer transform lifetime](https://learn.microsoft.com/en-us/windows/win32/msi/applying-transforms)

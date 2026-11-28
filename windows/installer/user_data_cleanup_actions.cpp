@@ -20,12 +20,12 @@ std::wstring Property(MSIHANDLE session, const wchar_t* name) {
   return std::wstring(text.data(), capacity);
 }
 
-void Report(MSIHANDLE session, INSTALLMESSAGE type, const wchar_t* message,
+void Report(MSIHANDLE session, INSTALLMESSAGE type, int message,
             const char* detail) noexcept {
-  const MSIHANDLE record = MsiCreateRecord(1);
+  const MSIHANDLE record = MsiCreateRecord(2);
   if (record) {
-    MsiRecordSetStringW(record, 0, message);
-    MsiRecordSetStringA(record, 1, detail);
+    MsiRecordSetInteger(record, 1, message);
+    MsiRecordSetStringA(record, 2, detail);
     MsiProcessMessage(session, type, record);
     MsiCloseHandle(record);
   }
@@ -64,7 +64,7 @@ extern "C" __declspec(dllexport) UINT __stdcall AmePrepareUserDataRemoval(MSIHAN
     return ERROR_SUCCESS;
   } catch (const std::exception& error) {
     Report(session, INSTALLMESSAGE_ERROR,
-        L"无法删除 Ame 数据，卸载尚未开始。请关闭 Ame 后重试，或取消勾选“删除 Ame 数据”。[1]",
+        25002,
         error.what());
     return ERROR_INSTALL_FAILURE;
   } catch (...) {
@@ -83,10 +83,10 @@ extern "C" __declspec(dllexport) UINT __stdcall AmeRemoveUserData(MSIHANDLE sess
     ame::installer::RemoveAmeUserData(user.local_app_data);
   } catch (const std::exception& error) {
     Report(session, INSTALLMESSAGE_WARNING,
-        L"Ame 已卸载，部分 Ame 数据未能删除；原图片未受影响。[1]", error.what());
+        25003, error.what());
   } catch (...) {
     Report(session, INSTALLMESSAGE_WARNING,
-        L"Ame 已卸载，部分 Ame 数据未能删除；原图片未受影响。[1]", "Unexpected cleanup failure");
+        25003, "Unexpected cleanup failure");
   }
   // Cleanup cannot restore deleted user data; never roll back a completed uninstall on its failure.
   return ERROR_SUCCESS;

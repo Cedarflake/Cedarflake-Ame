@@ -193,3 +193,55 @@ The GitHub API digests and verified published package sizes are:
 | --- | --- | --- |
 | Portable ZIP | 47,862,449 | `f11f62f0c87c0d25f20e377040a989d4e117b2740792f991896e76538e38e2a1` |
 | MSI | 384,208,896 | `7232636a4d5a3588ea18179a1e08c0cdeda771d997b4d28414456db36fd735c1` |
+
+## MSI localization — 2026-11-28
+
+The working-tree implementation follows the single language-neutral package decision in
+[ADR 0027](../architecture/0027-windows-installer-lifecycle.md#installer-language). Native installer
+code compiled with MSVC `/W4 /WX`; all 107 native policy cases passed, including preferred-language
+ordering and English fallback.
+
+Production `package.wxs`, `ui.wxs`, `options.wxs` and the existing generated application authoring
+compiled with pinned WiX 7 for English, Simplified Chinese and Japanese. The merged diagnostic MSI
+passed the database policy and all 47 rejecting policy cases for each of its 1033, 2052 and 1041
+language projections. Inputs used the current payload files' actual lengths and hashes. The retained
+receipt at `build/msi-localization/product-diagnostic-local-temp/diagnostic.json` is explicitly
+`diagnosticOnly=true`; this package has no release-payload qualification.
+
+The current `tool/release_test_installer_ui.ps1` passed against that actual merged product MSI.
+Each language initializer ran twice in its session and produced the expected complete control
+catalog and native error entries, with data deletion still unselected. All 16 shortcut-choice
+transitions passed. These checks opened native installer sessions without executing installation.
+English, Simplified Chinese and Japanese installation and removal dialogs were also visually
+checked through native read-only preview; labels, long removal explanations and buttons fit.
+
+A separate language-only fixture exercised real Windows Installer operations in a disposable
+Sandbox. Three cycles rotated the selected language between installation, cached repair and cached
+uninstall, covering all nine operation/language combinations. All returned 0 and initialized the
+requested session language. The retained result is
+`build/msi-localization/sandbox-results-network/result.json`. The fixture contains disposable
+registry components and the production UI/localization action, without installing Ame or its broker
+on the host.
+
+An earlier four-minute harness deadline stopped after its first successful cycle while Windows
+Software Restriction Policy was verifying the next installation. The completed run allowed eight
+minutes and retained default Sandbox networking; each new installation still spent about two
+minutes in Windows package verification. No Windows security setting or product policy was changed.
+These results do not add a current-head CI result or qualify a published release.
+
+Physical source sizes at this working-tree snapshot are:
+
+| Owner | Production lines | Dedicated test lines |
+| --- | ---: | ---: |
+| `windows/installer/localization.cpp` / `localization.h` | 207 / 18 | 0 |
+| `windows/installer/admission.cpp` / `user_data_cleanup_actions.cpp` | 147 / 93 | 0 |
+| `windows/installer/package.wxs` / `ui.wxs` / `options.wxs` | 145 / 47 / 80 | 0 |
+| `windows/installer/localization/en-US.wxl` / `zh-CN.wxl` / `ja-JP.wxl` | 35 / 35 / 35 | 0 |
+| `tool/release_installer_localization.ps1` | 203 | 0 |
+| `tool/release_installer_database.ps1` / `release_installer_policy.ps1` | 107 / 143 | 0 |
+| `tool/release_package_installer_windows.ps1` / `release_verify_installer_windows.ps1` | 204 / 32 | 0 |
+| `windows/installer/tests/localization_test.cpp` / `policy_test.cpp` | 0 | 27 / 95 |
+| `tool/release_test_installer_policy.ps1` / `release_test_installer_ui.ps1` | 0 | 141 / 101 |
+
+These owners contain no inline tests. Counts include blank lines and describe the full affected
+files, not only the localization additions.

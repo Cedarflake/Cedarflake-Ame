@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="zh-CN"
+                 Codepage="65001" SummaryInformationCodepage="1252">
+  <String Id="AmeDowngradeError" Value="已安装更新版本的 Ame，请使用更新的安装包。" />
+  <String Id="AmeWindowsRequirement" Value="此安装包需要 Windows 11 [AME_INSTALLER_ARCHITECTURE]。" />
+  <String Id="AmeRollbackRequirement" Value="请启用 Windows Installer 回滚后再安装 Ame。" />
+  <String Id="AmeRollbackDisabledError" Value="Windows Installer 回滚已关闭，无法安全升级 Ame。" />
+  <String Id="AmeCoreFeatureTitle" Value="Ame 主程序与读取助手" />
+  <String Id="AmeCoreFeatureDescription" Value="安装 Ame，保留图库和个人设置。" />
+  <String Id="AmeStartMenuFeatureTitle" Value="开始菜单快捷方式" />
+  <String Id="AmeStartMenuFeatureDescription" Value="在开始菜单中添加 Ame。" />
+  <String Id="AmeDesktopFeatureTitle" Value="桌面快捷方式" />
+  <String Id="AmeDesktopFeatureDescription" Value="在桌面上添加 Ame。" />
+  <String Id="AmeInstallTitle" Value="安装 Ame" />
+  <String Id="AmeInstallDescription" Value="选择安装位置和快捷方式。" />
+  <String Id="AmeInstallPathLabel" Value="安装位置" />
+  <String Id="AmeBrowse" Value="浏览(&amp;B)..." />
+  <String Id="AmeStartMenuChoice" Value="添加到开始菜单(&amp;S)" />
+  <String Id="AmeDesktopChoice" Value="创建桌面快捷方式(&amp;D)" />
+  <String Id="AmeBack" Value="&lt; 上一步(&amp;B)" />
+  <String Id="AmeNext" Value="下一步(&amp;N) &gt;" />
+  <String Id="AmeCancel" Value="取消(&amp;C)" />
+  <String Id="AmeRemoveTitle" Value="卸载 Ame" />
+  <String Id="AmeRemoveDescription" Value="卸载程序后，默认保留图库和个人设置。" />
+  <String Id="AmeRemoveDataChoice" Value="删除 Ame 数据(&amp;D)" />
+  <String Id="AmeRemoveDataScope"
+          Value="勾选后将删除当前账户默认位置中的图库记录、设置、缓存和已下载模型。默认位置外的自选目录和原图片会保留。MSI、便携版和 Microsoft Store 版共用默认数据。" />
+  <String Id="AmeStartingService" Value="正在启动 Ame 读取助手" />
+  <String Id="AmeRemovingUserData" Value="正在删除当前账户的 Ame 数据" />
+  <String Id="AmeInstallationFailed" Value="Ame 安装无法继续。技术详情：[2]" />
+  <String Id="AmeDataRemovalBlocked"
+          Value="无法删除 Ame 数据，卸载尚未开始。请关闭 Ame 后重试，或取消勾选“删除 Ame 数据”。技术详情：[2]" />
+  <String Id="AmeDataRemovalIncomplete"
+          Value="Ame 已卸载，部分 Ame 数据未能删除；原图片未受影响。技术详情：[2]" />
+</WixLocalization>

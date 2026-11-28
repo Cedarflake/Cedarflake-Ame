@@ -33,10 +33,10 @@ std::filesystem::path TargetPath(MSIHANDLE session, const wchar_t* name) {
 }
 
 UINT ReportFailure(MSIHANDLE session, const std::exception& error) noexcept {
-  const MSIHANDLE record = MsiCreateRecord(1);
+  const MSIHANDLE record = MsiCreateRecord(2);
   if (record) {
-    MsiRecordSetStringW(record, 0, L"Cedarflake Ame installation cannot continue: [1]");
-    MsiRecordSetStringA(record, 1, error.what());
+    MsiRecordSetInteger(record, 1, 25001);
+    MsiRecordSetStringA(record, 2, error.what());
     MsiProcessMessage(session, INSTALLMESSAGE_ERROR, record);
     MsiCloseHandle(record);
   }
