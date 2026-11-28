@@ -2,7 +2,7 @@
 
 This record owns O7's incremental, journal and synchronization boundary evidence. The
 [roadmap](../roadmap.md#project-organization-after-r5) owns disposition, the
-[execution plan](../plans/project-organization.md#o7-repository-conformance-and-handover) owns scope,
+[handover](#organization-handover--2026-11-04) records the completed scope,
 and [earlier organization evidence](project-organization.md) retains the preceding slices and limits.
 
 ## Guarded incremental sources — 2026-11-04

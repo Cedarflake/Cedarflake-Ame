@@ -410,7 +410,7 @@ the completed filmstrip frame-time evidence below remains applicable.
 
 ### Workbench implementation and qualification
 
-Scope: [Material workbench plan](../plans/material-workbench.md), branch
+Scope: [Material workbench plan](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/material-workbench.md), branch
 `codex/material-workbench`, starting from `88b5cc2c`. The installed Flutter 3.47.8 / Dart 3.13.7
 and `material_ui` 1.11.0 supply the SearchBar leading/trailing slots, circular IconButton shape,
 NavigationRail, Material ink and rounded content surfaces. No package or native contract changed.

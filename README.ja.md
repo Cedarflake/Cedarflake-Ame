@@ -35,8 +35,6 @@ Ame は現在 **Alpha 版**です。[リリースページ](https://github.com/C
 
 Ame から Windows の機能を使ってファイルのコピー、移動、名前の変更、削除ができます。削除すると通常はごみ箱に移動します。完全に削除する場合は、その操作を明示的に選びます。重複写真や類似写真を整理するときは、自分で選んだ写真が残ります。選んでいない場合はグループの代表写真が残り、削除前に対象のファイル数を確認できます。結果はファイル操作履歴で確認でき、中断した操作は内容に応じて再開できます。
 
-[使い方ガイド](docs/user-guide.ja.md)では、画像の追加、モデルの準備、更新、整理記録のバックアップ、診断情報の共有を説明しています。
-
 ## ソースから実行する
 
 Ame は開発中です。Windows 11 x64 でビルドするには、Flutter **3.50.0**、[rust-toolchain.toml](rust-toolchain.toml) で指定された Rust ツールチェーン、Visual Studio 2022 が必要です。Visual Studio では「C++ によるデスクトップ開発」ワークロード、Windows SDK、CMake ツールをインストールしてください。Windows on Arm でビルドする場合は、[ARM64 のビルド手順](docs/acceptance/quality/commands.md#build-on-windows-arm64)を参照してください。

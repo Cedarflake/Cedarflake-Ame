@@ -1,6 +1,6 @@
 # Cedarflake Ame End User License Agreement
 
-Last updated: 2026-11-27
+Last updated: 2026-11-28
 
 This agreement describes the terms for using Cedarflake Ame ("Ame"), a local image
 library application provided by the Cedarflake Ame contributors.
@@ -48,8 +48,8 @@ or availability. Review the selected files and the requested action before confi
 Permanent deletion does not provide Windows Recycle Bin recovery.
 
 Keep backups of important images and organization records. An organization-record export
-does not include the original images. Interrupted operations and recovery options are
-described in the [user guide](docs/user-guide.md).
+does not include the original images. File operation records show interrupted operations
+and their available recovery actions.
 
 Similarity, classification and semantic-search results are aids to organization. They can
 be incomplete or inaccurate; review them before using them to choose files for deletion
@@ -90,8 +90,8 @@ Revisions of this document are published in the repository with an updated date.
 revision does not withdraw permissions already granted under an applicable open-source
 license. Any termination of license rights is governed by that license.
 
-You may stop using and uninstall Ame at any time. Consult the
-[user guide](docs/user-guide.md) for its data locations and backup options.
+You may stop using and uninstall Ame at any time. Settings shows its storage locations
+and organization-record export options.
 
 For questions about Ame, use the
 [project issue tracker](https://github.com/Cedarflake/Cedarflake-Ame/issues).

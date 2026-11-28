@@ -4,7 +4,7 @@ Status: selected native Debug query, folder membership and continuous search pat
 
 ## Scope and invariant
 
-The [execution plan](../plans/r2c-closeout.md#native-query-interaction-during-publication) owns this
+The [execution plan](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-query-interaction-during-publication) owns this
 bounded UX-03A and partial UX-03B run. Production source is `a7885dd7d83a5f73cef70aab23879a094ab747e6`.
 The diagnostic uses the actual Windows Debug picker, production catalog/scanner/watcher, native
 pointer/keyboard input and real image decoding. It copies only the derived generated catalog;
@@ -110,7 +110,7 @@ confirm valid UTF-8, existing local link targets, unchanged admitted artifact ha
 
 ## Native folder window across publication
 
-The [75-minute method](../plans/r2c-closeout.md#native-folder-paging-across-publication) runs on
+The [75-minute method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-folder-paging-across-publication) runs on
 production source `144ceade532610e6be9aedf13d5bdf73fb6ade55`. Run
 `3541d7e32d124d6cb34c47a7c18bfe24`, app PID 33004 and parent 9748, imports 201 generated images in
 201 child folders. One subsequent generated image creates `a-new`, before every initial folder.
@@ -151,7 +151,7 @@ not uninterrupted typing. Neither interaction is accepted by the passing folder 
 
 ## C08: uninterrupted search input
 
-The [bounded correction](../plans/r2c-closeout.md#search-focus-during-query-refresh) targets a direct
+The [bounded correction](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#search-focus-during-query-refresh) targets a direct
 input defect. `LibraryGlobalBar` derived SearchBar editability from aggregate `isBusy`, which becomes
 true during ordinary query loading. Material's disabled field loses focus, including after a failed
 query. Two connected tests fail on those focus assertions before the production change.
@@ -231,7 +231,7 @@ reservation to 4144 minutes; serial verification wall time is separate.
 
 ## Native committed-removal display Retry
 
-The [80-minute method](../plans/r2c-closeout.md#native-committed-removal-display-retry) uses production
+The [80-minute method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-committed-removal-display-retry) uses production
 commit `7144a1954cd6c6ce18c022df956cee87b8f3bb55` and fresh isolated derived storage. Run
 `3966373b8aad4aa297f9f530516b0bb6`, app PID 35436 and parent 41052, retains the generated 10000/512
 catalog. Native input selects the mixed root, opens the other root's actual source menu and confirms
@@ -661,7 +661,7 @@ test and diagnostic source hashes still match the verified native build.
 
 ## Native viewer identity across source changes
 
-The [UX-05C method](../plans/r2c-closeout.md#native-viewer-identity-across-source-rewrite-rename-and-removal)
+The [UX-05C method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-viewer-identity-across-source-rewrite-rename-and-removal)
 uses unchanged product source `b0d1bda4cf9f950de2567099a6a7245195411fbc` at documentation head
 `d230f8155fa567fa08d2944770889c53f06b6984`. Each attempt has a fresh derived catalog and two new
 generated PNGs beside the immutable 10000/512/2/2 fixture roots. Only the new GUID-owned sources

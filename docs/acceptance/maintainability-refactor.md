@@ -2,7 +2,7 @@
 
 Date: 2026-10-18
 
-Scope and execution order belong to the [active plan](../plans/maintainability-refactor.md).
+Current ownership rules belong to [ADR 0025](../architecture/0025-invariant-owned-workflow-modules.md).
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
 The [M9–M11 comparison](#combined-m9-m11-client-comparison) owns the latest combined client result.
 The [first-round comparison](#final-comparison-and-review) and earlier pending statements retain
@@ -1376,9 +1376,9 @@ Daily workflow conditions; Daily's separate unsigned-release checks remain inclu
 release or installation qualification is claimed.
 
 Native stack #28 contains draft PRs #22–#27 with each base matching the previous head branch.
-Creation triggered fresh M2–M6 runs and superseded the incomplete M6 pre-stack run. The plan's
-[current-check links](../plans/maintainability-refactor.md#delivery-checkpoint) retain the live
-integration results for the published stack heads; the pre-stack table does not replace them.
+Creation triggered fresh M2–M6 runs and superseded the incomplete M6 pre-stack run. The
+[final stack verification](#final-stack-verification) retains the integration results for the
+published stack heads; the pre-stack table does not replace them.
 Closeout changes only this evidence, the execution plan and the roadmap. UTF-8, line endings,
 final-newline, local-link and whitespace checks cover those documents; product and tool inputs
 remain identical to the combined implementation above. Original branch history and `main` are

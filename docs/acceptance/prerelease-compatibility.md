@@ -20,8 +20,7 @@ owns the supported baseline.
 | Catalog relocation and source-state checks | Retained as controls for current user operations. |
 
 Startup wording in English, Simplified Chinese and Japanese describes an unsupported data format
-and the available diagnostic-export action. The three user guides describe the common location,
-retired Alpha conversion and retained normal-update behavior. Installer removal text is covered by
+and the available diagnostic-export action. Installer removal text is covered by
 the [Store lifecycle record](store-msix.md).
 
 ## Independent baseline reference

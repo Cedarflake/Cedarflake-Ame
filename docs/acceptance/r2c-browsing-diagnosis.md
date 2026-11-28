@@ -29,7 +29,7 @@ process retirement together. Raw classifier output and original logs remain in i
 
 The 2026-09-10 diagnosis starts from `507db08f897839aeafb2dc011ef7332ad50fadfa` on
 `codex/r2c`, after the approved 120-minute supplement. Product source is unchanged at that checkpoint.
-The [execution plan](../plans/r2c-closeout.md#approved-browsing-continuation) owns the scope and
+The [execution plan](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#approved-browsing-continuation) owns the scope and
 30-active-minute unknown-cause stop. Earlier [native observations](r2c-live-gap-recovery.md#c05-browsing-findings--unresolved)
 remain valid observations; the controlled widget results below do not disprove them.
 
@@ -384,7 +384,7 @@ No further unrelated behavior is added to that aggregate or facade in this repai
 ## Rail publication and viewer geometry correction
 
 This bounded continuation starts from `0fa23ff`; it changes Flutter presentation only. The
-[complete scope map](../plans/r2c-closeout.md#complete-scope-and-retained-readability-findings)
+[complete scope map](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#complete-scope-and-retained-readability-findings)
 retains the other readability findings and all 24 R2c variants. These two presentation corrections
 do not close the transient post-deletion thumbnail observation or the complete acceptance cycle.
 
@@ -647,7 +647,7 @@ addition does not complete the facade's remaining decomposition.
 
 ## Native replacement and exclusive-source recovery
 
-The [bounded method](../plans/r2c-closeout.md#native-preview-replacement-and-unavailable-source-recovery)
+The [bounded method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-preview-replacement-and-unavailable-source-recovery)
 selects generated Debug UX-04B and the exclusive-open branch of UX-04C. Product source remains
 `7144a1954cd6c6ce18c022df956cee87b8f3bb55`; `991d93d` adds documentation only. No product correction is
 made by this slice. The diagnostic uses real Rust import/materialization, production LiveOnly

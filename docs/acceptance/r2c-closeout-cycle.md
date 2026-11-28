@@ -17,7 +17,7 @@ File.Replace failures remain unexplained. The supplement has reached its stoppin
 the approved P2 follow-up below also stops without a causal correction. The count follow-up does
 not change readiness.
 
-This record implements the [bounded execution plan](../plans/r2c-closeout.md). The canonical
+This record implements the [bounded execution plan](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md). The canonical
 [roadmap](../roadmap.md) retains stage and queue authority. Findings belong in the existing
 [interleaving ledger](r2c-interleaving-remediation.md); this record maps the fixed journeys to
 evidence and records execution budgets rather than introducing another issue backlog.

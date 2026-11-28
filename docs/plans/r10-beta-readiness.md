@@ -106,7 +106,7 @@ manual upgrade remains the recovery route.
 Exit evidence: preserved representative records, working installed/portable clients, recovery results
 and consistent version reporting. Reuse unchanged installer guardrails instead of recreating them.
 
-### R10-04 — Diagnostics and recovery guidance
+### R10-04 — Diagnostics and recovery
 
 Add one diagnostics-export action to the existing Settings/About surface and retain diagnosis when
 startup fails. Define a narrow application export contract and platform adapter before connecting UI.
@@ -120,12 +120,8 @@ the result uses existing feedback and folder-opening controls. The accepted form
 with a readable summary and structured JSON under [ADR 0044](../architecture/0044-local-diagnostic-export.md).
 Preview the affected surface during this slice, without adding a task center or redesigning Settings.
 
-Write a short user guide covering first import, installed versus portable behavior, model readiness,
-automatic/manual upgrade, backup/recovery, interrupted organization and how to provide a diagnostic bundle.
-Reuse existing contracts for warnings and known limits; keep implementation details in technical docs.
-
 Exit evidence: an exported bundle that explains a representative failure, no unintended personal
-content, and a working destination/retry path. Documentation links must be reachable from the README.
+content, and a working destination/retry path.
 
 ### R10-05 — Beta candidate and publication
 

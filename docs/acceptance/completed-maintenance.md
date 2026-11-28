@@ -10,7 +10,7 @@ does not reopen completed work or establish current-head acceptance.
 | Delivered scope | Owning evidence and retained disposition |
 | --- | --- |
 | R2b gallery, viewer and storage foundation | [Gallery foundation](gallery-foundation.md); optional adaptations do not reopen the accepted baseline |
-| R2c continuity freeze | [Freeze record](r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) and [execution checkpoint](../plans/r2c-closeout.md#current-execution-checkpoint) |
+| R2c continuity freeze | [Freeze record](r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) |
 | R3 duplicates and durable choices | [R3 closeout](r3-exact-duplicates.md#r3-closeout) and [execution record](../plans/r3-exact-duplicates.md) |
 | R4 organization and recovery | [Merge verification](r4-organization.md#r4-merge-verification---2026-10-30), including retained-scale checks and failures |
 | R5 automatic smart albums | [Integrated evidence](r5-closeout.md) and [authorized early merge](r5-closeout.md#r5-merge--2026-11-03); hosted state remains separate |

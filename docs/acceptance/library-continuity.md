@@ -2,8 +2,8 @@
 
 Status: retained R2c regression and acceptance requirements, not proof of completion.
 
-The [roadmap](../roadmap.md) owns stage order and current status; the
-[closeout execution document](../plans/r2c-closeout.md) owns the active bounded investigation.
+The [roadmap](../roadmap.md) owns stage order and current status. R2c is
+[complete and frozen](r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16).
 These requirements describe the behaviors to prove. Accepted
 [ADR 0024](../architecture/0024-windows-change-driven-library-continuity.md) owns the current
 change-driven architecture and supersedes historical fallback policies; other technical ownership

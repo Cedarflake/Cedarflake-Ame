@@ -1,7 +1,7 @@
 # R2c maintenance evidence
 
 This record tracks the four required maintenance deliveries in the
-[closeout plan](../plans/r2c-closeout.md#completion-goal-and-required-deliveries).
+[closeout plan](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#completion-goal-and-required-deliveries).
 They preserve existing policy and lifecycle contracts. They do not themselves diagnose or close
 the previously reported native browsing failures, nor establish final R2c acceptance.
 

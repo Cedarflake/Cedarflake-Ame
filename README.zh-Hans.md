@@ -35,8 +35,6 @@ Ame 按文件内容识别完全相同的图片。在图库中，可以把多个�
 
 Ame 支持通过 Windows 复制、移动、重命名和删除文件。删除的文件默认进入回收站，也可以手动选择永久删除。清理重复或相似图片时，Ame 会保留你选定的图片。如果没有手动选择，就保留自动选出的那张。删除前会请你确认文件数量。你可以在操作记录中查看结果，部分操作中断后也可以恢复。
 
-[使用指南](docs/user-guide.zh-Hans.md)介绍图片导入、模型准备、更新、整理记录备份和诊断信息导出。
-
 ## 从源码运行
 
 Ame 仍在开发中。在 Windows 11 x64 上构建需要 Flutter **3.50.0**、[rust-toolchain.toml](rust-toolchain.toml) 指定的 Rust 工具链，以及 Visual Studio 2022。安装 Visual Studio 时，请勾选「使用 C++ 的桌面开发」工作负载，并安装 Windows SDK 和 CMake 工具。在 Windows on Arm 设备上构建请参阅 [ARM64 构建指南](docs/acceptance/quality/commands.md#build-on-windows-arm64)。

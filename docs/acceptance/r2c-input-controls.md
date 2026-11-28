@@ -3,7 +3,7 @@
 Status: **Selected Debug native picker, focused Enter Retry, pre-registration Pause-Cancel,
 rendered feedback, preserved baseline and normal exit verified**.
 
-This record covers the [actual picker and task-control method](../plans/r2c-closeout.md#actual-picker-and-task-control-method).
+This record covers the [actual picker and task-control method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#actual-picker-and-task-control-method).
 The initial 2026-09-22 source starts at `ef4eee27ca47c1c7e6d3b97e986f9d73da6ded7a`, with the C06
 presentation correction and regression below. The [complete native checkpoint](#complete-native-input-and-rendered-feedback)
 uses unchanged product source at `4787c84`. It closes the selected Debug input duties, not Release,

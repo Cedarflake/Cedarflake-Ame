@@ -1,8 +1,8 @@
-# R10 diagnostics and recovery guidance
+# R10 diagnostics and recovery
 
 Date: 2026-11-26
 
-Scope: R10-04 in the [Beta readiness plan](../plans/r10-beta-readiness.md#r10-04--diagnostics-and-recovery-guidance).
+Scope: R10-04 in the [Beta readiness plan](../plans/r10-beta-readiness.md#r10-04--diagnostics-and-recovery).
 The [roadmap](../roadmap.md#diagnostics-and-recovery-guidance) owns stage disposition;
 [ADR 0044](../architecture/0044-local-diagnostic-export.md) owns the diagnostic-data and lifecycle boundary.
 
@@ -113,13 +113,7 @@ and 37 Rust files under `tests/`, including fixture support. This change relocat
 rather than adding workflow behavior. The settings adapter's 85 inline-test lines include the
 test-module declaration. Neither adapter gains SQL or test cases in this slice.
 
-## Documentation and remaining evidence
-
-The English, Simplified Chinese and Japanese [user guides](../user-guide.md) cover import, models,
-installed and portable versions, updates, organization backup/recovery and diagnostic sharing.
-Their settings/action labels were checked against the localization catalogs. English and Japanese
-gallery labels use the actual `All photos` and `すべての写真` strings. Each localized README links
-to its guide; the documentation and acceptance indexes link to this record.
+## Remaining desktop evidence
 
 The subsequent startup-failure action layout places Export and Copy side by side in a centered
 group, retaining wrapping for constrained text/window sizes. Its Windows Debug build completed in

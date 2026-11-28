@@ -1084,7 +1084,7 @@ rerun source hashes or recheck hosted CI. No further native lifetime is admitted
 
 ## Prepared settled-observation input method
 
-The [revised bounded method](../plans/r2c-closeout.md#release-input-after-observed-transition-settlement)
+The [revised bounded method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#release-input-after-observed-transition-settlement)
 addresses the preceding run's premature post-input captures. Its ignored observation owner awaits
 the matching guest process-start receipt within ten seconds, rechecks terminal state after that
 read and after capture, and gives each completed single input 350 ms before its automatic capture.
@@ -1185,7 +1185,7 @@ and 33 input hashes. Only guest digest computation and its payload inclusion cha
 membership, path, length, date, original Clock/300-second/abort and native input checks remain.
 Independent recheck confirms the mid-read cancellation boundary and exact guest payload wiring.
 The complete host precheck verifies all 10516 files in 52.041 seconds. One native lifetime is
-admitted by the [bounded method](../plans/r2c-closeout.md#source-verification-cost-and-native-admission);
+admitted by the [bounded method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#source-verification-cost-and-native-admission);
 preparation and host timing alone do not close import, finalization, menu or gallery acceptance.
 
 ### Bounded-digest native import and menu return

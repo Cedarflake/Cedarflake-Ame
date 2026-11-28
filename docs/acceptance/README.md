@@ -12,7 +12,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R10 responsiveness](r10-responsiveness.md) | Retained-library navigation, viewer, resizing and publication measurements |
 | [R10 resources and recovery](r10-resource-recovery.md) | Sustained-use resource measurements, compatible index reuse and interruption/restart qualification |
 | [R10 upgrade and compatibility](r10-upgrade-compatibility.md) | Alpha-to-Beta data preservation, installer and migration recovery, runtime payload and build identity |
-| [R10 diagnostics and guidance](r10-diagnostics.md) | Local ZIP export, bounded event retention, privacy projection, startup-failure access and multilingual user guidance |
+| [R10 diagnostics and recovery](r10-diagnostics.md) | Local ZIP export, bounded event retention, privacy projection and startup-failure access |
 | [Standalone Material migration](material-ui-migration.md) | Official package migration, localization/type compatibility and retained desktop interaction |
 | [Unsigned Windows publication](unsigned-windows-release.md) | Candidate admission, workflow outputs and optional signing integration checks |
 | [Application updates](application-updates.md) | Update settings, verified packages, joined restart, installed handoff and portable recovery |
@@ -105,7 +105,7 @@ git show 643f7b8f71971ce33416cc87aa94bb84f41d4e05:docs/roadmap.md
 | Pre-freeze R2c queue and acceptance wording | [Roadmap at the frozen product commit](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md); the current roadmap owns stage order and closure |
 | Section 7: large-library ladder | The evidence ladder below, with unchanged authorization boundaries |
 | Fixed queue, current blockers, required physical splits | [Current roadmap](../roadmap.md#current-execution-queue); detailed historical attribution in the interleaving ledger |
-| Bounded investigation, eight scenarios, budgets, cautions, exit rules | [R2c closeout execution](../plans/r2c-closeout.md), transferred as one complete procedure |
+| Bounded investigation, eight scenarios, budgets, cautions, exit rules | [R2c closeout execution](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md), transferred as one complete procedure |
 | Existing checkpoints, dated closeout narratives and section 10.1 snapshots | Named audit/stage records above plus the immutable Git source; never current-status authority |
 | Section 10.2 foundation acceptance checkpoints | [Gallery foundation](gallery-foundation.md#historical-acceptance-checkpoints) |
 

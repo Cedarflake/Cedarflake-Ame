@@ -2,7 +2,7 @@
 
 Status: **Native replacement failure reproduced; responsible mechanism remains unresolved**.
 
-The 2026-09-22 [bounded method](../plans/r2c-closeout.md#c02-native-replacement-attribution)
+The 2026-09-22 [bounded method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#c02-native-replacement-attribution)
 investigates C02's current full-lint failure without rerunning the UI or complete gate. Product
 source is `16c215e4d05b8f5ba53ae82fab8cd6db1f45c76c`. No product or tracked verification script changes
 result from this attribution. The previous raw `build/diagnostics` directory is absent from the

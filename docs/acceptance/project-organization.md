@@ -1,8 +1,8 @@
 # Project organization verification
 
 The [roadmap](../roadmap.md#project-organization-after-r5) owns activation and exit decisions.
-The [execution plan](../plans/project-organization.md) owns O1–O7 and
-[ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the target rules.
+The [handover](project-organization-continuity.md#organization-handover--2026-11-04) records O1–O7;
+[ADR 0037](../architecture/0037-feature-module-dependency-boundaries.md) owns the current rules.
 
 This record retains entry, O1–O6 and O7's catalog, scan and preview evidence. Subsequent incremental,
 journal and synchronization boundary work is recorded in [continuity evidence](project-organization-continuity.md).
@@ -66,7 +66,7 @@ outputs. Its baseline retains 124 exact migration entries (46 cross-feature, 69 
 external-library, one shared-feature and one cycle), with named responsibility, reason, regression
 owners and O2–O6 removal conditions. The baseline Git blob is pinned independently of the mutable
 active-ID policy; an arbitrary fresh violation list cannot replace it. The source/target and
-physical-size inventory is in the [execution inventory](../plans/project-organization-inventory.md).
+physical-size inventory is in the [execution inventory](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/project-organization-inventory.md).
 
 The 17 focused regressions pass through `quality_test_flutter.ps1`. They cover admitted layers,
 multiline/raw/package URI resolution, all conditional branches, transitive exports, parts, complete
@@ -93,7 +93,7 @@ The fixed R5 baseline has 279 entries: 26 named catalog-session, synchronization
 composition edges; the held source-handle contract in `PreviewStore::materialize`; and 252 individually
 recorded application integration edges for O7 review. Domain/API contain no remaining rejected
 explicit references. Existing API `StreamSink` use stays inside the bridge boundary. The
-[execution inventory](../plans/project-organization-inventory.md#rust-composition-and-boundary-inventory)
+[execution inventory](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/project-organization-inventory.md#rust-composition-and-boundary-inventory)
 names the retained construction/resource owners and their lifetimes.
 
 The original inventory attempt exposed a parser recursion defect when a module and its re-exported

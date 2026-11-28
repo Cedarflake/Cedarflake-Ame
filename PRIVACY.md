@@ -1,6 +1,6 @@
 # Cedarflake Ame Privacy Statement
 
-Last updated: 2026-11-27
+Last updated: 2026-11-28
 
 This statement describes how Cedarflake Ame ("Ame"), published by Cedarflake and maintained by
 the Cedarflake Ame contributors, handles information. It covers the Microsoft Store, MSI and
@@ -84,7 +84,7 @@ the shared default directory are not removed by these uninstall operations.
 You choose which images and folders Ame opens or catalogs. You can remove folders from the library,
 change organization records, configure direct-update checks where available, and choose whether
 to export or share diagnostics. To remove retained local data, close Ame and remove its data from
-the storage locations described in the [user guide](docs/user-guide.md), including any custom
+the storage locations shown in Settings, including any custom
 locations or exports you want to delete. Clearing a cache does not remove favorites or albums.
 
 Browsing, cataloging and analysis preserve original images. Moving, copying, renaming, recycling

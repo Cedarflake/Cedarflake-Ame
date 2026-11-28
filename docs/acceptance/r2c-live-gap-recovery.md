@@ -3,8 +3,9 @@
 Date: 2026-09-10
 
 Status: C04 causal correction has focused and generated-client evidence; browsing and candidate
-acceptance remain unresolved. The [roadmap](../roadmap.md) owns order and the
-[execution plan](../plans/r2c-closeout.md) owns any further admission.
+acceptance remained unresolved at this checkpoint. The subsequent
+[R2c freeze](r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) owns stage closure;
+the [roadmap](../roadmap.md) owns current work.
 
 ## C04 owning correction
 

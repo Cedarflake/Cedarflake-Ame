@@ -2,7 +2,7 @@
 
 Updated: 2026-10-10. Scope: atomic scan progress, update task projection, identity-query preparation,
 and bounded update/browsing observations. This record does not accept R2c or combined-source recovery.
-The execution owner is [R2c closeout](../plans/r2c-closeout.md).
+The [freeze record](#r2c-freeze-on-2026-10-16) owns the final R2c disposition.
 
 ## Causal changes
 

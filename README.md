@@ -29,9 +29,6 @@ upgrade after closing Ame; extract their portable replacements into separate dir
 Release and preview packages are unsigned. See the [release notes](docs/releases/README.md)
 for changes and known limits.
 
-The [user guide](docs/user-guide.md) covers importing images, model preparation, updates,
-organization backups and sharing diagnostics.
-
 ## Browse your collection
 
 Scroll through a photo wall or a square grid and jump to a date with the timeline.

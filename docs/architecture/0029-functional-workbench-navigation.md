@@ -84,7 +84,8 @@ display list; movement retains its shared motion driver, shadow, clipping and pr
 Use the installed `material_ui` 1.11.0 SearchBar, NavigationRail, ListTile, Material/Card and popup
 components, plus the existing window and transition owners. No new navigation stack, widget
 framework, dependency, catalog state or source read is introduced. The owning
-[plan](../plans/material-workbench.md) identifies affected workflow verification; rollback restores
+[UI verification map](../acceptance/quality/ui-verification.md#ui-workflow-verification)
+identifies affected workflow verification; rollback restores
 composition without a data migration.
 
 ### Retained workspace behavior

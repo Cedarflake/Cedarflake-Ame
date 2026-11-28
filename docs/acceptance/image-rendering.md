@@ -246,7 +246,7 @@ separate from that infrastructure failure and the local checks above.
 ### Continuous timeline dragging and coherent layout publication
 
 The `codex/gallery-navigation-snapshots` repair is based on `c1797887` and implements the
-[navigation stability plan](../plans/gallery-navigation-stability.md). Earlier click and wheel
+[navigation contract](../architecture/0014-query-wide-gallery-layout-manifest.md). Earlier click and wheel
 evidence did not cover the subsequently reproduced held-drag failure. Initial Windows Debug
 interaction evidence below used the 2026-11-08 21:40 build; the subsequent query-cost checks used
 the 2026-11-09 Debug build accompanying this record.

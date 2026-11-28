@@ -196,7 +196,7 @@ The GitHub API digests and verified published package sizes are:
 
 ## MSI localization — 2026-11-28
 
-The working-tree implementation follows the single language-neutral package decision in
+Implementation `b290318a67d6b3831052ceada0067c727d4af6cd` follows the single language-neutral package decision in
 [ADR 0027](../architecture/0027-windows-installer-lifecycle.md#installer-language). Native installer
 code compiled with MSVC `/W4 /WX`; all 107 native policy cases passed, including preferred-language
 ordering and English fallback.
@@ -227,9 +227,9 @@ An earlier four-minute harness deadline stopped after its first successful cycle
 Software Restriction Policy was verifying the next installation. The completed run allowed eight
 minutes and retained default Sandbox networking; each new installation still spent about two
 minutes in Windows package verification. No Windows security setting or product policy was changed.
-These results do not add a current-head CI result or qualify a published release.
+These local results do not qualify a published release. Hosted integration is recorded below.
 
-Physical source sizes at this working-tree snapshot are:
+Physical source sizes at that implementation revision are:
 
 | Owner | Production lines | Dedicated test lines |
 | --- | ---: | ---: |
@@ -245,3 +245,10 @@ Physical source sizes at this working-tree snapshot are:
 
 These owners contain no inline tests. Counts include blank lines and describe the full affected
 files, not only the localization additions.
+
+[PR 78](https://github.com/Cedarflake/Cedarflake-Ame/pull/78) was merged as
+`d33e453e66a3f89531ca4b02df5909cade193126` after
+[Quality / CI run 46128014083](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/46128014083)
+passed for the implementation revision above. All selected static, Flutter, Rust, Windows scan,
+accessibility and production-build jobs passed. The merged tree matches the checked head.
+Local `main` was synchronized, and `codex/msi-localization` was deleted locally and remotely.

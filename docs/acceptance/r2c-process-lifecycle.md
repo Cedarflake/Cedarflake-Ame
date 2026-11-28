@@ -3,7 +3,7 @@
 Status: **Selected native close, checkpoint continuation and interrupted raw-inventory recovery verified**.
 
 This record covers the 2026-09-22 generated-only method in the
-[active execution plan](../plans/r2c-closeout.md#remaining-process-lifecycle-and-input-method).
+[historical execution plan](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#remaining-process-lifecycle-and-input-method).
 Production source was `2004bafa56eec9c58c7fe6e3fd4f4f876cde5db6`. It adds no product behavior,
 changes no acceptance threshold, and does not establish complete UX-01/02/08 or R2c acceptance.
 The recovered input pair uses the same native/Dart artifacts on `16c215e`; the intervening changes
@@ -163,7 +163,7 @@ obligations; that hosted success does not erase their retained local failures.
 
 ## Native restart after an incomplete raw inventory batch
 
-The 2026-09-23 [process-loss method](../plans/r2c-closeout.md#native-process-loss-during-a-persisted-recovery-lease)
+The 2026-09-23 [process-loss method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-process-loss-during-a-persisted-recovery-lease)
 uses production source `2f20a65ad4779b0b6332265cc488c120e9054bff`, an actual Debug Ame EXE,
 production synchronization/scanning and marked isolated derived storage. The retained generated
 10000/512/2/2 roots stay unchanged. A fifth root contains exactly 10000 new, valid 8-by-8 PNGs;
@@ -247,7 +247,7 @@ C01/C02, final candidate gates and external acceptance remain open.
 
 ## Native restart with an unexpired executing lease
 
-The [direct owned-handle method](../plans/r2c-closeout.md#direct-owned-handle-termination-at-a-leased-recovery-boundary)
+The [direct owned-handle method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#direct-owned-handle-termination-at-a-leased-recovery-boundary)
 at checkout `a81d5c63fa90cb8fedb7863f59843f9d04ed7c05` reuses the exact seven EXE/kernel/DLL
 hashes from the preceding native record. Product source and artifacts are unchanged. It uses a
 fresh derived backup, the same immutable 10000/512/2/2 generated roots and another explicitly owned
@@ -321,7 +321,7 @@ candidate gates and separately authorized external acceptance remain open.
 
 ## Native exhausted recovery and an eligible peer
 
-The [bounded exhaustion method](../plans/r2c-closeout.md#native-exhausted-recovery-with-an-eligible-peer)
+The [bounded exhaustion method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#native-exhausted-recovery-with-an-eligible-peer)
 uses documentation head `2404874adb2e573686bacfccedbe9c0e5ce4b09a` and unchanged product source
 `b0d1bda4cf9f950de2567099a6a7245195411fbc`. A fresh derived backup retains the immutable
 10000/512/2/2 generated roots. The real scanner adds two generated two-image roots after real

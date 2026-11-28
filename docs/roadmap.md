@@ -4,407 +4,104 @@ Status: canonical active delivery plan
 
 Last planning update: 2026-11-28
 
-This file owns current stage disposition, execution order, blockers, decomposition obligations and
-exit decisions. Read the linked active plan before implementation. Product requirements, technical
-decisions, procedures and historical evidence remain in their named owners in the
-[documentation index](README.md).
-
-## Product direction
-
-Ame is a local-first Windows image-organizing workbench for large personal libraries. Delivery
-progresses from trustworthy catalog and browsing to exact duplicates, durable virtual organization,
-machine-assisted discovery and separately authorized physical operations. Cataloging, browsing,
-analysis and virtual organization preserve original media.
-
-The [workbench contract](product/workbench.md) owns concepts and exclusions;
-[organization workflows](product/organization-workflows.md) retain the complete R3–R10 scope.
+Ame is a local-first Windows workbench for browsing, finding and organizing large image libraries.
+The next milestone is `v0.1.0-beta.1`. Product boundaries belong to the
+[workbench contract](product/workbench.md) and [organization workflows](product/organization-workflows.md).
 
 ## Delivery sequence
 
-| Stage | Outcome | Disposition |
+<a id="current-stage-and-acceptance-boundary"></a>
+
+| Stage | Outcome | Status |
 | --- | --- | --- |
-| R0 | Windows picker, catalog and preview | Accepted foundation |
-| R1 | Progressive, resumable multi-root catalog | Accepted foundation |
-| R2a | Unified gallery and connected controls | Accepted foundation |
-| R2b | Continuous browsing, viewing and storage | Accepted; preserve [foundation boundaries](acceptance/gallery-foundation.md) |
-| R2c | Change-driven continuity during browsing | Completed and frozen on 2026-10-16 |
-| R3 | Exact duplicates and physical-location inspection | Completed on 2026-10-17 |
-| R4 | Favorites, albums and durable organization progress | Merged into `main` on 2026-10-30 |
-| R5 | Metadata, smart albums and automatic initial screening | Merged into `main` on 2026-11-03 |
-| R6 | Perceptual similarity review | Merged into `main` on 2026-11-05 |
-| R7 | Structured and semantic discovery | Merged into `main` on 2026-11-08 through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53) |
-| R8 | Authorized file organization and recovery | Merged into `main` on 2026-11-11 through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57); incorporates former R9 |
-| R9 | Move album files into year-based folders | Merged into `main` on 2026-11-12 through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60) |
-| R10 | Large-library maturity and release readiness | R10a (R10-01) integrated through [PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64); R10b (R10-02) integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66); R10c (R10-03) integrated through [PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68); R10-04 integrated through [PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75); R10-05 pending for `v0.1.0-beta.1` |
-
-R8 combines the former R8 and R9 scopes into one executable workflow without an organization-preview
-feature. The R9 identifier now denotes the separate album-by-year movement scope below; the former
-R9 recovery work remains delivered within R8. R10 keeps its identifier. The
-[merged scope](product/organization-workflows.md#r8---file-organization-and-recovery) owns behavior;
-the [execution plan](plans/r8-file-organization.md) defines Windows-backed implementation slices;
-the [verification procedure](acceptance/r8-file-operations.md) defines guest-contained Windows Sandbox
-and hosted Windows fixture checks. R8-01 through R8-05 are integrated; the
-[closeout record](acceptance/r8-file-operations.md#r8-integration--2026-11-11) retains final review,
-current-head verification and the accepted Windows recycling limit.
-
-## Current stage and acceptance boundary
-
-R4 and R5 are integrated. Their
-[R4 merge evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) and
-[R5 integrated evidence](acceptance/r5-closeout.md) retain coverage, accepted limits and merge authority.
-
-R6-01 through R6-04 are integrated through
-[PR 47](https://github.com/Cedarflake/Cedarflake-Ame/pull/47). The
-[implementation plan](plans/r6-similar-images.md) retains the slice definitions; the
-[closeout record](acceptance/r6-similar-images.md#r6-closeout) maps them to evidence and accepted limits.
-[ADR 0038](architecture/0038-bounded-perceptual-similarity.md) owns the comparison boundary.
-
-Preserve the delivered R5 curated catalog, purpose restrictions, automatic analysis, legacy decisions,
-archive compatibility and authorized model-installation recovery. The
-[R5 requirements](product/r5-classification.md) own current behavior and withdrawn controls.
-Reuse completed acceptance when its inputs are unchanged; new behavior receives its affected checks.
+| R0–R2 | Catalog, browsing and change-driven library updates | Complete; [foundation](acceptance/gallery-foundation.md), [R2c closeout](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) |
+| R3 | Exact duplicates and file locations | Complete; [evidence](acceptance/r3-exact-duplicates.md) |
+| <a id="r4-implementation-sequence"></a>R4 | Favorites, albums and organization progress | Complete; [evidence](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) |
+| <a id="r5-implementation-sequence"></a>R5 | Metadata, smart albums and initial screening | Complete; [evidence](acceptance/r5-closeout.md) |
+| R6 | Similar-image review | Complete; [evidence](acceptance/r6-similar-images.md#r6-closeout) |
+| <a id="r7-implementation-sequence"></a>R7 | Structured and semantic search | Complete; [evidence](acceptance/r7-semantic-discovery.md#integrated-verification--2026-11-08) |
+| <a id="r8-implementation-sequence"></a>R8 | File operations and recovery | Complete; [evidence](acceptance/r8-file-operations.md#r8-integration--2026-11-11) |
+| <a id="r9--album-files-by-year"></a>R9 | Move album files into year-based folders | Complete; [evidence](acceptance/r8-file-operations.md#r9-integration--2026-11-12) |
+| R10 | Large-library maturity and first Beta | In progress; R10-01–04 complete, R10-05 next |
 
 ## Current execution queue
 
-### MSI localization
+### R10 — Beta readiness
 
-The [installer localization plan](plans/msi-localization.md) adds Simplified Chinese, English and
-Japanese to the single MSI, including installation, repair and uninstall. Each invocation follows
-the user's Windows display-language preferences with English fallback; installation and data-removal
-semantics remain unchanged. Implementation, native language-session checks and the isolated
-three-language install/repair/uninstall matrix are complete on `codex/msi-localization`;
-the [verification record](acceptance/unsigned-windows-release.md#msi-localization--2026-11-28)
-owns their scope. Hosted CI and integration remain pending.
+Use the [R10 execution plan](plans/r10-beta-readiness.md) for the remaining candidate work.
 
-### Smart-album term editing
+| Slice | Outcome | Status |
+| --- | --- | --- |
+| R10-01 / R10a | Responsive startup and browsing | Complete; [evidence](acceptance/r10-responsiveness.md) |
+| R10-02 / R10b | Bounded resources and interruption recovery | Complete; [evidence](acceptance/r10-resource-recovery.md) |
+| R10-03 / R10c | Installation, upgrade and version identity | Complete; [evidence](acceptance/r10-upgrade-compatibility.md) |
+| <a id="diagnostics-and-recovery-guidance"></a>R10-04 | Local diagnostics and failure recovery | Complete; [evidence](acceptance/r10-diagnostics.md) |
+| R10-05 | Qualify and publish `v0.1.0-beta.1` | Pending |
 
-The approved [term-editing plan](plans/smart-album-terms.md) was integrated through
-[PR 77](https://github.com/Cedarflake/Cedarflake-Ame/pull/77) on 2026-11-28: a sidebar edit action,
-an album-style tray containing the complete bundled
-directory, origin filters, separate definition dialogs, per-term activation and batch restoration
-of built-ins with retained custom definitions, configured IDs and manual protection.
-The [integration record](acceptance/smart-album-terms.md#integration--2026-11-28) owns local,
-native-client and hosted verification, retained classification display and branch cleanup.
-The viewer filmstrip-expansion crash reported on 2026-11-28 remains deferred separately at the
-user's request. This integration does not change the R10-05 release gate or authorize Beta publication.
+Next steps:
+
+1. Select the Beta candidate and resolve any blocking defect affecting normal use.
+2. Complete the applicable candidate gates and prepare the MSI, portable ZIP and release notes
+   from the same verified revision.
+3. Prepare the Store MSIX upload package with the Beta, then publish through the separately
+   authorized release/submission workflows.
+
+Beta exit requires the agreed responsiveness, resource, recovery and upgrade results, usable
+diagnostics, no known blocking correctness or data-loss defect, and passing candidate gates.
+Startup and cached reads retain their [five-second / one-second targets](acceptance/r2c-m-replacement-reliability.md#required-evidence).
+Code signing, additional locales, official Expressive migration and constrained-device optimization
+are not prerequisites. Million-item architecture changes remain measurement-triggered.
+Reuse unchanged acceptance evidence; candidate qualification does not reopen completed stages.
 
 ### Microsoft Store distribution
 
-MSIX distribution was integrated through [PR 76](https://github.com/Cedarflake/Cedarflake-Ame/pull/76)
-on 2026-11-27, following the
-[Store distribution plan](plans/store-msix.md) and
-[ADR 0045](architecture/0045-microsoft-store-distribution.md). Package construction, Store-managed
-updates, shared data across MSI/portable/MSIX and the MSI uninstall data-removal choice have passed
-their isolated lifecycle checks. The [acceptance record](acceptance/store-msix.md) owns exact
-artifacts, hosted verification and entry-point limits. The common directory is used
-directly; legacy-data migration and a new backup/restore feature remain outside this scope.
-MSI/portable delivery and R10-05's separate
-candidate work retain their existing scope. Store submission and publication are not yet authorized.
-The user-facing MSIX upload package will be generated with the Beta release; interim local packages
-remain verification artifacts.
+MSIX packaging and Store-managed updates are implemented; see the
+[distribution plan](plans/store-msix.md) and [acceptance](acceptance/store-msix.md).
+The Store upload package is due with the Beta release.
 
-The selected [distribution follow-up](plans/store-msix.md#store-signed-github-release-asset) retrieves
-the matching Store-signed package after Store publication and attaches it to the same GitHub Release.
-The preparation/submission workflow and authenticated-Windows retrieval command are implemented;
-the [procedure](acceptance/quality/store-release.md) owns configuration and recovery. End-to-end
-verification awaits first Store publication, Entra submission credentials and a Windows user session
-eligible for Store downloads. The normal hosted runner cannot authenticate WinGet with submission
-client credentials. Actual submission and attachment publication remain separate release actions.
+The remaining [Store-signed Release asset workflow](plans/store-msix.md#store-signed-github-release-asset)
+needs first Store publication, Entra submission credentials and an eligible Windows user session
+for package download. Complete its end-to-end verification when those prerequisites are available.
+Store submission and attaching the signed package remain separately authorized release actions.
 
-### Prerelease compatibility cleanup
+## Delivered supporting work
 
-The requested [compatibility cleanup](plans/prerelease-compatibility.md) was integrated with
-the Store MSIX delivery through PR 76. It uses current data contracts
-directly, retires obsolete Alpha migration paths and updates their messages and guidance.
-Preserve current user decisions, normal upgrade retention, source
-safety and active operational recovery. The authorized workstation relocation is a one-time local
-operation and is not a product compatibility feature. The
-[verification record](acceptance/prerelease-compatibility.md) owns the independent baseline
-comparison and retained current-format coverage.
+These capabilities are integrated and are not pending work. Their linked records own implementation
+details, verification and limitations.
 
-### Diagnostics and recovery guidance
-
-R10-04 was integrated through [PR 75](https://github.com/Cedarflake/Cedarflake-Ame/pull/75) on
-2026-11-26: local diagnostic ZIP export from Settings/About and startup failure, bounded safe event
-retention, and a short multilingual user guide. The
-[execution plan](plans/r10-beta-readiness.md#r10-04--diagnostics-and-recovery-guidance) owns the scope;
-[ADR 0044](architecture/0044-local-diagnostic-export.md) owns the data and lifecycle boundary.
-The [integration record](acceptance/r10-diagnostics.md#integration--2026-11-26) retains current-head
-CI, desktop coverage and branch cleanup. R10-05 candidate publication is next and remains pending.
-
-### Application updates
-
-The [application updates plan](plans/application-updates.md) was integrated through
-[PR 74](https://github.com/Cedarflake/Cedarflake-Ame/pull/74) on 2026-11-26. Settings supplies manual
-checks, automatic-check/download preferences and explicit restart, with installed and portable
-replacement under ADR 0043. The [integration record](acceptance/application-updates.md#integration--2026-11-26)
-owns current-head CI, retained client/package evidence and branch cleanup. Release publication
-remains separate under R10-05.
-
-### Desktop internationalization
-
-Simplified Chinese, English and Japanese desktop support and localized READMEs were integrated through
-[PR 73](https://github.com/Cedarflake/Cedarflake-Ame/pull/73) on 2026-11-22. The
-[desktop internationalization plan](plans/desktop-internationalization.md) retains the scope;
-[client and integration evidence](acceptance/desktop-internationalization.md#integration--2026-11-22)
-retains its Windows x64 coverage and merged revision. R10 keeps its existing release criteria.
-
-### Flutter 3.50 compatibility
-
-Flutter 3.50.0, compatible Dart dependencies and the paired Rust bridge were integrated through
-[PR 70](https://github.com/Cedarflake/Cedarflake-Ame/pull/70) on 2026-11-18. The upgrade preserves
-the accepted desktop appearance, window lifecycle, renderer and source-safety boundaries.
-Retain `window_manager` 0.5.2 and `screen_retriever` 0.2.2.
-Their nativeapi migration is deferred by the 2026-11-18 decision after rapid window-state
-transitions exposed native-caption and content-rendering regressions. Resume that migration only
-when requested, with its own lifecycle, multi-display and DPI verification.
-The [compatibility evidence](acceptance/material-ui-migration.md#flutter-350-compatibility-2026-11-17)
-records the SDK comparison, retained adapters and integration.
-
-### Material desktop workbench
-
-The accepted Google Material wide-screen layout, MW1–MW4, was integrated through
-[PR 69](https://github.com/Cedarflake/Cedarflake-Ame/pull/69) on 2026-11-17. The
-[execution plan](plans/material-workbench.md) retains the Gallery/Albums, Duplicates, viewer and
-desktop-qualification boundaries. The
-[integration record](acceptance/material-ui-migration.md#material-workbench-integration-2026-11-17)
-owns the authorized merge before final CI completion, desktop results and branch cleanup.
-Preserve existing actions, bounded browsing, source safety and the completed responsiveness work.
-
-R8 and its follow-ups, including the loading-feedback update, and R9 album file organization are
-integrated. The current release is `v0.1.0-alpha.3`. Transition-performance preparation is integrated.
-The R10
-[product scope](product/organization-workflows.md#r10---large-library-maturity-and-release-readiness)
-is decomposed in the [execution plan](plans/r10-beta-readiness.md). R10a is integrated through
-[PR 64](https://github.com/Cedarflake/Cedarflake-Ame/pull/64), with
-[integration evidence](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14).
-R10b (R10-02) is integrated through [PR 66](https://github.com/Cedarflake/Cedarflake-Ame/pull/66):
-sustained-use resource bounds, compatible semantic-index reuse and interruption/restart recovery.
-Its [integration record](acceptance/r10-resource-recovery.md#r10b-integration--2026-11-16) retains
-review, verification and branch cleanup; the closeout retains remaining observations.
-R10c (R10-03) is integrated through [PR 68](https://github.com/Cedarflake/Cedarflake-Ame/pull/68):
-shared build identity and Alpha 3 upgrade, installation and catalog compatibility. Its
-[qualification record](acceptance/r10-upgrade-compatibility.md) retains the package, retained-data,
-recovery and clean-system results; the
-[integration record](acceptance/r10-upgrade-compatibility.md#r10c-integration--2026-11-16) retains
-the early-merge decision and branch cleanup.
-
-### Gallery group discovery
-
-The [follow-up plan](plans/gallery-group-discovery.md) was integrated through
-[PR 62](https://github.com/Cedarflake/Cedarflake-Ame/pull/62). It delivers scope-consistent semantic
-results, exclusive grouped-gallery filters, member and cleanup actions, and labeled group menus.
-The [integration record](acceptance/r8-file-operations.md#gallery-group-discovery-integration--2026-11-13)
-retains audit, verification and merge boundaries. Remaining query waits belong to R10; this
-maintenance does not reopen the completed R7/R8 stages.
-
-### Transition performance
-
-The [motion-performance plan](plans/motion-performance.md), MP0–MP3, is integrated through
-[PR 63](https://github.com/Cedarflake/Cedarflake-Ame/pull/63). The
-[integration record](acceptance/material-motion.md#transition-performance-integration--2026-11-14)
-retains review, current-head CI and branch cleanup. The measurement record preserves the remaining
-first-use shader/compositor costs, frame outliers and prolonged-resizing coverage limit. R10 owns
-broader responsiveness, resource qualification and Beta release readiness.
-
-### R10 — Beta readiness
-
-R10-01 through R10-05 proceed in order: release responsiveness, bounded resources and recovery,
-upgrade compatibility, diagnostics and user guidance, then the first Beta candidate/publication.
-R10a completes R10-01 in `main`. Its [closeout](acceptance/r10-responsiveness.md#r10a-closeout)
-records retained-library Release/Profile targets, publication behavior and passing full CI; the
-[integration record](acceptance/r10-responsiveness.md#r10a-integration--2026-11-14) retains review and merge evidence.
-R10-02 through R10-04 are integrated in `main`. The plan owns the detailed workloads and completion
-criteria. R10-05 Beta candidate qualification and publication remain pending.
-
-R10-02's [resource and recovery evidence](acceptance/r10-resource-recovery.md) records the sustained
-session, index reuse, current-root recovery and bounded layout measurements. R2c-M now uses R10's
-five-second startup and one-second cached-read targets, approved on 2026-11-15; its
-[timing contract](acceptance/r2c-m-replacement-reliability.md#required-evidence) separates those windows.
-The quiet-host recheck passed the revised startup and cached-read windows and source-safe recovery
-with unchanged limits. Earlier timing failures, empty-preview-store measurements and the host
-R2c-R wrapper limitation remain in the evidence alongside the completed native Sandbox matrix.
-
-First-Beta exit requires the agreed performance and recovery results, preserved data across upgrade,
-usable diagnostics, no known blocking defect and passing applicable candidate gates. Both MSI and
-portable ZIP are required. Signing, additional locales, an automatic updater and the previously
-deferred constrained-device optimization are not first-Beta prerequisites. Million-item structural
-adaptation remains conditional on the existing measured limits.
-
-### Loading feedback
-
-The [loading-indicator plan](plans/loading-indicator.md), dialog/viewer, selection and responsiveness
-follow-ups were merged through [PR 59](https://github.com/Cedarflake/Cedarflake-Ame/pull/59).
-The [integration record](acceptance/material-motion.md#loading-feedback-integration--2026-11-12)
-retains merge authority, verification boundaries and remaining query latency. The local and remote
-work branches have been deleted.
-
-### R9 — Album files by year
-
-The [R9 product scope](product/organization-workflows.md#r9---album-files-by-year) and
-[execution plan](plans/r9-album-files-by-year.md) use gallery dates and album/year destinations.
-The plan retains existing metadata and Windows file operations, with ExifTool evaluated as a
-comparison tool rather than a prerequisite. Implementation and disposable Sandbox verification are
-recorded in the [R9 acceptance section](acceptance/r8-file-operations.md#r9-album-files-by-year--2026-11-12).
-R9 is integrated through [PR 60](https://github.com/Cedarflake/Cedarflake-Ame/pull/60); the
-[integration record](acceptance/r8-file-operations.md#r9-integration--2026-11-12) retains the merged
-revision and verification boundary.
-
-### Duplicate cleanup entry points
-
-The [R8 follow-up](plans/r8-file-organization.md#duplicate-cleanup-entry-points) was merged through
-[PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58) on 2026-11-11. Its
-[acceptance record](acceptance/r8-file-operations.md#duplicate-cleanup-follow-up--2026-11-11)
-owns group/member/all-group cleanup and retained selection evidence. The
-[integration record](acceptance/material-motion.md#integration--2026-11-11) retains the authorized
-merge before final CI completion and the remaining continuous held-drag observation gap.
-
-### Material motion adoption
-
-The [motion plan](plans/material-motion.md) M1–M4 and the subsequent viewer, timeline and loading
-changes were merged through [PR 58](https://github.com/Cedarflake/Cedarflake-Ame/pull/58).
-The [integration record](acceptance/material-motion.md#integration--2026-11-11) links their
-verification boundaries. Both work branches have been deleted locally and remotely.
-
-### Existing delivery records
-
-Release artifact reuse is implemented in [PR 56](https://github.com/Cedarflake/Cedarflake-Ame/pull/56).
-The [plan](plans/release-artifact-reuse.md) retains its scope; the
-[evidence](acceptance/unsigned-windows-release.md#release-artifact-continuation--2026-11-09)
-records scoped CI and read-only artifact reuse.
-
-Gallery navigation stability was integrated on 2026-11-09 through
-[PR 55](https://github.com/Cedarflake/Cedarflake-Ame/pull/55). The
-[repair plan](plans/gallery-navigation-stability.md) retains its implementation boundaries; the
-[evidence and remaining limits](acceptance/image-rendering.md#continuous-timeline-dragging-and-coherent-layout-publication)
-own interaction, query-cost and hosted verification.
-
-The standalone Material migration was integrated on 2026-11-08 through
-[PR 54](https://github.com/Cedarflake/Cedarflake-Ame/pull/54).
-[ADR 0001](architecture/0001-flutter-rust-desktop-stack.md#standalone-material-library)
-owns package compatibility and preserved desktop behavior; the [evidence record](acceptance/material-ui-migration.md)
-owns verification and the authorized merge before CI completion.
-
-GPU analysis acceleration was merged into `main` on 2026-11-07 through
-[PR 52](https://github.com/Cedarflake/Cedarflake-Ame/pull/52). The
-[evidence](acceptance/gpu-analysis-acceleration.md#integration-disposition--2026-11-07) retains local
-verification, review scope and the authorized merge before CI completion.
-
-Post-R6 maintenance is integrated into `main`. The owning records retain the local regression and
-rebuilt-client evidence for [similarity throughput](acceptance/r6-similar-images.md#development-analysis-throughput--2026-11-05),
-[group entry and duplicate icons](acceptance/r6-similar-images.md#similar-group-member-query-latency--2026-11-05),
-[viewer categories and spacing](acceptance/r5-desktop-classification.md#viewer-classification-continuity--2026-11-05),
-[date navigation and filmstrip paging](acceptance/image-rendering.md#time-navigation-after-catalog-publication--2026-11-05),
-and [hot-restart attachment and shutdown](acceptance/desktop-lifecycle-continuity.md).
-The generic `其他` category has been removed from browsing. Similarity parameters and source safety
-remain unchanged. These repairs do not reopen R6; R7 retains its own verification boundary below.
-
-Project organization O1–O7 was merged into `main` on 2026-11-04 through
-[PR 46](https://github.com/Cedarflake/Cedarflake-Ame/pull/46). The
-[handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) maps the
-delivered scope to evidence.
-
-R7's delivered scope follows the [semantic-discovery plan](plans/r7-semantic-discovery.md):
-composed filters, shared feature/index coverage, text retrieval, related-image discovery and desktop
-acceptance. It reuses SigLIP 2 and the existing default-enabled GPU image runtime;
-multi-model selection and the larger FG-CLIP 2 evaluation are outside this scope.
-
-The requested CI reduction is implemented: quick/full/nightly-release selection, affected Flutter
-suites and removal of incidental assertions. [CI evidence](acceptance/r7-semantic-discovery.md#ci-reduction--2026-11-07)
-retains its measured results and revision limits. Preserve that policy without another broad test-cleanup project.
-
-R6 retains the paired engine with accepted visual-layout discrimination and heavier-crop limits.
-Cloud-primary runs, constrained-client measurements and optimization remain deferred outside R6.
-The [closeout record](acceptance/r6-similar-images.md#r6-closeout) retains their evidence and disposition.
-
-The historical pause timeout remains an accepted observation with a
-[recurrence-based follow-up](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04).
-It did not recur in current Windows or bounded timing verification. It no longer
-blocks this rollout; its cause is not recorded as fixed.
-
-## Project organization after R5
-
-[ADR 0037](architecture/0037-feature-module-dependency-boundaries.md) owns dependencies and composition;
-the [repository layout](development/repository-layout.md) owns placement. The
-[execution plan](plans/project-organization.md) defines O1–O7 and each slice's exit conditions.
-
-| Scope | Disposition |
+| Capability | Record |
 | --- | --- |
-| O1–O7 | Merged into `main` on 2026-11-04; [handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04) |
+| <a id="msi-localization"></a>MSI installation and maintenance in English, Simplified Chinese and Japanese | [Installer acceptance](acceptance/unsigned-windows-release.md#msi-localization--2026-11-28) |
+| Smart-album term editing | [Term editing](acceptance/smart-album-terms.md) |
+| <a id="application-updates"></a>Application updates | [Update lifecycle](acceptance/application-updates.md) |
+| <a id="desktop-internationalization"></a>Desktop English, Simplified Chinese and Japanese | [Desktop internationalization](acceptance/desktop-internationalization.md) |
+| <a id="prerelease-compatibility-cleanup"></a>Retirement of obsolete Alpha migration paths | [Supported baseline](acceptance/prerelease-compatibility.md) |
+| <a id="material-desktop-workbench"></a>Material wide-screen workbench | [Workbench](acceptance/material-ui-migration.md) |
+| <a id="material-motion-adoption"></a><a id="transition-performance"></a><a id="loading-feedback"></a>Motion, transitions and loading feedback | [Motion](acceptance/material-motion.md) |
+| <a id="gallery-group-discovery"></a>Grouped-gallery filters and member actions | [Group discovery](acceptance/r8-file-operations.md#gallery-group-discovery-integration--2026-11-13) |
+| <a id="project-organization-after-r5"></a>Feature-module organization O1–O7 | [Handover](acceptance/project-organization-continuity.md#organization-handover--2026-11-04); [dependency contract](architecture/0037-feature-module-dependency-boundaries.md) |
 
-New and materially changed modules follow the accepted dependency and layout contracts. Keep the
-fixed legacy inventory as provenance and retain only the exact admitted technical boundaries.
-Preserve established scan, synchronization, analysis, query and source-read lifetimes.
+## Deferred work
 
-## Deferred constrained-device rendering
+| Item | Resume condition |
+| --- | --- |
+| Viewer crash when expanding the thumbnail strip | Deferred at the user's request; investigate before treating it as fixed or deciding whether it blocks the selected Beta candidate |
+| Nativeapi window and screen plugin migration | Resume only when requested, using the retained [window-lifecycle findings](acceptance/material-ui-migration.md#flutter-350-compatibility-2026-11-17) |
+| R6 cloud-primary and constrained-client qualification | Retains its separate [R6 closeout scope](acceptance/r6-similar-images.md#r6-closeout) |
+| Historical pause timeout | Reopen diagnosis only if it recurs; [retained observation](acceptance/project-organization-continuity.md#pause-timing-diagnosis--2026-11-04) |
+| Native Debug termination during R2c recovery | Reopen only upon recurrence; [freeze record](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) |
 
-The user deferred first-viewer and mode-entry graphics peaks on the two-core, 8-GiB cloud-primary
-client on 2026-10-30. This remains separate from project organization and does not reopen R4 or R5.
-Its [retained diagnosis](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30)
-owns measurements and rejected candidates.
+### Deferred constrained-device rendering
 
-When selected, resume from those traces and compare the same Skia interaction on cloud-primary and
-local-primary. Preserve accepted controls and motion, full-resolution viewing, cancellation and
-source leases. Do not repeat warm-up, reduced-motion or cache candidates without new evidence.
-This follow-up keeps its existing scope without another full stage-acceptance cycle.
-
-## Retained ownership and decomposition obligations
-
-[ADR 0025](architecture/0025-invariant-owned-workflow-modules.md) and its scoped owner contracts bind
-any affected extension. Existing extractions are regression boundaries, not tasks to repeat. A new
-multi-responsibility extension must first establish its typed owner; record only an actual unfinished
-larger split here, with affected scope and resume condition. This documentation reorganization
-schedules no additional broad split.
-
-## R8 implementation sequence
-
-R8-01 through R8-05 are integrated through [PR 57](https://github.com/Cedarflake/Cedarflake-Ame/pull/57).
-The [plan](plans/r8-file-organization.md#implementation-slices) retains the combined R8/R9 scope;
-the [integration record](acceptance/r8-file-operations.md#r8-integration--2026-11-11) owns review,
-Sandbox and desktop evidence, final CI and the merged revision. Preserve the explicit deletion scope,
-changed-file rejection and permanent-deletion handle guarantee under
-[ADR 0042](architecture/0042-windows-file-operations.md), including its accepted last-check recycling
-race. Organization preview remains excluded. The [dialog inventory](acceptance/r8-file-operations.md#dialog-screenshot-inventory--2026-11-10)
-retains the reviewed surfaces; the shared [templates](product/gallery/dialogs.md) own their requirements.
-
-## R7 implementation sequence
-
-R7-01 through R7-05 are integrated through [PR 53](https://github.com/Cedarflake/Cedarflake-Ame/pull/53).
-The [plan](plans/r7-semantic-discovery.md#implementation-slices) retains slice definitions;
-the [integration record](acceptance/r7-semantic-discovery.md#integrated-verification--2026-11-08)
-owns review, desktop verification, CI provenance and the authorized merge before the latest CI
-finished. Preserve the measured partial-index coverage and deferred constrained-device limits in
-that acceptance record.
-
-## R4 implementation sequence
-
-R4-01 through R4-07 are integrated. The [execution plan](plans/r4-organization.md) retains slice
-definitions; the [acceptance record](acceptance/r4-organization.md) owns implementation and merge evidence.
-
-## R5 implementation sequence
-
-R5-01 through R5-07 are integrated. The [execution plan](plans/r5-classification.md) retains slice
-definitions; the [closeout record](acceptance/r5-closeout.md) maps each to evidence and accepted limits.
-
-## Frozen R2c ownership
-
-R2c's [closeout plan](plans/r2c-closeout.md) and
-[freeze record](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) retain its historical queue.
-They do not start another closeout cycle. [Completed maintenance](acceptance/completed-maintenance.md)
-indexes subsequent deliveries, deferred observations and original roadmap provenance.
-
-## R2c exit and non-negotiable constraints
-
-Preserve the [continuity contract](acceptance/library-continuity.md) and
-[ADR 0024](architecture/0024-windows-change-driven-library-continuity.md): trustworthy publication,
-bounded change-driven work, usable retained browsing and source safety. Evidence retains its revision
-and scope. Installed-service qualification retains its separate authorization and acceptance owner under
-[ADR 0027](architecture/0027-windows-installer-lifecycle.md). Code signing is optional and is not
-an R10 completion requirement.
+First-viewer and mode-entry graphics peaks on the constrained cloud-primary client remain deferred.
+Resume from the [existing traces](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30),
+preserving accepted controls, motion and full-resolution viewing. Previously rejected warm-up,
+reduced-motion and cache approaches need new evidence before another attempt.
 
 ## Maintaining this roadmap
 
-Replace obsolete status rather than appending a repair narrative. Keep active order, actual blockers,
-required decomposition and exit decisions here. Put execution steps in plans, stable rules in their
-contract or ADR, and completed work, measurements and failures in acceptance records. Follow the
-[documentation standard](development/documentation.md) when updating any of these owners.
+Keep milestones, current priorities, real blockers and exit conditions here. Replace obsolete status;
+do not append commit histories, CI results, debugging sessions or per-change completion reports.
+Detailed steps belong in plans, stable decisions in product/architecture documents and verification
+in the [acceptance index](acceptance/README.md). The [documentation standard](development/documentation.md)
+owns these boundaries.
