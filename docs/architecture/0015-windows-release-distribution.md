@@ -30,11 +30,11 @@ release artifact.
 
 ## Considered options
 
-### Portable ZIP only for the current stage
+### Portable ZIP
 
 Package the complete Windows x64 Release directory beneath one `Cedarflake-Ame/` folder. This is
-simple to inspect, does not require installer technology, and matches the currently measured
-platform. It does not provide Start menu registration, uninstall behavior, or automatic updates.
+simple to inspect and does not require installer technology. It provides no Windows Installer
+registration or uninstall entry. Application updates follow ADR 0043 independently of MSI registration.
 
 ### Portable ZIP and MSI now
 
@@ -53,7 +53,8 @@ Use these stable identities:
 
 - display name: `Cedarflake Ame`;
 - application namespace: `com.cedarflake.ame`;
-- Windows executable: `cedarflake_ame.exe`;
+- portable entrypoint: `Cedarflake Ame.exe`;
+- Flutter application executable: `current/cedarflake_ame.exe` in the portable archive;
 - release tag: `v<semantic-version>`;
 - portable artifact: `Cedarflake-Ame-<tag>-windows-x64-portable.zip`;
 - archive root: `Cedarflake-Ame/`.
@@ -155,14 +156,14 @@ updates do not change the verified payload, local toolchain or protected publica
 ### ADR 0024 amendment: service-enabled distribution
 
 The portable ZIP remains a valid Windows x64 artifact. It does not install or update the constrained
-journal broker. Under ADR 0024, a portable, Debug or Release client can use an already installed,
-compatible broker without a signature or fixed client path. Missing or unverifiable broker service
-falls back to explicit `LiveOnly`; runtime continuity is determined by actual journal/root evidence.
+journal broker. ADR 0024 owns ordinary-token journal access and the optional named-record broker
+adapter. Runtime continuity depends on actual journal/root evidence, not MSI registration or the
+presence of the bundled broker executable. An admitted local client may use an already installed,
+compatible broker under the same caller and root-access rules.
 
-ADR 0024 moves the minimum installer work required to install, repair, upgrade, and remove
-that broker into R2c. This is a narrow amendment to the stage boundary below, not a replacement of
-the portable identity, archive layout, candidate gate, or publication rules in this ADR. General
-automatic update, downgrade, catalog rollback, and broader supply-chain maturity remain deferred.
+[ADR 0027](0027-windows-installer-lifecycle.md) owns broker installation, repair, upgrade and removal.
+Application updates follow [ADR 0043](0043-application-update-coordination.md). These decisions retain
+this ADR's portable identity, archive layout, candidate gate and publication rules.
 
 The verified Release directory and portable archive include
 `cedarflake_ame_journal_broker.exe`, but extracting or running the portable application never
@@ -308,33 +309,31 @@ Read-only validation may run on a branch to select, download and check artifacts
 signing, packaging and publishing. Publication retains an independent main-only guard and the
 existing no-checkout writer. Reuse never replaces a published attachment or moves a tag.
 
-## Deferred decisions
+## Related lifecycle decisions
 
-Later release-maturity work outside ADR 0024 owns the following work:
+[ADR 0027](0027-windows-installer-lifecycle.md) owns installed-product identity and MSI lifecycle;
+[ADR 0043](0043-application-update-coordination.md) owns MSI and portable updates and application
+rollback. Supported catalog upgrades and rejection of unsupported versions follow
+[ADR 0002](0002-rust-owned-catalog-and-media-boundaries.md#supported-prerelease-baseline).
+Application rollback never authorizes a catalog downgrade.
 
-- the general installed-product and update experience beyond ADR 0024's required broker lifecycle;
-- stable package and upgrade identities not already required by that broker installer;
-- manual and in-application application-update workflows;
-- database migration and compatibility policy;
-- application and database rollback behavior;
-- optional code-signing infrastructure and credential custody, provenance, checksums,
-  and broader supply-chain hardening.
-
-The future uninstaller must remove Ame-owned cache, thumbnail, and temporary files. It must never
-delete or alter original media. Durable catalogs, user decisions, and operation history require a
-separate explicit retention decision before installer implementation; this ADR does not classify
-them as disposable cache.
+[ADR 0045](0045-microsoft-store-distribution.md#default-data-preparation) owns the shared default
+data layout and edition-specific retention rules. MSI keeps default data unless the user selects
+cleanup; MSIX uninstall removes shared default data. Custom data outside that directory and original
+media remain outside uninstall cleanup. Removing portable program files leaves application data.
+Signing and publication retain their separate channel and authorization boundaries.
 
 ## Consequences and risks
 
-- Users extract one directory and run `cedarflake_ame.exe` from that directory.
+- Users extract one directory and run its `Cedarflake Ame.exe` launcher.
 - Moving the directory is supported; removing it does not clean application data.
 - The ZIP is larger than the executable because it intentionally includes all runtime dependencies.
 - Application and broker executables are unsigned by default; optional signed releases verify
-  the exact configured publisher. The portable artifact has no installer registration, automatic
-  update, or rollback.
+  the exact configured publisher. Portable update and application rollback follow ADR 0043 without
+  Windows Installer registration.
 - The portable payload may contain the broker executable but never grants service lifecycle
-  authority or protected client identity, so the portable application remains `LiveOnly`.
+  authority or protected client identity. Journal capability follows ADR 0024's current source
+  admission rather than the distribution format alone.
 - GitHub Release publication has write permission only after the read-only candidate and packaging
   gates succeed, and that job has no repository checkout.
 - A workflow rerun retains existing attachments only after proving the same immutable source

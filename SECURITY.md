@@ -54,10 +54,13 @@ operations against someone else's library or test the release pipeline with prod
 
 ## Distribution and local data
 
-Current official releases are unsigned and have no automatic updater. Obtain packages from this
-repository's releases and consult their release notes. Artifact hashes verify bytes against the
-trusted release record; they do not provide an independent publisher signature. See the
+Obtain GitHub packages from this repository's releases and consult their release notes for signing
+status. Artifact hashes verify bytes against the trusted release record; they do not provide an
+independent publisher signature. See the
 [distribution decision](docs/architecture/0015-windows-release-distribution.md).
+MSI and portable update behavior follows the
+[application-update decision](docs/architecture/0043-application-update-coordination.md);
+[Microsoft Store](docs/architecture/0045-microsoft-store-distribution.md) owns packaged updates.
 
 The MSI installs a constrained Windows journal service with administrator approval; the portable
 ZIP installs no service. The desktop application and its file operations use the launching user's

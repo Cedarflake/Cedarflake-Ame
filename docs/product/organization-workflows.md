@@ -70,7 +70,7 @@ that prevent later automation from being mistaken for human confirmation.
 Ame extracts useful metadata and publishes usable initial-screening suggestions into `智能相册`.
 Application-managed flat categories use purpose-aware matching and bounded automatic re-screening.
 [R5 requirements](r5-classification.md) own taxonomy, model admission, recovery, resource, and
-acceptance boundaries; the [execution plan](../plans/r5-classification.md) follows the roadmap order.
+acceptance boundaries; the [roadmap](../roadmap.md) owns delivery order.
 
 Scope:
 
@@ -92,9 +92,9 @@ User outcome:
 The user reviews visually near-duplicate candidates such as recompressed, resized, or rotated images
 without confusing them with byte-identical copies or semantic search results.
 
-R6's proposed scope, interaction choices and implementation sequence live in the
-[R6 plan](../plans/r6-similar-images.md). They are planning material; the current product contract
-does not adopt them as implemented requirements.
+The [duplicate and similar-image UI contract](gallery/workbench-and-navigation.md) owns review and cleanup
+interactions. [ADR 0038](../architecture/0038-bounded-perceptual-similarity.md) owns bounded candidate
+retrieval and similarity evidence; the [roadmap](../roadmap.md) owns qualification status.
 
 ## R7 - Semantic discovery and advanced search
 
@@ -137,8 +137,8 @@ deletion. Ame owns authorization, operation records, progress, catalog consisten
 coordination. Reuse the system Recycle Bin by default. Permanent deletion requires the user's
 explicit choice in Ame's deletion confirmation or an affirmative Windows confirmation when
 recycling is unavailable; no silent
-fallback is allowed. The [execution plan](../plans/r8-file-organization.md#planned-interaction-decisions)
-owns the planned interaction details, system-interface admission and rollout.
+fallback is allowed. [ADR 0042](../architecture/0042-windows-file-operations.md) owns native-interface
+admission and execution; the [gallery interaction contract](gallery/organization.md) owns controls.
 
 Deletion authorization applies to the file version the user selected and confirmed. An editor or
 synchronization program changing that file does not authorize deleting its replacement. When
@@ -233,9 +233,8 @@ In an album, selecting images and choosing File > Move opens the existing confir
 album/year organization selected. The folder-structure menu retains the other supported rules;
 ordinary gallery moves still default to placing files directly in the chosen folder.
 Reuse R8's explicit authorization, Windows-backed moves, collision handling, progress, operation
-records and recovery. The [execution plan](../plans/r9-album-files-by-year.md) owns implementation
-and metadata-tool evaluation; the [roadmap](../roadmap.md#r9--album-files-by-year) owns scheduling
-and status.
+records and recovery under [ADR 0042](../architecture/0042-windows-file-operations.md).
+The [roadmap](../roadmap.md#r9--album-files-by-year) owns scheduling and status.
 
 ## R10 - Large-library maturity and release readiness
 

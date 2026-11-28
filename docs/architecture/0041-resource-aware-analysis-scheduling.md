@@ -7,7 +7,7 @@
 
 Interactive semantic search and background library analysis consume different encoders from the same
 admitted SigLIP 2 package. Keeping image analysis running during a search avoids repeated image-worker
-initialization and preserves index progress. The [paired-worker evidence](../acceptance/r7-semantic-discovery.md#parallel-worker-evaluation--2026-11-07)
+initialization and preserves index progress. The [paired-worker evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r7-semantic-discovery.md#parallel-worker-evaluation--2026-11-07)
 establishes concurrent native execution with unchanged vectors. It also establishes additional memory
 cost and CPU contention; concurrency is not a universal throughput improvement.
 

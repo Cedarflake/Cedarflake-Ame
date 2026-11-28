@@ -115,13 +115,13 @@ The Windows backend emits rename `From` and `To` callbacks separately, so the ad
 50 ms non-blocking correlation interval and rejects a `To` half that arrives after that deadline.
 A missing rename half, rescan flag, invalid path, or channel overflow produces one coalesced root
 evidence gap without declaring the still-operational native watcher failed. Known-path metadata
-races conservatively become subtree work instead of a root gap. Under ADR 0023, a root evidence gap
-starts or extends the smallest bounded metadata-inventory scope while the same healthy watcher
-continues covering later changes. Inventory evidence is paged and routed through the existing final-
-state reconciler; it never authorizes an automatic full scan. A callback error, watched-root loss,
+races conservatively become subtree work instead of a root gap.
+[ADR 0024](0024-windows-change-driven-library-continuity.md#change-sources-and-priority-lanes) owns
+journal replay and recovery admission while the same healthy watcher continues covering later
+changes. A gap signal never authorizes an automatic full scan. A callback error, watched-root loss,
 disconnected ingress, or poisoned callback state produces failed source health and uses the bounded
-restart path. The restarted watcher establishes a new continuity epoch before inventory may close
-freshness.
+restart path. The restarted watcher must establish healthy observation before admitted recovery may
+close freshness.
 
 The adapter maps dependency error kinds to stable Ame issue codes and delivers the highest-severity
 pending code with that batch; no dependency error type or raw message crosses the adapter. A short

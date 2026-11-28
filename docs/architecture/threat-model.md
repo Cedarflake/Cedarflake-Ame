@@ -206,11 +206,13 @@ and package gates validate source/artifact identity and hashes. Artifact reuse c
 receipts. Release publication is a separate main-only job with content-write permission and no
 repository checkout; release notes are read as bounded data from the trusted workflow revision.
 
-Current releases are unsigned and have no automatic updater. Hashes and CI evidence cannot replace
-publisher authentication or withstand compromise of all trusted repository/release records. Optional
+For unsigned packages, hashes and CI evidence cannot replace publisher authentication or withstand
+compromise of all trusted repository/release records. Optional
 signing support does not establish that a release is signed or its signing environment is configured.
 Owners: [distribution and reuse](0015-windows-release-distribution.md),
 [installer lifecycle](0027-windows-installer-lifecycle.md),
+[application updates](0043-application-update-coordination.md),
+[Store-managed deployment](0045-microsoft-store-distribution.md),
 [`release publisher`](../../.github/workflows/release_publish_windows.yml).
 
 ## Maintaining this model

@@ -17,7 +17,6 @@ Recorded decisions:
 
 - [ADR 0001: Flutter Material 3 with a Rust application core](0001-flutter-rust-desktop-stack.md)
 - [ADR 0002: Rust-owned catalog and recoverable media boundaries](0002-rust-owned-catalog-and-media-boundaries.md)
-- [ADR 0003: One unified gallery with contextual actions](0003-unified-gallery-information-architecture.md)
 - [ADR 0004: Admit narrow dependencies for the R0 vertical slice](0004-r0-dependency-admission.md)
 - [ADR 0005: Govern storage and the bounded preview lifecycle](0005-storage-governance-and-budget.md)
 - [ADR 0006: Parse EXIF evidence behind Ame-owned media contracts](0006-exif-capture-time-adapter.md)
@@ -36,8 +35,6 @@ Recorded decisions:
 - [ADR 0019: Publish incremental catalog deltas atomically](0019-atomic-incremental-catalog-deltas.md)
 - [ADR 0020: Run continuous library synchronization with the desktop lifecycle](0020-production-library-synchronization-lifecycle.md)
 - [ADR 0021: Recover library freshness through bounded authoritative reconciliation](0021-authoritative-library-recovery-and-consistency.md)
-- [ADR 0022: Catch up Windows downtime through the USN change journal](0022-windows-usn-downtime-catch-up.md)
-- [ADR 0023: Reconcile continuity without privileged journal access](0023-non-usn-library-continuity-reconciliation.md)
 - [ADR 0024: Drive Windows continuity from notifications and the USN journal](0024-windows-change-driven-library-continuity.md)
 - [ADR 0025: Keep workflows thin through invariant-owned modules](0025-invariant-owned-workflow-modules.md)
 - [ADR 0026: Separate hosted workload coverage from release authority](0026-hosted-synthetic-and-unsigned-build-gates.md)

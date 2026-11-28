@@ -67,7 +67,8 @@ including abnormal termination, so a later process can recover the durable catal
 The Rust application layer owns one `LibrarySynchronizationRuntime`. Its production adapter starts a
 Windows observer for every currently available registered root, stops observers whose root is removed,
 retired, unavailable, or reconfigured, drains normalized observations into the durable queue, and runs
-only the R2c-D path worker. Subtree, root, and freshness-gap rows remain unleased for R2c-F.
+the admitted live, journal and recovery work under
+[ADR 0024](0024-windows-change-driven-library-continuity.md#change-sources-and-priority-lanes).
 
 Draining observer memory and committing the durable queue form an explicit handoff. The runtime retains
 one drained plan in memory until enqueue succeeds and retries that plan before polling the observer
@@ -92,12 +93,12 @@ coalescing, bounded cleanup, and atomic commit; its temporary zero busy timeout 
 the active permit retires. This is not a wall-clock bound on arbitrary SQLite execution, catalog
 opening/validation, or the whole production poll.
 
-Under ADR 0023, a cold start and every unavailable-to-available transition first
-establish live observation, then start a new metadata-inventory continuity epoch. Inventory pages
-produce bounded path or subtree candidates through the same final-state reconciler, while complete
-scope authority is required before a removal may publish. Watcher evidence loss extends or replaces
-that epoch instead of entering USN catch-up or starting a full scan. The runtime cannot report
-synchronized freshness until the continuity epoch and its retained queue work are complete.
+Startup and unavailable-to-available transitions establish live observation and revalidate per-root
+continuity under ADR 0024. A valid journal boundary permits bounded catch-up through the same
+final-state reconciler. Metadata inventory requires admitted baseline or recovery authority; startup
+or an availability transition alone does not grant it. Complete scope authority is required before
+a removal may publish. The runtime cannot report synchronized freshness until the required
+continuity proof and its retained queue work are complete.
 
 The runtime publishes a bounded `LibrarySynchronizationSnapshot` containing the running flag, catalog
 revision, applied-mutation count, and one status per configured root. Each root status contains the
@@ -248,7 +249,7 @@ resumes its prior checkpoint. Source media is never modified by this lifecycle.
 ## Validation evidence
 
 The exact controlled commands and results are recorded in
-`docs/acceptance/r2c-e-production-ui-lifecycle.md`. No real-library root or cloud placeholder is used
+[historical validation](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-e-production-ui-lifecycle.md). No real-library root or cloud placeholder is used
 by the R2c-E validation.
 
 ## Consequences and risks

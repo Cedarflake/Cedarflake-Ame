@@ -19,17 +19,7 @@ The unified gallery remains the primary working canvas, not the product endpoint
 search, duplicate state, classification, albums, and review sessions scope the same canvas rather
 than becoming separate competing applications.
 
-The real target library is approximately 259 GB across two machine-local roots:
-
-- `local-primary`: the primary locally stored image library;
-- `cloud-primary`: the primary cloud-backed image library.
-
-Their exact filesystem paths and machine-specific identity are stored only in the ignored
-`.agents/local-context.toml` mapping. Repository documents, tests, logs, and commits use only these
-logical IDs. The mapping is discovery data and does not itself authorize source mutation or a new
-real-library acceptance run.
-
-Ame must not require a second complete copy of these sources. Cataloging, browsing, analysis,
+Ame must not require a second complete copy of configured sources. Cataloging, browsing, analysis,
 review, and virtual organization do not modify original media. R8 introduces separately authorized
 file organization and recovery, with internal preflight and current-state revalidation. It has no
 organization-preview feature; preparing an internal operation plan never authorizes file changes.
@@ -132,13 +122,6 @@ must preserve their authority boundaries:
 
 ## 3. Reference application policy: Lap
 
-Local reference repository: an optional machine-local checkout outside Ame's repository and Git
-history. Its exact filesystem path is not repository data.
-
-Verified reference revision:
-
-`ff8b144f628cb02d9b4ac0a7bd20d93a224810ab`
-
 Allowed reference uses:
 
 - compare public information architecture, gallery behavior, timeline, search, and task feedback;
@@ -154,7 +137,7 @@ Prohibited uses:
 - importing Lap commits or files into Ame's history;
 - presenting visual imitation as product design evidence without validating Ame's own user workflow.
 
-Historical reference failures are retained in the [foundation evidence](../acceptance/gallery-foundation.md#historical-reference-observations).
+Historical reference failures are retained in the [foundation evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/gallery-foundation.md#historical-reference-observations).
 
 ## Engine admission
 

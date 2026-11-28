@@ -1,133 +1,40 @@
-# Acceptance evidence index
+# Verification and evidence
 
-This directory owns verification requirements and dated evidence. The [roadmap](../roadmap.md)
-alone owns stage order and current acceptance status. An earlier pass, an implemented test, or a
-recorded local checkpoint does not establish that the current product source passes its full gate.
+The [roadmap](../roadmap.md) owns delivery status. This directory contains reusable verification
+procedures and evidence needed for the current Beta, distribution paths and admitted engines.
+Measurements identify their revision, environment and limitations; reuse them within that scope.
 
-## Current entrypoints
+## Procedures
 
-| Record | Responsibility |
+| Task | Owner |
 | --- | --- |
-| [Quality gates](quality-gates.md) | Canonical commands, workload admission, hosted/client boundaries, and authorization requirements |
-| [R10 responsiveness](r10-responsiveness.md) | Retained-library navigation, viewer, resizing and publication measurements |
-| [R10 resources and recovery](r10-resource-recovery.md) | Sustained-use resource measurements, compatible index reuse and interruption/restart qualification |
-| [R10 upgrade and compatibility](r10-upgrade-compatibility.md) | Alpha-to-Beta data preservation, installer and migration recovery, runtime payload and build identity |
-| [R10 diagnostics and recovery](r10-diagnostics.md) | Local ZIP export, bounded event retention, privacy projection and startup-failure access |
-| [Standalone Material migration](material-ui-migration.md) | Official package migration, localization/type compatibility and retained desktop interaction |
-| [Unsigned Windows publication](unsigned-windows-release.md) | Candidate admission, workflow outputs and optional signing integration checks |
-| [Application updates](application-updates.md) | Update settings, verified packages, joined restart, installed handoff and portable recovery |
-| [Microsoft Store packages](store-msix.md) | MSIX admission, package identity, shared-data lifecycle and isolated installation/removal checks |
-| [Smart-album terms](smart-album-terms.md) | Per-term concurrency, manual protection, shared tray behavior and real-model rematching |
-| [Prerelease compatibility](prerelease-compatibility.md) | Current schema baseline, retired Alpha upgrades and preserved operational recovery |
-| [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
-| [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
-| [R5 integrated delivery](r5-closeout.md) | Ordered slice coverage, current desktop boundaries, retained limits and submitted CI provenance |
-| [R6 engine evaluation](r6-engine-evaluation.md) | Candidate integration, transformation quality, index growth and remaining admission evidence |
-| [R6 similarity integration](r6-similar-images.md) | Persistent identities, production analysis, durable choices and desktop workflow evidence |
-| [R8 filesystem verification](r8-file-operations.md) | Planned disposable-fixture, file-integrity and interruption-recovery checks without Windows Sandbox |
-| [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
-| [R5 inference runtime](r5-runtime-admission.md) | Pinned artifact provenance, isolated local/cloud resource observations and feature-compatibility evidence |
-| [GPU analysis acceleration](gpu-analysis-acceleration.md) | Default-enabled preference, CPU/GPU compatibility, isolated worker measurements and device-switching evidence |
-| [R5 category discovery](r5-category-discovery.md) | Retained-feature grouping, bounded naming probes and category-maintenance admission gaps |
-| [R5 screening calibration](r5-calibration.md) | Purpose-aware reference labels, separated calibration/holdout evidence and bounded re-screening policy |
-| [R5 classification decisions](r5-classification-decisions.md) | Immutable evidence and legacy human precedence, commands, and portable recovery compatibility |
-| [R5 incremental analysis](r5-incremental-analysis.md) | Durable task admission, publication leases, restart/retry behavior and connected scheduling evidence |
-| [R5 smart-album queries](r5-smart-albums.md) | Effective categories, coherent gallery scopes, continuation, publication and projection-migration evidence |
-| [R5 desktop classification](r5-desktop-classification.md) | Smart-album navigation, coherent counts, local configuration and connected desktop interaction evidence |
-| [Desktop lifecycle continuity](desktop-lifecycle-continuity.md) | Development hot-restart attachment, retained background work and normal shutdown evidence |
-| [Viewer clipboard](viewer-clipboard.md) | Image-copy pixels, Windows paste compatibility, viewer feedback and channel lifetime |
-| [R5 metadata and search](r5-metadata-search.md) | Indexed literal-search migration, compatibility, synthetic cost, client interaction and integrated verification |
-| [Notification templates](notification-feedback.md) | Shared bottom feedback and compact viewer top notices, interaction checks and ownership |
-| [Image rendering](image-rendering.md) | Original sampling, cropped preview detail, card sizes and row-packing verification |
-| [Maintainability refactor](maintainability-refactor.md) | Scoped behavior-preservation checks and physical ownership measurements for the maintenance branch |
-| [R3 exact-content verification](r3-exact-duplicates.md) | Exact analysis, gallery modes, review decisions, client/resource checks and final closeout evidence |
-| [Library continuity contract](library-continuity.md) | R2c safety, ownership, queue, reconciliation, failure, lifecycle, and acceptance requirements |
-| [Browsing recovery](synchronization-browsing-recovery.md) | The 2026-09-09 source-version, query-snapshot, and folder recovery correction and its verification limits |
-| [LiveOnly subtree recovery](r2c-live-gap-recovery.md) | C04 causal repair, retained/fresh bulk client evidence, source/resource limits and unresolved C05 browsing observations |
-| [Browsing diagnosis](r2c-browsing-diagnosis.md) | C05 recovered-date publication correction, mixed-image/bulk native functional checks, retained replay failures and remaining presentation/final-gate limits |
-| [Maintenance deliveries](r2c-maintainability.md) | Required state, queue, scan and viewport responsibility changes and their behavior-preservation evidence |
-| [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, actual paused-checkpoint restoration and explicit continuation, retained failures and remaining input limits |
-| [Picker and task controls](r2c-input-controls.md) | C06 pending-pause Cancel correction, focused regressions and retained unsuccessful native input attempt |
-| [Browsing admission](r2c-browsing-admission.md) | Published-catalog reads during import, connected Retry verification and the separate unresolved date-revision boundary |
-| [Evidence publication](r2c-evidence-publication.md) | C02 native file-replacement attribution, controlled holder/mapping cases and unresolved local gate failure |
-| [Runtime lifecycle audit](r2c-runtime-lifecycle-audit.md) | Cross-workflow findings and ownership/physical-size evidence |
-| [Media and publication audit](r2c-media-and-publication-audit.md) | Real media encodings, publication boundaries, and related audit evidence |
-| [Gallery foundation](gallery-foundation.md) | Historical R0/R1/R2a/R2b acceptance, frozen interaction comparison, and retained preview/geometry requirements |
-| [Read-only real-library acceptance](read-only-real-library.md) | Explicitly authorized catalog/source evidence; no standing authority for another run |
+| Select and run checks | [Quality gates](quality-gates.md) |
+| Verify preview and gallery geometry | [Gallery regression contract](gallery-foundation.md) |
+| Verify synchronization, publication and recovery | [Library continuity contract](library-continuity.md) |
+| Read real source libraries safely | [Read-only library procedure](read-only-real-library.md) |
+| Verify copy, move, deletion and recovery | [Filesystem procedure](r8-file-operations.md) |
 
-Use the roadmap to select the current execution owner. The R2c and R3 execution records retain
-completed delivery procedures and checkpoints. Add verification here without creating another
-priority queue in this index.
-Keep private catalogs/media, machine-specific roots, account labels, and raw user logs out of records.
+## Candidate and distribution evidence
 
-## Stage records and historical applicability
-
-| Scope | Evidence | Interpretation |
-| --- | --- | --- |
-| R2c-A–D | [Contracts](r2c-a-blue-team.md), [watcher](r2c-b-windows-observation.md), [queue](r2c-c-durable-change-queue.md), [atomic deltas](r2c-d-incremental-delta-publication.md) | Dated foundations; current callers must preserve accepted invariants |
-| R2c-E–F | [UI lifecycle](r2c-e-production-ui-lifecycle.md), [recovery](r2c-f-recovery-consistency.md) | Later ADRs supersede historical recovery/scan policy where stated |
-| R2c-G–H | [Direct USN](r2c-g-usn-downtime-catch-up.md), [large-library reliability](r2c-h-large-library-reliability.md) | Historical direct-desktop model; not ADR 0024 acceptance |
-| R2c-I–M | [Cutover](r2c-i-non-usn-cutover.md), [inventory](r2c-j-metadata-inventory.md), [paging](r2c-k-pageable-continuity.md), [lifecycle](r2c-l-lifecycle-presentation.md), [replacement](r2c-m-replacement-reliability.md) | Superseded ADR 0023 model; retained source-safety/history only where applicable |
-| R2c-N–O | [ADR 0024](../architecture/0024-windows-change-driven-library-continuity.md) and [quality-gate boundaries](quality-gates.md) | Protocol, broker, installer and external gates; no invented completed acceptance record |
-| R2c-P | [Persistent journal](r2c-p-persistent-journal-continuity.md) | Implementation evidence distinct from external acceptance |
-| R2c-Q | [Priority runtime](r2c-q-priority-runtime.md) | Implementation, candidate ownership, baseline and lifecycle evidence |
-| R2c-R | [Change-driven reliability](r2c-r-change-driven-reliability.md) | Controlled Windows 11 evidence; external and final accumulated acceptance remain separate |
-
-## Historical roadmap provenance
-
-The roadmap before the 2026-11-03 routing change remains in
-[Git history](https://github.com/Cedarflake/Cedarflake-Ame/blob/364fc2cf/docs/roadmap.md).
-
-The 2026-09-09 organization removed duplicated implementation chronologies and drifting status
-snapshots from the active roadmap. The exact original remains in Git at
-`643f7b8f71971ce33416cc87aa94bb84f41d4e05:docs/roadmap.md`:
-
-```powershell
-git show 643f7b8f71971ce33416cc87aa94bb84f41d4e05:docs/roadmap.md
-```
-
-| Former roadmap content | Current owner or retrieval path |
+| Record | Purpose |
 | --- | --- |
-| Sections 1–3 and 8–9: product, concepts, reference policy, exclusions | [Workbench contract](../product/workbench.md); historical reference observations in [foundation evidence](gallery-foundation.md) |
-| Section 4: accepted UI detail | [Gallery UI contract](../product/gallery-ui.md) under ADR 0009 |
-| Section 5 and completed R0–R2 delivery descriptions | Accepted ADRs 0001–0014, [foundation evidence](gallery-foundation.md), and the immutable Git source above |
-| R2b preview and conditional interaction acceptance | [Foundation regression requirements](gallery-foundation.md) |
-| R2c.1–10 and R2c.12–13 | [Continuity acceptance contract](library-continuity.md), subordinate to current ADRs |
-| R2c.11 per-slice remediation chronologies | The stage records above; exact earlier wording and measurements remain in the immutable Git source |
-| R3–R10 detailed scope and product value checkpoints | [Organization workflow requirements](../product/organization-workflows.md) |
-| Pre-freeze R2c queue and acceptance wording | [Roadmap at the frozen product commit](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md); the current roadmap owns stage order and closure |
-| Section 7: large-library ladder | The evidence ladder below, with unchanged authorization boundaries |
-| Fixed queue, current blockers, required physical splits | [Current roadmap](../roadmap.md#current-execution-queue); historical attribution in the [interleaving report](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/acceptance/r2c-interleaving-remediation.md) |
-| Bounded investigation, eight scenarios, budgets, cautions, exit rules | [R2c closeout execution](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md), transferred as one complete procedure |
-| Existing checkpoints, dated closeout narratives and section 10.1 snapshots | Named audit/stage records above plus the immutable Git source; never current-status authority |
-| Section 10.2 foundation acceptance checkpoints | [Gallery foundation](gallery-foundation.md#historical-acceptance-checkpoints) |
+| [R10 responsiveness](r10-responsiveness.md) | Retained-library startup, navigation and rendering baseline |
+| [R10 resources and recovery](r10-resource-recovery.md) | Sustained use, cache/index reuse and interruption recovery |
+| [R10 diagnostics](r10-diagnostics.md) | Local export, privacy projection and startup-failure access |
+| [Supported prerelease baseline](prerelease-compatibility.md) | Current database integrity and retirement of obsolete Alpha adaptations |
+| [Windows distribution](unsigned-windows-release.md) | Artifact admission, reuse and multilingual MSI maintenance |
+| [Application updates](application-updates.md) | Verified packages, joined restart and installed/portable recovery |
+| [Microsoft Store](store-msix.md) | Package identity, data lifecycle and remaining Store verification |
 
-The source revision is a provenance pointer, not a moving verification claim. No new full roadmap
-archive is maintained alongside the canonical file. Preserve initial failures and measured limits
-in their owning record; do not turn a historical implementation snapshot into a present-tense claim.
+## Engine selection and calibration
 
-## Large-library evidence ladder
+| Record | Purpose |
+| --- | --- |
+| [Model comparison](r5-model-evaluation.md) | Encoder selection and provisional-label limitations |
+| [Screening calibration](r5-calibration.md) | Separated calibration/holdout method and threshold provenance |
+| [Inference runtime](r5-runtime-admission.md) | Pinned artifacts, input compatibility and isolated-worker measurements |
+| [GPU analysis](gpu-analysis-acceleration.md) | Precision agreement, resource cost and device-switching evidence |
+| [Similarity engine](r6-engine-evaluation.md) | Hash parameters, sampled quality, bounded indexing and replacement tradeoffs |
 
-Large testing starts during R1 rather than waiting for R10:
-
-1. deterministic fixtures for corrupt, locked, unavailable, Chinese, long-path, and wrong-extension
-   media;
-2. synthetic thousands and tens-of-thousands of paths and catalog rows;
-3. virtual-gallery stress data large enough to exercise timeline jumps and lazy disposal;
-4. controlled read-only scan of `local-primary`;
-5. controlled read-only scan of `cloud-primary` after availability checks;
-6. controlled read-only combined scan;
-7. warm incremental scan after known additions, removals, and modifications;
-8. live create, modify, rename, replacement, removal, and event-storm reconciliation during R2c;
-9. closed-application journal catch-up, no-change zero-enumeration startup, live-change preemption
-   during P2 recovery, and forced journal-gap recovery during R2c;
-10. exact-fingerprint reuse, regrouping, cancellation, and target-library duplicate coverage during
-    R3;
-11. resumable review, override durability, and confidence-band sampling during R4 and R5;
-12. perceptual-candidate quality and bounded index evidence during R6;
-13. deterministic, non-mutating preflight plus separately authorized operation fixtures and recovery
-    evidence during the merged R8, following the [filesystem procedure](r8-file-operations.md).
-
-Every large run records file counts, duration, throughput, structured issue counts, cancellation
-behavior, recovery behavior, peak resource observations where available, cache growth, and whether
-source bytes changed.
+Historical stage reports are available in [Git history](https://github.com/Cedarflake/Cedarflake-Ame/tree/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance).
+Keep raw local logs, private catalogs, source media and machine-specific paths outside tracked documents.

@@ -11,20 +11,21 @@ Make the delivered catalog, discovery and organization workflows suitable for su
 Prioritize observed responsiveness, bounded resource use, recovery and upgrading an existing library.
 Preserve the current Material surfaces, SigLIP 2 integration and Windows file-operation policies.
 
-R8 file operations, R9 album/year movement, MSI/ZIP packaging, migration backups and analysis-worker
-admission already exist. Inspect their remaining integration gaps rather than reimplementing them.
-Alpha 3 is the published upgrade baseline; R9 and viewer image copying landed after that release.
+File operations, album/year movement, MSI/ZIP packaging and analysis-worker admission are delivered.
+R10-01 through R10-04 are complete; reuse their evidence and focus new work on the candidate's affected
+boundaries. The [supported prerelease baseline](../architecture/0002-rust-owned-catalog-and-media-boundaries.md#supported-prerelease-baseline)
+owns database compatibility after retirement of the earlier Alpha migrations.
 
 Start from current source and the owning evidence below. Historical pending CI and superseded
 failures are not new blockers without a current failure or missing affected verification.
 
-| Area | Existing owner | Question R10 must close |
+| Area | Existing owner | Candidate coverage |
 | --- | --- | --- |
-| Gallery, smart albums and review navigation | [Interaction evidence](../acceptance/material-motion.md#classification-navigation-and-foreground-reads), [ADR 0014](../architecture/0014-query-wide-gallery-layout-manifest.md) | Release input-to-usable-content latency, continuous held dragging and resource stability during background publication |
-| Semantic discovery and workers | [R7 evidence](../acceptance/r7-semantic-discovery.md), [ADR 0041](../architecture/0041-resource-aware-analysis-scheduling.md) | Completed-index query costs and pressure/recovery behavior beyond the recorded partial-index runs |
+| Gallery, smart albums and review navigation | [R10 responsiveness](../acceptance/r10-responsiveness.md), [ADR 0014](../architecture/0014-query-wide-gallery-layout-manifest.md) | Release input-to-usable-content latency, continuous held dragging and resource stability during background publication |
+| Semantic discovery and workers | [R10 resources](../acceptance/r10-resource-recovery.md), [ADR 0041](../architecture/0041-resource-aware-analysis-scheduling.md) | Completed-index query costs and pressure/recovery behavior |
 | Synchronization and storage | [Current performance procedures](../acceptance/quality/performance-and-real-library.md), [ADR 0005](../architecture/0005-storage-governance-and-budget.md) | Target-scale catch-up, authoritative recovery, combined-root use and cache enforcement |
-| Installation and upgrades | [ADR 0027](../architecture/0027-windows-installer-lifecycle.md), [Release evidence](../acceptance/unsigned-windows-release.md#alpha-3-publication--2026-11-12) | Actual Alpha-to-Beta application/data compatibility and recovery after an interrupted upgrade |
-| Diagnosis and version display | `ame_bootstrap_failure.dart`, `ame_settings_page.dart` | A usable diagnostics export beyond bootstrap error copying; About and license pages must use the build version instead of their hard-coded Alpha 2 text |
+| Installation and upgrades | [ADR 0027](../architecture/0027-windows-installer-lifecycle.md), [Release evidence](../acceptance/unsigned-windows-release.md) | Supported-baseline data retention and recovery after interrupted package replacement |
+| Diagnosis and version display | [Diagnostics evidence](../acceptance/r10-diagnostics.md) | Usable local export and consistent build identity across About, licenses and packages |
 
 ## Execution slices
 
@@ -71,7 +72,7 @@ the ignored local-context mapping and existing read-only safeguards. Record unav
 an evidence gap; do not substitute the retired direct-USN harness or hydrate cloud placeholders.
 Use disposable Sandbox files for mutation, locked-file, missing-root and interruption scenarios.
 R2c-M applies the separate startup and cached-read targets through its
-[timing boundary](../acceptance/r2c-m-replacement-reliability.md#required-evidence).
+[timing boundary](../acceptance/quality/performance-and-real-library.md#startup-and-cached-read-targets).
 
 Reuse targeted worker, catalog, migration and R8/R9 recovery cases. Verify restarting after a worker
 failure or interrupted application retains completed work and exposes actionable unfinished work.
@@ -85,15 +86,15 @@ affected workflows. Existing fixture budgets apply to their own processes, not t
 
 ### R10-03 — Upgrade and compatibility
 
-In disposable Windows Sandbox, install the published Alpha 3 MSI, populate representative catalog,
-favorite, album, representative/retained-image, organization and file-operation records, then upgrade
-to the candidate. Also check a compatible older catalog fixture, repair, uninstall and portable
-directory replacement. Verify model/runtime discovery and the installed broker after upgrade.
+In disposable Windows Sandbox, use successive package versions on the supported database baseline.
+Populate representative catalog, favorite, album, representative/retained-image, organization and
+file-operation records, then upgrade to the candidate. Check repair, uninstall and portable
+replacement, including model/runtime discovery and the installed broker.
 
-Reuse migration backups and completion receipts. Interrupt migration and installer upgrade at their
-existing controlled boundaries; verify the preceding compatible installation/data can be recovered.
-An older executable must reject an unsupported newer schema clearly. Do not promise that arbitrary
-binary downgrades can read a migrated database or silently discard newer user decisions.
+Interrupt package replacement at its controlled boundaries and verify recovery of the preceding
+installation with current-format data intact. Verify rejection of unsupported database versions
+under ADR 0002. Retired Alpha migration paths and their backup receipts are outside the supported
+baseline; future schema changes retain the repository's migration and data-preservation rules.
 
 Make About, licenses, diagnostics, executable metadata, package receipts and release notes obtain
 their version from the same build identity. The Flutter build number must increase across Alpha to

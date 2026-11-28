@@ -301,7 +301,7 @@ test suite, production dependency, schema or UI change was introduced.
 Disposition: partial reuse is technically viable, but this evaluation supplies no combined improvement
 in crop coverage and layout discrimination over the paired engine. Retain the current production
 scheme; do not introduce a maintained core fork or replace persistent matching/group semantics on
-this evidence. The [R6 closeout](r6-similar-images.md#r6-closeout) records the accepted quality limits.
+this evidence. The [R6 closeout](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r6-similar-images.md#r6-closeout) records the accepted quality limits.
 
 ## Provenance and integration boundaries
 
@@ -326,7 +326,7 @@ established the path-free input seam. The current probe replaces those provision
 the admitted normalization, symmetric comparison and 64-bit index. An unused-import warning in the
 first normalization build was removed; the final build and execution were warning-free.
 
-The [integration evidence](r6-similar-images.md) owns production source admission, persistence,
+The [integration evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r6-similar-images.md) owns production source admission, persistence,
 bounded matching, durable choices and desktop interaction. The paired-engine verification above
 supersedes the initial 64-bit quality choice. The retained-library check above supplies local growth
 evidence; cloud-primary measurements are outside R6. Hosted CI covers each actual source commit

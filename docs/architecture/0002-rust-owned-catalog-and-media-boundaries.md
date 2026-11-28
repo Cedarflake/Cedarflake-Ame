@@ -105,9 +105,8 @@ remains outside application startup.
 
 Validate the fresh schema and initial records against an independently created pre-change current
 catalog. Preserve current-format reopen, rejection without mutation, transaction rollback and
-retained user-decision coverage. Historical migration evidence below remains provenance for the
-retired chain. An executable that only supports schema 83 rejects an upgraded catalog without
-changing it; rolling back the display behavior must keep schema 84 support.
+retained user-decision coverage. An executable that only supports schema 83 rejects an upgraded
+catalog without changing it; rolling back the display behavior must keep schema 84 support.
 
 ### Catalog connection and checkpoint policy
 
@@ -174,62 +173,6 @@ schema migration.
 - a failed or cancelled scan cannot masquerade as the last completed catalog;
 - worker-process protocol and restart behavior are validated before a high-risk native parser is
   admitted.
-
-## Current validation evidence
-
-- Schema v3 creation and forward migration from both v1 and v2 are covered by Rust tests that
-  preserve an active published location and initialize the catalog revision.
-- Multi-root publication, stable asset identity across a root rescan, revision-protected keyset
-  queries, stale-cursor rejection, and a 1,025-location multi-page walk are covered by SQLite
-  adapter tests.
-- Cancellation, stale-source rejection, corrupt-file isolation, wrong-extension decoding, Chinese
-  paths, external preview placement, and source-byte preservation are covered by Rust tests.
-- Missing-source revalidation prevents publication, exclusively locked images are isolated as
-  structured open failures, and a source path longer than 260 characters is indexed without
-  changing its bytes.
-- Windows offline and recall attributes are recognized before content access; an actual local file
-  marked offline is skipped without decoding or changing its bytes. The runner manifest is also
-  explicitly long-path aware.
-- The isolated Windows integration test imports two controlled roots through the production native
-  picker, reconstructs Flutter state from SQLite twice, and verifies both roots and source files.
-- Schema v4 persists scan parameters and checkpoints. Migration tests cover v1, v2, and v3; an old
-  uncheckpointed running task is explicitly made unrecoverable rather than guessed.
-- Historical schema-v4 evidence includes a 130-image interruption fixture that resumed a persisted
-  checkpoint and published every location once. Its automatic-startup Flutter behavior is
-  superseded by ADR 0024's explicit-continuation contract, not current startup acceptance evidence.
-- A pause/resume fixture proves that pausing does not publish or enter the automatic recovery query,
-  and explicit resume completes the same task without duplicate locations. Flutter restores paused
-  state without starting it and exposes pause/resume in the upper action area.
-- Schema v5 adds the persisted current directory and pending frontier. A v4 migration refuses to
-  invent frontier state for old running or paused tasks, while a deep-tree interruption fixture
-  resumes the current directory and publishes 130 unique locations.
-- Schema v6 adds a durable directory-entry snapshot. Enumeration is written in 256-entry batches and
-  consumed in 256-entry keyset windows; a 1,025-entry fixture proves bounded traversal without gaps
-  or duplicates. Active v5 tasks are made unrecoverable because an absent entry snapshot cannot be
-  reconstructed safely.
-- Schema v7 records `pending`, `ready`, and `failed` preview state with structured failure evidence.
-  Existing v6 artifacts migrate as ready without losing their paths.
-- Schema v8 records metadata engine identity and version plus optional normalized capture-time
-  evidence. Existing v7 locations migrate as explicitly unanalyzed, compatible evidence is reused
-  only for an unchanged source, and an old engine identity forces reinspection.
-- Schema v9 records optional, versioned file-identity evidence. Same-volume rename and in-place edit
-  reconciliation preserve logical asset identity, changed derived state is invalidated, replacements
-  cannot inherit the prior asset merely because the path matches, and terminal snapshots remove
-  stale derived locations and orphan asset rows.
-- Discovery uses bounded header inspection rather than full pixel decoding. Flutter's lazy grid
-  requests visible previews through an Ame-owned controller queue with at most two active decodes,
-  removes queued requests when tiles leave the rendered area, and exposes explicit retry after a
-  failure.
-- Missing rebuildable preview artifacts become pending when the catalog is loaded. Windows
-  integration deletes a generated artifact, reconstructs the application state, and verifies that
-  the visible tile recreates it without changing source media.
-- Catalog loading reports each root as available, missing, inaccessible, or offline using only root
-  metadata so availability checks do not enumerate or hydrate the source.
-- Configurable storage paths and an atomically enforced preview budget are validated in ADR 0005.
-  Capture-time parsing, bounded raw evidence, and malformed-metadata isolation are validated in ADR
-  0006. Incremental Windows path reconciliation and its focused native safety boundary are validated
-  in ADR 0007. Verified storage migration and high-risk worker-process recovery remain validation
-  gates for later slices. This record therefore remains `Accepted for validation`.
 
 ## Consequences
 

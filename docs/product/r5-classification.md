@@ -3,7 +3,7 @@
 Status: product requirements; implementation availability and delivery status belong to the roadmap.
 
 This document owns R5 behavior. The [roadmap](../roadmap.md#r5-implementation-sequence) owns order and
-stage decisions; the [execution plan](../plans/r5-classification.md) defines implementation slices.
+stage decisions.
 The [smart-album UI contract](gallery/smart-albums.md#smart-album-workflow) owns placement and interaction.
 R4's [organization rules](r4-organization.md#boundary-with-r5-classification) remain the baseline.
 

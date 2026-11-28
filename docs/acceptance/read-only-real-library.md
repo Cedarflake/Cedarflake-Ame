@@ -1,16 +1,12 @@
 # Read-only real-library acceptance
 
-Status: completed for the two logical real roots on 2026-08-07
+Status: reusable source-safe verification procedure.
 
-This procedure is the R1 gate between controlled fixtures and the user's real image libraries. On
-2026-08-07 the user explicitly authorized read-only access to `local-primary` and `cloud-primary`
-and instructed the project to continue. Their exact paths remain in the ignored local context. The
-authorization covered the ordered acceptance runs below. It does not authorize source mutation,
-placeholder hydration, or an unrelated future run after this acceptance sequence.
+Resolve authorized `local-primary` and `cloud-primary` roots through the ignored local context.
+Keep source media read-only and reject cloud-only placeholders before content access.
 
 Current executions follow the standing read-only verification policy in `AGENTS.md` section 12.1:
 known roots, explicit bounded scope and isolated derived storage, without separate per-run approval.
-The historical authorization above describes the original acceptance sequence only.
 
 The acceptance harness calls the production Rust discovery, metadata, reconciliation, checkpoint,
 and SQLite publication path without generating previews or modifying source media. It has no item or
@@ -113,64 +109,3 @@ the production adapter boundaries and controlled full-source tests.
 
 For a large run, `observed=false` in the memory line is an evidence failure and must be investigated.
 A short controlled scan may finish between operating-system samples and report no observation.
-
-## Completed run evidence
-
-Retained derived storage remains machine-local and outside the repository and both source trees.
-Its exact path is intentionally not repository documentation.
-
-| Run | Visited | Accepted | Issues | Elapsed | Peak working set | Result |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| local-primary cancellation | 565 | 512 | 16 | 1.567 s | 18,616,320 B | cancelled in 66 ms; zero published locations |
-| local-primary cold scan | 35,084 | 30,629 | 828 | 106.905 s | 19,578,880 B | completed and active |
-| cloud-primary cancellation | 512 | 420 | 8 | 1.205 s | 24,223,744 B | cancelled in 231 ms; local-primary remained active |
-| cloud-primary cold scan | 50,384 | 48,384 | 1,264 | 154.698 s | 66,826,240 B | completed and active |
-
-The `local-primary` cancellation run predated the visited-entry cancellation correction and reached
-its trigger at 512 accepted images and 565 visited entries. The `cloud-primary` trial and current
-tool semantics use a visited-entry threshold. A restricted-process cloud-backed probe returned
-access denied without publishing data; the accepted runs used the explicitly authorized external
-read context.
-
-The completed scans retained 35 and 44 deterministic source-hash samples respectively. Their final
-catalog contains two active roots and 79,013 active locations. The production `load_catalog` API
-then loaded every location through 155 bounded 512-item windows at catalog revision 2, with no
-duplicate location identity or gap. Both roots were reported available and every preview remained
-pending, confirming that the catalog-only run did not generate a full-library preview cache.
-
-Retained reports remain in the ignored acceptance storage under their historical scan IDs. Their
-machine-specific names and paths are intentionally not repository documentation.
-
-## Ordered real-root gate
-
-The gate completed in this order:
-
-1. use the authorized roots and the isolated acceptance storage recorded in the run log;
-2. run the controlled harness;
-3. resolve `local-primary` from the ignored local context, run a cancellation trial, and inspect
-   the retained report;
-4. run a complete cold scan of `local-primary` with a new scan ID;
-5. confirm the authorized `cloud-primary` root remains available;
-6. run a cancellation trial with `-AllowCloudBackedRoot` and inspect
-   placeholder issues before considering a complete scan;
-7. run the approved complete `cloud-primary` scan into the same catalog only with
-   `-UseExistingStorage`;
-8. verify the combined catalog through the Windows application before closing R1.
-
-Completion authorizes roadmap progression to R2 under the existing project contract. It does not
-authorize file deletion, movement, renaming, copying, full-library preview generation, or cloud
-hydration.
-
-## R2b retained-catalog parity
-
-With renewed authorization on 2026-08-11, the current combined-catalog verifier reopened the same
-retained derived catalog through the production loading API. It reproduced the combined count and
-bounded traversal recorded above under the current schema. Both roots remained available, every
-location identity appeared once, all previews remained pending, and no source scan or media
-materialization started.
-
-The verifier checks page boundaries with the actual effective-gallery-date cursor from ADR 0008:
-capture time, then creation time, then modification time, followed by stable root and location
-identity. It does not treat missing capture metadata as a separate final section when trustworthy
-filesystem fallback exists. The retained catalog passed this current keyset contract and the R2b
-parity gate.

@@ -145,4 +145,4 @@ this lightweight guardrail; they do not run the manual reliability wrapper. Cont
 evidence does not substitute for an externally signed Release bundle, elevated SCM/service
 lifecycle, real broker FSCTL, or separately authorized retained-root immutability and no-hydration
 acceptance. See
-[r2c-r-change-driven-reliability.md](../r2c-r-change-driven-reliability.md).
+[r2c-r-change-driven-reliability.md](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-r-change-driven-reliability.md).

@@ -14,7 +14,8 @@ is a portable identity or authority to overwrite a newer decision.
 ## Decision
 
 Use an Ame-owned UTF-8 JSON Lines format, identified by `ame-organization-archive` and an integer
-format version. Version 5 contains a header, ordered records and a completion footer. Record kinds,
+format version. The current format is version 9, with a header, ordered records and a completion
+footer. Versions 1 through 9 remain readable under the conversions below. Record kinds,
 field order and scalar types are explicit adapter contracts, independent of SQLite schema discovery.
 The header records an opaque archive identifier, creation time and source schema version for
 provenance. The footer contains record counts and a BLAKE3 digest of all preceding bytes, including

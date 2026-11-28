@@ -177,13 +177,12 @@ states without becoming production data paths:
 
 ## Explicit current UI exclusions
 
-Until each owning stage connects its complete workflow, the production UI does not show:
+The production UI does not show:
 
-- classification, category filters, category pages, classification review, or model status;
-- semantic similarity;
+- manual classification confirmation, correction, or review controls;
 - people, faces, or identity features;
 - editing tools;
-- delete, move, copy, rename, recycle-bin, or quarantine controls;
+- quarantine controls;
 - a permanent task center, read-only-validation entry, cache diagnostics, or engineering limits.
 
 Classification belongs to R5 and appears as `智能相册`, scoping the same gallery through a derived

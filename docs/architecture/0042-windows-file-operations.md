@@ -7,7 +7,8 @@
 
 Physical organization needs native transfers, cancellation and Recycle Bin integration while Ame
 retains authorization, durable history and catalog consistency. The
-[R8 plan](../plans/r8-file-organization.md) defines supported actions and delivery order; this
+[organization requirements](../product/organization-workflows.md#r8---file-organization-and-recovery)
+define supported actions, and the [roadmap](../roadmap.md) owns delivery order; this
 decision does not enable mutation or replace the per-action confirmation.
 
 ## Decision

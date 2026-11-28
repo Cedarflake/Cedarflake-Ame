@@ -1,10 +1,9 @@
 # Gallery foundation acceptance and regression boundaries
 
-Status: historical R0/R1/R2a/R2b acceptance with retained regression requirements.
+Status: active preview and geometry regression requirements.
 
-This record preserves the foundation decisions, frozen comparison revision, conditional adaptation
-rules, and dated acceptance previously embedded in the roadmap. Historical passes do not establish
-current-source verification. The [roadmap](../roadmap.md) owns current stage status;
+This contract owns preview/geometry checks and the retained interaction comparison. The
+[roadmap](../roadmap.md) owns stage status;
 [ADR 0005](../architecture/0005-storage-governance-and-budget.md) and
 [ADR 0014](../architecture/0014-query-wide-gallery-layout-manifest.md) own storage and layout decisions.
 No new retained-library run is authorized by these historical results.
@@ -136,78 +135,3 @@ fixture-only prototype. R2c is now limited to freshness state, durable increment
 bounded catch-up, revision-safe delta publication, and explicit fallback reconciliation. It must not
 use synchronization work as a reason to rewrite the accepted gallery, preview cache, classification,
 or later analysis workflows.
-
-## Historical acceptance checkpoints
-
-R0 acceptance:
-
-```text
-Windows Debug and Release launch
--> production native picker cancellation and controlled fixture import
--> Rust bridge scan, per-file issue isolation, preview rendering, and atomic catalog publication
--> catalog and previews outside source trees
--> unchanged source bytes and entries
--> accepted
-```
-
-R1 acceptance:
-
-```text
-resumable multi-root catalog and explicit-rescan reconciliation
--> authorized local-primary and cloud-primary read-only scans
--> two active roots and 79,013 active locations
--> bounded revision-safe catalog traversal without duplicate or gap
--> unchanged sampled source bytes and no forced full-library preview generation
--> accepted
-```
-
-R2b completed foundation:
-
-- accepted production shell and unified-gallery interaction contract;
-- complete-result timeline, keyset sort and search, stable selection, viewer, source actions, and
-  scan feedback;
-- query-wide final geometry with unloaded, failed, and ready states sharing the same rectangles;
-- identity-keyed preview publication and bounded center-out demand priority;
-- latest-wins time navigation, native relative scrolling, and actual-card anchor preservation;
-- EXIF Orientation 1 through 8 reflected in durable dimensions and preview pixels;
-- scan finalization, failure publication, and Explorer reveal corrections present in current
-  history;
-- deterministic fixture coverage and a successful hosted Daily gate for the frozen comparison
-  revision.
-
-R2b acceptance: **accepted on 2026-08-13**
-
-1. **Complete** - frozen interaction Profile and long-session evidence on the retained catalog;
-2. **Complete** - ADR 0005 preview-lifecycle implementation and deterministic recovery, cleanup,
-   storage, geometry, and source-safety tests;
-3. **Complete** - current local Daily and Windows Release gates;
-4. **Complete** - currently authorized retained-catalog real-library parity without source mutation
-   or cloud-placeholder hydration;
-5. **Complete** - the separately authorized, bounded, source-readable preview workload required by
-   ADR 0005 and acceptance-policy step 4, with cache pressure, reclamation, regeneration, memory,
-   source-entry, and source-byte evidence recorded above.
-
-R2b conditional-adaptation decisions:
-
-1. **Triggered and complete** - retained-detail growth exceeded the stable-range requirement. The
-   guarded high/low-watermark detail cache passed reversal, resize, viewer, native-input, and frozen
-   Profile frame gates without changing the scroll, time-rail, or resize implementations.
-2. **Not required for the target workload** - the 79,013-item flat manifest remains inside budget;
-   the existing hierarchical fallback remains conditional scale validation.
-3. **Not required** - traces did not reproduce competing programmatic position writers. Native
-   Flutter `Scrollable` movement remains immediate and outside an asynchronous intent queue.
-
-An untriggered conditional adaptation is a resolved **not required** decision, not unfinished R2b
-work. Do not implement one merely to complete an ADR migration sequence or count it as a blocker
-without the corresponding measurement or trace evidence.
-
-## Historical reference observations
-
-Known reference evidence from the real library:
-
-- Lap v0.3.0 terminated twice at the same scan position with Windows `0xc0000409`.
-- The recovery point was near a file named as JPEG whose content was valid PNG.
-- A read-only header probe found thousands of JPG/PNG extension-content mismatches.
-- A large group of reference-library files returned access-denied during content reads.
-- Ame therefore requires per-file failure isolation, format detection based on evidence rather than
-  extension alone, structured issue reporting, and recoverable tasks.

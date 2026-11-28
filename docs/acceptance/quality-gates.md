@@ -19,7 +19,7 @@ repository contract within their stated scope; moving them does not change requi
 | <a id="daily-gate"></a>Daily gate | [Daily gate](quality/daily.md) |
 | <a id="performance-gate"></a> <a id="real-library-gate"></a> <a id="historical-r2c-h-reliability-evidence"></a> <a id="r2c-replacement-reliability-gate"></a>Performance and real-library gates | [Performance and real-library gates](quality/performance-and-real-library.md) |
 | <a id="r2c-r-controlled-local-reliability-gate"></a>Controlled Windows reliability admission | [Controlled Windows reliability admission](quality/controlled-reliability.md) |
-| <a id="phase-31-migration-integrity-gate"></a> <a id="phase-32-leased-capacity-gap-and-reserved-code-gate"></a> <a id="worker-report-preparation-boundary"></a>Continuity regressions and retained evidence | [Continuity regressions and retained evidence](quality/continuity-regressions.md) |
+| Continuity regression requirements | [Library continuity](library-continuity.md) and [current architecture](../architecture/0024-windows-change-driven-library-continuity.md) |
 | <a id="installed-journal-broker-acceptance"></a>Installed journal broker acceptance | [Installed journal broker acceptance](quality/installed-journal-broker.md) |
 | <a id="release-gate"></a>Release gate | [Release gate](quality/release.md) |
 | <a id="repository-command-reference"></a>Repository command reference | [Repository command reference](quality/commands.md) |

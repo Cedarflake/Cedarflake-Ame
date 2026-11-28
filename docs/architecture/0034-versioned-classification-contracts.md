@@ -64,7 +64,7 @@ An empty active scheme has no classifier and produces no invented `其他` resul
 The application owns a finite curated topic catalog and automatic category maintenance. Each topic declares
 its permitted broad purposes and complete visible names. SigLIP supplies image/text compatibility;
 its matching adapter does not generate category names or expand that catalog. The scoped
-[discovery evidence](../acceptance/r5-category-discovery.md) records the naming probes separately from
+[discovery evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r5-category-discovery.md) records the naming probes separately from
 the admitted screening encoder.
 
 Do not generate categories from isolated low scores. A useful addition or split needs a repeatable,
@@ -962,7 +962,7 @@ bounds matching storage; future increases need resource evidence, not new catego
 Boundary tests cover renaming, reordering, semantic edits, active-set changes, malformed definitions,
 missing/mixed features, invalid vectors, ties and non-fixed category counts. Runtime measurements and
 their limits remain in the linked evidence. Purpose-aware calibration and independent held-out
-evaluation retain the requirements in the [execution plan](../plans/r5-classification.md); this
+evaluation retain the [product requirements](../product/r5-classification.md); this
 decision establishes no high-confidence threshold or product quality pass.
 
 Replace the encoder behind its feature contract, create new pipeline revisions and rematch only

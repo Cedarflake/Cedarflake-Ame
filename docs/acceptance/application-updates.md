@@ -113,7 +113,7 @@ package receipts. These local artifacts are uncommitted validation builds, not p
 | Update metadata | `ab531b24b2e14c57a8901ab0576802ec60aeb53e592266b1cc1e925bf5fecc57` |
 
 The installed product retains the existing WiX transaction and its
-[upgrade/repair/rollback evidence](r10-upgrade-compatibility.md). The new native MSI handoff received
+[upgrade/repair/rollback evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r10-upgrade-compatibility.md). The new native MSI handoff received
 separate affected-path verification. Its first disposable guest
 stopped during the old version's VC runtime prerequisite: a new 180-second fixture bound expired
 after the minimum-runtime MSI succeeded, while the additional-runtime MSI was still active. No Ame

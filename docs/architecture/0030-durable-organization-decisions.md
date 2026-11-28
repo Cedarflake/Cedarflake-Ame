@@ -352,22 +352,21 @@ position-preserving refresh.
 
 ### Upgrade protection
 
-Before an existing catalog advances to a newer schema, create an exclusively owned SQLite online
-backup beside the catalog. This captures committed WAL data without copying original media or
-opening source directories. Fresh and already-current catalogs do not create a backup. Use the
-existing rusqlite backup feature in production; no new package or license is introduced.
+Current initialization and admitted upgrades follow
+[ADR 0002](0002-rust-owned-catalog-and-media-boundaries.md#supported-prerelease-baseline).
+The retired Alpha migration chain and its backup mechanism do not run at startup. Unsupported
+schemas are rejected without changing their data.
 
-Copy in bounded page steps, reject persistent busy/error states, validate the completed snapshot,
-flush it and retain it before starting migrations. Each copy uses 256-page steps and a 60-second
-total copy deadline. A flushed `.complete` receipt records the source and target schema versions;
-an absent, incomplete or mismatched receipt does not qualify a snapshot for recovery. This deadline
-is an upgrade-copy failure boundary, not a gallery startup performance target.
-A failed or incomplete backup cannot authorize
-an upgrade. Its temporary output is owned by this attempt; unrelated files and previously completed
-backups are never overwritten or automatically deleted. An unsuccessful migration leaves the
-completed pre-upgrade snapshot available. Recovery opens a verified copy in separate derived
-storage before any explicit catalog replacement; it never restores over an active database or
-silently discards newer decisions.
+Future released-schema migrations must preserve catalogs, user decisions and history, and retain a
+verified recovery path before modifying durable data. An exclusively owned pre-upgrade SQLite
+snapshot must capture committed WAL state through bounded online backup without opening source
+directories or copying original media. Validate and flush the completed snapshot before relying on it for recovery;
+an incomplete backup grants no upgrade or restoration authority.
+
+Temporary output belongs to its attempt. Unrelated files and completed backups must not be
+overwritten or automatically deleted. Failed migration leaves its verified recovery data available.
+Recovery opens a verified copy in separate derived storage before any explicit catalog replacement;
+it never restores over an active database or silently discards newer decisions.
 
 ### Ownership and presentation
 

@@ -58,7 +58,7 @@ top-ten neighbors in that corpus. This small corpus does not establish large-lib
 Engine integration must retain exact cosine comparison, eligibility during retrieval, bounded
 resident windows and cancellable work between windows. Engine keys and file formats remain behind
 the retrieval port. The evaluation does not add USearch to the application dependency set or make
-its approximate result count the coverage authority. The [R7 evidence](../acceptance/r7-semantic-discovery.md)
+its approximate result count the coverage authority. The [R7 evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r7-semantic-discovery.md)
 owns measurements and production admission evidence.
 
 ## Relevance admission

@@ -117,15 +117,9 @@ fingerprint, similarity, or classification engines.
   edit and rename, same-state replacement, authoritative removal, and failure preservation.
 - The fixtures run without a platform watcher, database migration, Flutter policy, or source-media
   access.
-- Forty-four focused synchronization tests pass, including 22 adversarial blue-team fixtures and
-  the selective Rust facade contract. The attack matrix and residual boundaries are recorded in
-  `docs/acceptance/r2c-a-blue-team.md`.
-- The repository lint gate passes with 131 Dart files unchanged, Flutter analysis clean, and Rust
-  Clippy clean for all targets and features with warnings denied.
-- The complete Daily gate passes: 175 Rust tests pass with five authorization- or
-  performance-bound tests intentionally ignored; all Flutter tests, controlled Windows scan
-  integration, native Windows accessibility integration, generated bridge compatibility, and
-  tracked-diff whitespace validation pass.
+- The original attack matrix and residual boundaries remain in the
+  [historical validation](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-a-blue-team.md).
+  Current verification follows [quality gates](../acceptance/quality-gates.md).
 
 ## Replacement strategy
 

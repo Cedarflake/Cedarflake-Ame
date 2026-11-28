@@ -54,6 +54,16 @@ record while replacing obsolete active instructions.
 
 ## Update rather than accumulate
 
+Delete completed execution plans, superseded standalone contracts and one-time investigation logs
+when current owners cover their useful requirements. Remove their navigation entries. Keep an
+immutable Git link only where a surviving decision or measurement needs the original evidence;
+do not create a second archive tree or a replacement maintenance diary.
+
+Retain an evidence document when it defines a reusable procedure, supports current qualification,
+or explains an admitted engine or measured policy. Move any unique active requirement to its
+existing owner before removing an obsolete file. Local paths, machine setup notes and temporary
+commands belong in ignored working material rather than permanent project documentation.
+
 Edit the owning paragraph and relevant links when changing a rule. Do not append a dated amendment
 that leaves contradictory instructions above it. An ADR may retain necessary historical context,
 with the active decision stated clearly and the superseded scope identified.

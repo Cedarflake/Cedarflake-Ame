@@ -1612,8 +1612,9 @@ repair of V1 and a distinct-hash same-publisher upgrade to V2 before its restart
 - application fixtures prove watcher-first capture, per-root enqueue-before-checkpoint, replay after
   every injected crash boundary, root-generation invalidation, same-volume multi-root sharing,
   independent root progress, and cross-root move handoff in either order;
-- migration fixtures preserve every durable data class, terminalize partial ADR 0023 inventory
-  authority safely, establish exactly one baseline where required, and reject partial schemas;
+- persistence fixtures follow the [supported baseline](0002-rust-owned-catalog-and-media-boundaries.md#supported-prerelease-baseline),
+  preserve durable data through admitted upgrades and current recovery, establish exactly one
+  baseline where required, and reject unsupported or partial schemas without mutation;
 - create, modify, rename, move, same-path replacement, and delete while Ame is closed converge from
   journal records through final-state reconciliation without source-root enumeration;
 - journal reset, deletion, trimming, broker interruption, root replacement, and reconstruction
@@ -2980,28 +2981,6 @@ downgrade path exists. The guardrail rejects inherited, duplicate, deny, unknown
 rights rules and requires exactly SYSTEM/Administrators `FullControl` plus current-user
 `ReadWrite|Synchronize`. Hosted CI executes the same broker guardrail once under Windows PowerShell
 5.1 and again in the PowerShell 7 Static Daily component, preserving both runtime contracts.
-
-Red regressions first reproduced the exact v23, direct-v24, newer-epoch, terminalization,
-superseded-spool reopen, and polluted-current-schema failures. The complete migration module then
-passes 73 tests and the metadata-inventory application module passes 37 tests. The new controls
-prove current repair idempotence, malformed-DDL non-mutation, rollback when an active run lacks its
-owner, valid-owner preservation, and v27 spool retirement before validation. A consistent online
-backup of the retained 1.18 GB catalog was opened read-only,
-migrated only in disposable storage through production `SqliteCatalog::open`, and reopened. Root,
-asset, location, queue, inventory-run, inventory-entry, and completed-authority counts were
-unchanged; foreign-key checking returned zero rows; only the one illegal superseded authority was
-revoked. The original catalog and both source libraries were not changed. Repository lint passes,
-including the 19-case R2c-R guardrail, warnings-denied Clippy, and Dart analysis. The complete Daily
-component evidence was collected serially with one non-incremental Cargo job after the workstation's
-default parallel compile exhausted its commit limit: the Rust library suite passes 954 tests with
-17 expected ignores, broker integration passes 3/3, all Flutter tests pass, Windows scan and native
-accessibility pass 2/2 each, bridge/whitespace checks pass, and both integrations build the current
-Debug application. Eighteen focused owner-affinity regressions pass. Two disposable-directory test
-fixtures also pass 200 repeated post-guard rename/restore cycles each with bounded Windows sharing-
-violation handling while their active-guard failure assertions remain immediate and exact.
-This is migration and startup-recovery evidence, not retained-root synchronization acceptance;
-the final accumulated independent audit and hosted PR gate remain the closeout evidence. R2c-R
-remains not accepted and R2c-O remains active.
 
 ### Phase-34 blocked-recovery scheduling and runtime observability
 

@@ -194,7 +194,7 @@ than reusing pre-maintenance prepared state.
 ## Validation evidence
 
 The focused adapter and application fixtures are recorded in
-`docs/acceptance/r2c-d-incremental-delta-publication.md`. They use temporary controlled roots and
+[historical validation](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-d-incremental-delta-publication.md). They use temporary controlled roots and
 isolated catalogs. No real-library root or cloud placeholder was accessed.
 
 ## Consequences and risks

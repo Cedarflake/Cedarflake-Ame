@@ -3,7 +3,7 @@
 Status: retained R2c regression and acceptance requirements, not proof of completion.
 
 The [roadmap](../roadmap.md) owns stage order and current status. R2c is
-[complete and frozen](r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16).
+[complete and frozen](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16).
 These requirements describe the behaviors to prove. Accepted
 [ADR 0024](../architecture/0024-windows-change-driven-library-continuity.md) owns the current
 change-driven architecture and supersedes historical fallback policies; other technical ownership
@@ -47,9 +47,8 @@ The Rust domain defines Ame-owned, platform-independent values for:
 - normalized change intent, such as path reconciliation, rename candidate, subtree reconciliation,
   and root freshness unknown;
 - change origin and priority lane, including P0 live notification, P1 brokered journal catch-up,
-  P2 baseline or continuity-gap recovery, and user refresh; historical direct-desktop
-  `StartupCatchUp`, `consistency_audit`, and ADR 0023 startup-inventory values remain readable only
-  for forward migration and do not regain production authority;
+  P2 baseline or continuity-gap recovery, and user refresh; historical origin values cannot grant
+  the retired direct-desktop, periodic-audit or routine startup-inventory authority;
 - reconciliation outcomes: unchanged, added, modified, renamed or moved, replaced, removed,
   skipped, retryable failure, and terminal issue;
 - watcher health and catalog-freshness states without exposing a Windows or third-party type.
@@ -129,8 +128,9 @@ on one volume may share one bounded physical read, but a root advances only afte
 durably enrolled. No all-roots transaction may let one unavailable root block another root's P1
 checkpoint.
 
-This state is durable task data, not disposable thumbnail cache. Its schema changes require forward
-migrations from every committed schema version and migration tests. Completed rows and obsolete
+This state is durable task data, not disposable thumbnail cache. Schema changes require migration
+tests and preservation of the [supported baseline](../architecture/0002-rust-owned-catalog-and-media-boundaries.md#supported-prerelease-baseline).
+Completed rows and obsolete
 watermarks require a bounded retention strategy, but cleanup must never erase an unresolved gap or
 user-owned decision.
 
@@ -271,7 +271,7 @@ Startup order:
 5. Process P0 immediately while P1 catches up. Advance a root checkpoint only after its bounded
    range is durably enrolled; report `已同步` only after that checkpoint covers the declared boundary
    and required queue lineage is terminal.
-6. Start P2 metadata inventory only for a one-time migration or first-authority baseline, or after a
+6. Start P2 metadata inventory only for an admitted first-authority baseline, or after a
    specific continuity failure. Keep P0 live during recovery, replay the closing journal interval,
    and require complete scope authority before publishing absence.
 7. Project an unsupported persistent-change source as `LiveOnly` or an explicit blocked capability;
@@ -374,7 +374,7 @@ authorized configured root. Versioned bounded IPC, caller-token and root verific
 service SID, minimum proven privileges, cancellation, and root-external disclosure tests are release
 gates.
 
-P2 metadata inventory is authorized only for a one-time migration or first-authority baseline, or a
+P2 metadata inventory is authorized only for an admitted first-authority baseline, or a
 proven gap such as journal recreation or trimming, root/volume identity mismatch, reconstruction or
 containment ambiguity, incompatible protocol or record version, or simultaneous watcher and journal
 coverage loss. The inventory:
@@ -412,14 +412,14 @@ A complete root scan may start only when one of these authorities exists:
 Normal file events, normal process restart, elapsed time, retry, watcher interruption, overflow,
 an empty journal range, metadata-inventory size, and automatic recovery failure do not authorize a
 complete scan. Work that exceeds the 4,096-entry or 128-path batch ceiling continues through bounded
-P1 or P2 pages. Legacy direct-desktop `StartupCatchUp`, `consistency_audit`, prerelease
-`authoritative_recovery` full-scan checkpoints, and ADR 0023 startup epochs are migration input only;
-they cannot bypass the ADR 0024 broker, checkpoint, lane, or baseline contract. The last trustworthy
-catalog remains visible while automatic continuity runs.
+P1 or P2 pages. Legacy direct-desktop origins, periodic-audit state, automatic full-scan checkpoints
+and routine startup epochs cannot bypass the ADR 0024 broker, checkpoint, lane or baseline contract.
+Retired Alpha schema imports follow ADR 0002's rejection policy. The last trustworthy catalog remains
+visible while automatic continuity runs.
 
 ## Acceptance evidence
 
-R2c is not complete until all applicable evidence exists. Its preview evidence is limited to
+Continuity verification requires the applicable evidence below. Preview coverage is limited to
 retain-or-invalidate behavior caused by automatic source changes; cache capacity, reclamation,
 manual cleanup, storage relocation, and restart reconciliation remain R2b-owned contracts.
 
@@ -430,8 +430,8 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - normal single-file changes do not trigger a complete root scan;
 - process start, watcher restart, overflow, retry, oversized inventory, and automatic recovery
   failure do not trigger a complete root scan;
-- prerelease automatic full-scan checkpoints are retired into the one-time ADR 0024 migration
-  baseline when required and cannot re-enter the production scanner;
+- unsupported prerelease catalogs are rejected without mutation, and obsolete automatic full-scan
+  authority cannot re-enter the production scanner;
 - duplicate, reordered, incomplete, and late events converge on correct final filesystem state;
 - related changes publish atomically at one catalog revision;
 - a database failure or cancellation preserves the last trustworthy catalog;
@@ -458,7 +458,7 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
 - a P0 live change reaches the visible catalog at P95 no greater than one second even while P1 or P2
   is active, and a closed-process single change reaches it at P95 no greater than two seconds after
   normal runtime readiness;
-- journal reset, trimming, broker failure, root replacement, and migration baseline use explicit P2
+- journal reset, trimming, broker failure, root replacement, and first-authority baseline use explicit P2
   recovery without gating independent P0 publication or publishing partial absence;
 - broker caller identity, root containment, pipe access, protocol compatibility, installer guardrails,
   portable `LiveOnly` degradation, root-external nondisclosure, and no-journal-mutation gates pass;

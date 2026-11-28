@@ -25,7 +25,7 @@ layers, a directory per class, or a generic `services`, `helpers` or `utils` buc
 The [repository layout](../development/repository-layout.md#dart-ownership) owns physical locations.
 This decision owns dependency direction, public contracts, composition and exceptions. The
 [roadmap](../roadmap.md#project-organization-after-r5) owns delivery disposition, with structural and
-behavior evidence in the [handover](../acceptance/project-organization-continuity.md#organization-handover--2026-11-04).
+behavior evidence in the [handover](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/project-organization-continuity.md#organization-handover--2026-11-04).
 
 ### Dart dependency rules
 

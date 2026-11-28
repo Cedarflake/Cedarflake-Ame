@@ -1,8 +1,9 @@
 # R5 exploratory model comparison
 
 Date: 2026-10-30. This record preserves the local comparison used to choose an initial-screening
-candidate. Stage status belongs to the [roadmap](../roadmap.md); runtime admission, calibration,
-product integration, and final quality acceptance remain in the [R5 plan](../plans/r5-classification.md).
+candidate. Stage status belongs to the [roadmap](../roadmap.md); current requirements belong to
+[classification](../product/r5-classification.md), with separate
+[runtime admission](r5-runtime-admission.md) and [calibration](r5-calibration.md) evidence.
 
 ## Scope and provenance
 
@@ -82,10 +83,11 @@ The later [runtime probes](r5-runtime-admission.md) retain separate local native
 measurements, including the text-batch compatibility difference; they do not revise this cohort's
 original quality figures.
 
-## Evidence needed during implementation
+## Interpretation and follow-up evidence
 
-Retain this comparison rather than rerunning all models. Establish the purpose-aware configurable
-rubric, independent content-group holdout/calibration, and useful first-pass error rates and coverage.
-Manual classification and correction-time trials were withdrawn on 2026-11-01. Validate one bounded feature-reusing
-re-screen against the same rubric. Product admission also needs worker isolation/recovery, exact
-artifact verification, two-core/8-GiB resource bounds, and foreground interference measurements.
+Retain this comparison rather than rerunning all models. The later [calibration](r5-calibration.md)
+records the purpose-aware rubric, separated holdout, coverage and bounded feature-reusing re-screen.
+[Runtime admission](r5-runtime-admission.md) records artifact verification and worker/resource probes;
+[R10 resource and recovery evidence](r10-resource-recovery.md) covers integrated interference and
+recovery. These records retain their own sample and hardware limits; this exploratory comparison
+does not establish final-library accuracy.

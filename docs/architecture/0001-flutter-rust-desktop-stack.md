@@ -112,7 +112,7 @@ automatic renderer retry.
 Complete engine, runner, Dart payload and assets must come from the same SDK and build mode. Retain
 real-pixel checks alongside timing and logical-state assertions: the previous experimental Windows
 Impeller probe recorded low frame costs while displaying a black client area. The
-[R4 evidence](../acceptance/r4-organization.md#stable-sdk-and-renderer-selection---2026-10-28)
+[R4 evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r4-organization.md#stable-sdk-and-renderer-selection---2026-10-28)
 owns the actual comparisons, native-library provenance and verification coverage. Earlier ADR SDK
 version references identify the framework sources inspected for those decisions.
 
@@ -156,7 +156,7 @@ The generator toolchain uses Freezed 4.0.3, analyzer 14.7.0 and build_runner 2.1
 Migration uses the official
 `dart fix --apply --code=migrate_design_widgets`, followed by explicit package pinning and delegate
 updates. Rollback restores imports, delegates and the dependency lock together; Rust contracts,
-catalogs and original media are unchanged. The [migration evidence](../acceptance/material-ui-migration.md)
+catalogs and original media are unchanged. The [migration evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/material-ui-migration.md)
 owns actual compatibility and desktop results.
 
 ### Loading indicator compatibility
@@ -203,7 +203,7 @@ Review controls use separate spatial and effects progress so opacity cannot inhe
 overshoot. Existing Material controls, themes and desktop overlay ownership remain in place.
 Future official component integration replaces the corresponding driver or removes the adapter,
 without moving feature state or introducing another motion engine. The
-[motion evidence](../acceptance/material-motion.md) records admitted consumers and verification.
+[motion evidence](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/material-motion.md) records admitted consumers and verification.
 
 `LibraryViewerLaunch` captures one activated thumbnail's bounds and identity. The shared viewer
 surface/route passes that origin with its existing animation to `LibraryViewerImageFlight`.
@@ -257,7 +257,7 @@ or engine patch.
 
 With Flutter 3.47.8, the default merged loop delayed callbacks during card enlargement even when
 build and raster work fit the display budget. The same Profile interaction with separate threads
-removed the recurring middle-of-flight delay; the [motion record](../acceptance/material-motion.md#transition-performance--2026-11-13)
+removed the recurring middle-of-flight delay; the [motion record](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/material-motion.md#transition-performance--2026-11-13)
 retains the comparison and remaining first-frame costs. Extending motion duration or reducing image
 quality would change the accepted effect without repairing callback delivery.
 

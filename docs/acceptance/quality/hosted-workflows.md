@@ -14,9 +14,9 @@ The hosted Windows gate is implemented once in
   its nightly schedule runs full checks and synthetic workloads. Manual dispatch selects full or
   extended checks. The scope and fallback policy is owned by [ADR 0026](../../architecture/0026-hosted-synthetic-and-unsigned-build-gates.md#decision);
 - `release_candidate_windows.yml` is manually dispatched from `main` for one existing
-  strict-SemVer tag, then publishes the verified portable ZIP;
-- `release_verify_published.yml` downloads the exact published ZIP and independently verifies its
-  identity and archive structure.
+  strict-SemVer tag, then publishes the verified MSI, portable ZIP and update assets;
+- `release_verify_published.yml` downloads the published packages and update metadata, checks their
+  identities and hashes, and independently verifies the portable archive.
 
 The push gate intentionally targets `main` rather than every feature branch. Feature work is
 validated by the pull-request event, avoiding duplicate push and pull-request runs for the same
@@ -29,16 +29,16 @@ result. Pull-request and merge-group runs still cancel a superseded run in their
 Each run remains evidence for its recorded source commit, never a later queued head.
 
 Every hosted job uses `windows-2025`. Daily components and the unsigned-build and release-verifier
-jobs install Flutter 3.47.8 and use the repository Rust toolchain; the optional protected signer and
+jobs install the workflow-pinned Flutter SDK and use the repository Rust toolchain; the optional protected signer and
 published-artifact verifier do not. Static Daily, the unsigned-build job, and the signed-verifier job
 download actionlint 1.7.12, verify the official Windows x64 SHA-256, and validate every workflow through
 `./tool/quality_lint_workflows.ps1` before restoring project dependencies. External actions are
 pinned to complete commit SHAs, checkout credentials are not persisted, and ordinary workflow jobs
-have read-only repository contents permission. Only the final portable-publication job receives
+have read-only repository contents permission. Only the final publication job receives
 `contents: write`; it checks out no repository content and starts only after the read-only candidate
 and packaging gates succeed. Pull-request jobs receive no release secrets or write permission. The
 publisher preserves existing same-name attachments only when GitHub's uploaded-asset SHA-256 digest
-matches the verified ZIP; a missing attachment is uploaded without overwrite, and an unprovable
+matches the verified asset; a missing attachment is uploaded without overwrite, and an unprovable
 identity or failed lookup stops publication. The workstation daily gate does not download actionlint
 implicitly; contributors may run the same script
 with an explicitly supplied executable.
@@ -69,11 +69,12 @@ two fixed executables, scrubs ephemeral key material and uploads an immutable si
 independent verifier rechecks the signed manifest and publisher before release.
 
 A separate read-only packager checks out the immutable source SHA, binds the selected channel's
-manifest to that SHA and the still-current tag, reverifies the bundle, and uploads the exact ZIP
-plus its SHA-256 as another immutable artifact. The sole `contents: write` publisher downloads only
-that ZIP, checks out no repository and executes no repository script. Immediately before GitHub
+manifest to that SHA and the still-current tag, reverifies the bundle, and creates the MSI, portable
+ZIP, portable-update package and update metadata as one immutable artifact. The sole `contents: write`
+publisher downloads that artifact, checks out no repository and executes no repository script.
+It verifies the exact asset set and metadata-bound lengths and hashes. Immediately before GitHub
 Release mutation it peels the current tag through the GitHub API, requires the resolved commit to
-equal the verified source, and rechecks the ZIP hash.
+equal the verified source, and rechecks the package hashes.
 
 For full runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated
 `windows-2025` jobs: static verification, four Rust partitions, Flutter widget tests, the controlled
@@ -119,11 +120,12 @@ for these version, ref-identity, and job-isolation contracts. It also builds a c
 fixture and proves that missing runtime files and unsafe archive paths are rejected.
 
 The published-release workflow resolves the version contract from the published tag and downloads
-only `Cedarflake-Ame-<tag>-windows-x64-portable.zip`. It first validates bounded safe archive paths,
-then extracts into fresh repository scratch storage solely to revalidate the application and broker
-Authenticode signatures, exact publisher, x64 machine, and broker protocol before confirmed cleanup.
-Provenance and independent checksums remain deferred supply-chain work rather than claims of the
-current gate.
+the MSI, portable ZIP, portable-update package and update metadata. The trusted package verifier checks
+their identities and hashes against the publication inputs and release metadata. Portable verification
+validates bounded safe archive paths, then extracts into fresh repository scratch storage to revalidate
+the x64 application and broker protocol before confirmed cleanup. The selected channel determines
+whether unsigned binaries or matching Authenticode signatures and publisher are required. Signed
+supply-chain attestations remain separate from these package checks.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
 real-library gate. Nightly and release CI run the five synthetic cases; retained

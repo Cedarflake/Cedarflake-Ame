@@ -13,7 +13,7 @@ owning R5 slices. The Ame-owned category/matching contracts remain separate from
 canonical category rules, the shared embedding space and independent encoder revisions. The
 [native classification interface](../../rust/src/classification.rs) exposes validated Ame-owned
 definitions/features and bounded matching. Later source verification, feature persistence and queued
-analysis integration are recorded in [incremental analysis](r5-incremental-analysis.md); the initial
+analysis integration are recorded in [incremental analysis](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r5-incremental-analysis.md); the initial
 matching checks below cover the domain boundary independently of those adapters.
 
 The 18 new focused tests pass: ten domain cases and eight application matching cases. They cover
@@ -338,9 +338,9 @@ the twelve delivered Dart owners reports no issues; the isolated delivery's form
 cancellation while preparation owns its resources, and rejection of retired operation reuse.
 The bridge checks verify 27 asynchronous method contracts and reject
 the malformed method/owner/lease fixtures. Real-window first use was interrupted at this checkpoint;
-the subsequent [isolated first-use interaction](r5-desktop-classification.md#isolated-first-use-and-review-continuation--2026-11-01)
+the subsequent [isolated first-use interaction](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r5-desktop-classification.md#isolated-first-use-and-review-continuation--2026-11-01)
 verifies installation and prediction publication using retained verified artifacts. The
-[current setup entrypoint](r5-desktop-classification.md#automatic-analysis-and-setup-removal--2026-11-02)
+[current setup entrypoint](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r5-desktop-classification.md#automatic-analysis-and-setup-removal--2026-11-02)
 replaces the former Settings controls. These checks do not measure a fresh production download.
 
 The existing `AlertDialog`, `TextButton` and `FilledButton` own dialog layout, focus and actions;

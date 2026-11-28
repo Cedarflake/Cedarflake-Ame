@@ -19,5 +19,6 @@ drop completion proves every watch has cancelled its outstanding read and closed
 outer two-second stop task keeps application shutdown bounded. No public `notify` type crosses the
 Ame adapter boundary.
 
-Only `src/windows.rs` differs from the published 8.2.0 source. Replace this directory with an exact
-stable upstream release after the same regression fixtures pass against that release.
+Runtime source changes are limited to `src/windows.rs`; README links resolve against the vendored
+layout or upstream documentation. Replace this directory with an exact stable upstream release after
+the same regression fixtures pass against that release.

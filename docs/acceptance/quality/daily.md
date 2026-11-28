@@ -82,8 +82,8 @@ jumps, repeatedly opens and closes on-demand photo menus, operates stable toolba
 changes the timeline and viewer Sliders, and returns from the viewer twice. The script retains the
 complete engine output under `build`, rejects any `Failed to update ui::AXTree` record even when the
 Dart assertions pass, and therefore exercises the platform `AccessibilityBridge` behavior that
-widget-test semantics models cannot reproduce. Flutter 3.47.8 exposes Windows device integration
-tests through its supported Debug test path; this canary does not claim Profile-mode coverage.
+widget-test semantics models cannot reproduce. Windows device integration uses the pinned Flutter
+SDK's supported Debug test path; this canary does not claim Profile-mode coverage.
 
 The native probe loads only the fixed, strong-named Windows UI Automation assemblies through
 `integration_windows_accessibility_assemblies.ps1`, validates their identity and required types,

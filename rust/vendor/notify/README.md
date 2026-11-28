@@ -17,7 +17,7 @@ _Cross-platform filesystem notification library for Rust._
 - [File ID][file-id-docs]
 - [Examples][examples]
 - [Changelog][changelog]
-- [Upgrading notify from v4](UPGRADING_V4_TO_V5.md)
+- [Upgrading notify from v4](https://github.com/notify-rs/notify/blob/main/docs/UPGRADING_V4_TO_V5.md)
 - Minimum supported Rust version: **1.77**
 
 As used by: [alacritty], [cargo watch], [cobalt], [deno], [docket], [mdBook],
@@ -60,10 +60,10 @@ Originally created by [Félix Saparelli] and awesome [contributors].
 [alert-after]: https://github.com/frewsxcv/alert-after
 [build]: https://github.com/notify-rs/notify/actions
 [cargo watch]: https://github.com/passcod/cargo-watch
-[cc0]: ./notify/LICENSE-CC0
-[MIT]: ./file-id/LICENSE-MIT
-[apache]: ./file-id/LICENSE-APACHE
-[changelog]: ./CHANGELOG.md
+[cc0]: ./LICENSE-CC0
+[MIT]: https://github.com/notify-rs/notify/blob/main/file-id/LICENSE-MIT
+[apache]: https://github.com/notify-rs/notify/blob/main/file-id/LICENSE-APACHE
+[changelog]: https://github.com/notify-rs/notify/blob/main/CHANGELOG.md
 [cobalt]: https://github.com/cobalt-org/cobalt.rs
 [coc]: http://contributor-covenant.org/version/1/4/
 [contributors]: https://github.com/notify-rs/notify/graphs/contributors
@@ -84,4 +84,4 @@ Originally created by [Félix Saparelli] and awesome [contributors].
 [wiki]: https://github.com/notify-rs/notify/wiki
 [xi-editor]: https://xi-editor.io/
 [watchfiles]: https://watchfiles.helpmanual.io/
-[examples]: examples/
+[examples]: https://github.com/notify-rs/notify/tree/main/examples

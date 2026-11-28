@@ -2,9 +2,8 @@
 
 Status: scoped calibration evidence; stage disposition belongs to the roadmap.
 
-The [requirements](../product/r5-classification.md) and
-[execution plan](../plans/r5-classification.md#r5-02-taxonomy-model-and-runtime-admission) own the
-purpose-aware rubric and separated evaluation. [ADR 0034](../architecture/0034-versioned-classification-contracts.md)
+The [requirements](../product/r5-classification.md) own the purpose-aware rubric and separated
+evaluation. [ADR 0034](../architecture/0034-versioned-classification-contracts.md)
 owns feature compatibility and the one-refinement application boundary.
 
 ## Frozen comparison
@@ -222,7 +221,7 @@ its own compatibility identity and cannot relabel prior cached image features.
 The screening application boundary exposes version-bound profiles, cached-feature first-pass/refinement
 evidence and uncalibrated/low-separation/routine-sampling recommendations. Its original focused checks
 cover no background enablement, human confirmation, catalog write or R4 organization change.
-The subsequent [configuration integration](r5-incremental-analysis.md#classification-configuration-and-activation)
+The subsequent [configuration integration](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r5-incremental-analysis.md#classification-configuration-and-activation)
 selects the frozen category-aware candidate only for its exact descriptions and native pipeline
 revisions. That integration reuses the measurements above and does not add a new quality claim.
 The domain profile owner is 184 lines and the application screening owner is 141 lines. Dedicated
@@ -274,7 +273,7 @@ The comic and other-content samples remain small. The native comparison still ha
 errors outside its optional-check band: numerical separation has not established a high-confidence guarantee.
 The removed optional-check UI has no bearing on these internal evaluation bands.
 
-The [whole-scheme comparison](r5-category-discovery.md#whole-scheme-candidate-comparison) supplies
+The [whole-scheme comparison](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r5-category-discovery.md#whole-scheme-candidate-comparison) supplies
 an additional purpose-level assessment of the four selected category additions. Mapping each new
 category back to its declared original purpose changes 16 of 236 calibration assignments; 72
 assignments change category in total. Among 188 definite provisional references, agreement changes

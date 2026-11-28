@@ -72,7 +72,7 @@ Preparing that binding under the standing read-only policy does not require anot
 ## Historical R2c-H reliability evidence
 
 The direct-desktop USN implementation and R2c-H execution entrypoint are retired. Their
-[recorded results](../r2c-h-large-library-reliability.md) remain historical; they do not validate the
+[recorded results](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-h-large-library-reliability.md) remain historical; they do not validate the
 ADR 0024 runtime. Current broker/identity continuity uses the R2c-R entrypoint below. Metadata-only
 inventory checks retain the R2c-M entrypoint and its source-isolation/process guardrails.
 
@@ -107,5 +107,21 @@ The wrapper owns its Job Object, deadline, memory, physical path, empty storage,
 cloud acknowledgement controls. Its non-accessing boundary is exercised through
 `./tool/acceptance_test_r2c_replacement_guardrails.ps1`. `-ValidationOnly`, disposable evidence, and
 the small retained-catalog fixture do not substitute for an authorized target-scale run. See
-[r2c-m-replacement-reliability.md](../r2c-m-replacement-reliability.md) for the recorded evidence and
+[r2c-m-replacement-reliability.md](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-m-replacement-reliability.md) for the recorded evidence and
 remaining authorization boundary.
+
+### Startup and cached-read targets
+
+A fresh post-backup process must open and validate the catalog, admit the roots, and make the first
+500-item gallery page plus 4,096-item layout manifest available within five seconds, before continuity
+work begins. After catalog opening and validation, root-scoped cached pages and initial manifests
+must take at most one second, within that total startup window. Backup preparation and metadata
+recovery are outside these timing windows. R10 separately measures desktop process-to-usable-gallery
+latency.
+
+Run the cold 45-second-per-root inventory measurement before any complete source walk. First-touch
+safety comes from the no-recall adapter; a separate repeated-inventory pass must compare complete
+directory-entry metadata and placeholder attributes before and after. Verify that inventory invokes
+no media inspection, preview, signature or hashing path, creates no full-scan row, and keeps queue,
+catalog and Job Object memory within their bounds. Report cold timings and repeated-pass source
+safety separately.

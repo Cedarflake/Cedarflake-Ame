@@ -51,10 +51,10 @@ behavior for large libraries.
 
 ### Reconcile bounded scopes and continue oversized scopes as metadata inventory
 
-Accepted as amended by ADR 0023. A bounded authoritative worker handles ordinary subtree and small-
-root recovery. When either the enumerated source set or active catalog set exceeds one batch, the
-application continues the same authority as a pageable metadata-inventory run. It does not request
-a full scan.
+Accepted within [ADR 0024](0024-windows-change-driven-library-continuity.md)'s current recovery
+admission. A bounded authoritative worker handles admitted subtree and root recovery. When either
+the enumerated source set or active catalog set exceeds one batch, the application continues the
+same authority as a pageable metadata-inventory run. It does not request a full scan.
 
 ## Decision
 
@@ -62,11 +62,12 @@ The application owns an authoritative recovery worker separate from the path wor
 runs this worker on a cancellable background thread outside the desktop polling mutex and leases one
 subtree, root, or freshness-gap intent only when the root generation is current, a trustworthy
 catalog is published, no full scan is active, and a healthy observer has established the current
-live-notification boundary. Evidence completeness and observer transport health are distinct. A
-root-scoped rescan signal, incomplete rename, known event loss, bounded ingress overflow, cold start,
-or watcher restart gap starts the smallest trustworthy ADR 0023 metadata-inventory scope while the
-observer covers later changes. A failed or restarting observer leaves its continuity epoch unresolved
-until the restarted source is healthy. The worker enumerates one bounded page through the filesystem
+live-notification boundary. Evidence completeness and observer transport health are distinct.
+ADR 0024 owns journal replay and the persisted authority required for metadata recovery after a
+proven continuity gap. Cold start or watcher restart alone cannot authorize an inventory. The
+observer covers later changes while admitted recovery reconciles its bounded scope. A failed or
+restarting observer leaves continuity unresolved until the restarted source is healthy.
+The worker enumerates one bounded page through the filesystem
 adapter with an absolute ceiling of 4,096 directory entries and 128 affected paths. Policies cannot
 raise these per-page ceilings; larger scopes continue through durable inventory pages.
 
@@ -210,7 +211,7 @@ turn active automatic work into a false manual-action state.
 ## Validation evidence
 
 The controlled commands and results are recorded in
-`docs/acceptance/r2c-f-recovery-consistency.md`.
+[historical validation](https://github.com/Cedarflake/Cedarflake-Ame/blob/e5874f1bed869075019a6626768d7aaf2c227dcb/docs/acceptance/r2c-f-recovery-consistency.md).
 
 ## Consequences and risks
 
