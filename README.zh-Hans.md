@@ -15,7 +15,7 @@ Ame 目前处于 **Alpha 阶段**，主要功能已经实现，正在完善性�
 
 [Windows 11 预览版](https://github.com/Cedarflake/Cedarflake-Ame/actions/workflows/quality_windows_arm64.yml)提供 x64 和 ARM64 两种 MSI 安装包，以及 ARM64 便携版 ZIP。从已安装的 x64 版 MSI 切换到 ARM64 版，需要先卸载 x64 版。
 
-Ame 支持应用内更新，可选择自动检查或自动下载。没有更新入口的旧版需要手动升级。发布包和预览包均未签名。各版本的改动和已知限制见[发行说明](docs/releases/README.md)。
+Ame 支持应用内更新，可选择自动检查或自动下载。发布包和预览包均未签名。各版本的改动和已知限制见[发行说明](docs/releases/README.md)。
 
 ## 主要功能
 

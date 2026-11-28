@@ -24,8 +24,7 @@ The [Windows 11 previews](https://github.com/Cedarflake/Cedarflake-Ame/actions/w
 include MSI packages for x64 and ARM64 and a portable ZIP for ARM64. Switching from an installed
 x64 MSI to ARM64 requires uninstalling the x64 version first.
 
-Ame supports in-app updates, with automatic checking and downloading options. Older builds without
-the updater require a manual upgrade.
+Ame supports in-app updates, with automatic checking and downloading options.
 Release and preview packages are unsigned. See the [release notes](docs/releases/README.md)
 for changes and known limits.
 

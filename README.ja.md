@@ -15,7 +15,7 @@ Ame は現在 **Alpha 版**です。主要機能は実装済みで、Beta 版に
 
 [Windows 11 向けプレビュー版](https://github.com/Cedarflake/Cedarflake-Ame/actions/workflows/quality_windows_arm64.yml)には、x64 版と ARM64 版の MSI、および ARM64 用のポータブル版 ZIP があります。Arm 搭載 PC で x64 版 MSI から ARM64 版 MSI に切り替える場合は、既存の MSI 版をアンインストールしてから再インストールする必要があります。
 
-アプリ内での更新に対応し、自動確認と自動ダウンロードを選べます。更新機能のない旧版は手動でのアップグレードが必要です。リリース版とプレビュー版のパッケージは未署名です。変更点や既知の制限は[リリースノート](docs/releases/README.md)に記載しています。
+アプリ内での更新に対応し、自動確認と自動ダウンロードを選べます。リリース版とプレビュー版のパッケージは未署名です。変更点や既知の制限は[リリースノート](docs/releases/README.md)に記載しています。
 
 ## 主な機能
 
