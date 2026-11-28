@@ -9,8 +9,13 @@ function Test-AmeInstallerPolicyRegressions {
     $rejections = [ordered]@{
         wrong_architecture = {
             param($value)
-            $value.Template = if ($value.Template -ceq 'x64;2052') { 'Arm64;2052' } else { 'x64;2052' }
+            $value.Template = if ($value.Template -ceq 'x64;0') { 'Arm64;0' } else { 'x64;0' }
         }
+        missing_language = { param($value) $value.LanguageMessages = @($value.LanguageMessages | Where-Object Language -CNE '1041') }
+        unsafe_language_property = { param($value) $value.LanguageMessages[0].Property = 'AME_REMOVE_USER_DATA' }
+        late_ui_language = { param($value) ($value.InstallUISequence | Where-Object Action -CEQ 'AmeLocalizeInstaller').Sequence = '1500' }
+        missing_execute_language = { param($value) $value.InstallExecuteSequence = @($value.InstallExecuteSequence | Where-Object Action -CNE 'AmeLocalizeInstaller') }
+        language_limited_upgrade = { param($value) $value.Upgrade[0].Language = '2052' }
         foreign_upgrade_family = { param($value) ($value.Property | Where-Object Property -CEQ 'UpgradeCode').Value = [guid]::Empty.ToString('B') }
         foreign_service = { param($value) $value.ServiceInstall[0].Name = 'OtherService' }
         broad_privileges = { param($value) ($value.MsiServiceConfig | Where-Object ConfigType -CEQ '6').Argument = 'SeManageVolumePrivilege[~]SeImpersonatePrivilege[~]SeDebugPrivilege' }

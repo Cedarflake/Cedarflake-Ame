@@ -22,9 +22,11 @@ try {
         (Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash -cne $receipt.packageSha256) {
         throw 'Installer package differs from its receipt or exceeds its bound'
     }
-    $model = Read-AmeInstallerDatabase -PackagePath ([IO.Path]::GetFullPath($PackagePath)) `
-        -DtfAssemblyPath (Join-Path $WixSdkDirectory 'tools/net472/WixToolset.Dtf.WindowsInstaller.dll')
-    Assert-AmeInstallerPolicy $model $receipt
-    Test-AmeInstallerPolicyRegressions $model $receipt
+    foreach ($language in $script:AmeInstallerLanguages.Values) {
+        $model = Read-AmeInstallerDatabase -PackagePath ([IO.Path]::GetFullPath($PackagePath)) `
+            -DtfAssemblyPath (Join-Path $WixSdkDirectory 'tools/net472/WixToolset.Dtf.WindowsInstaller.dll') -Language $language
+        Assert-AmeInstallerPolicy $model $receipt
+        Test-AmeInstallerPolicyRegressions $model $receipt
+    }
     Write-Host 'Installer database verified; system installation and lifecycle acceptance remain separate'
 } finally { $lease.Dispose() }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="ja-JP"
+                 Codepage="65001" SummaryInformationCodepage="1252">
+  <String Id="AmeDowngradeError" Value="新しいバージョンの Ame がインストールされています。新しいインストーラーを使用してください。" />
+  <String Id="AmeWindowsRequirement" Value="このインストーラーには Windows 11 [AME_INSTALLER_ARCHITECTURE] が必要です。" />
+  <String Id="AmeRollbackRequirement" Value="Ame をインストールする前に、Windows Installer のロールバックを有効にしてください。" />
+  <String Id="AmeRollbackDisabledError" Value="Windows Installer のロールバックが無効になっているため、Ame を安全に更新できません。" />
+  <String Id="AmeCoreFeatureTitle" Value="Ame 本体と読み取りヘルパー" />
+  <String Id="AmeCoreFeatureDescription" Value="Ame をインストールします。ライブラリと個人設定は保持されます。" />
+  <String Id="AmeStartMenuFeatureTitle" Value="スタートメニューのショートカット" />
+  <String Id="AmeStartMenuFeatureDescription" Value="スタートメニューに Ame を追加します。" />
+  <String Id="AmeDesktopFeatureTitle" Value="デスクトップのショートカット" />
+  <String Id="AmeDesktopFeatureDescription" Value="デスクトップに Ame を追加します。" />
+  <String Id="AmeInstallTitle" Value="Ame のインストール" />
+  <String Id="AmeInstallDescription" Value="インストール先とショートカットを選択してください。" />
+  <String Id="AmeInstallPathLabel" Value="インストール先" />
+  <String Id="AmeBrowse" Value="参照(&amp;B)..." />
+  <String Id="AmeStartMenuChoice" Value="スタートメニューに追加する(&amp;S)" />
+  <String Id="AmeDesktopChoice" Value="デスクトップにショートカットを作成する(&amp;D)" />
+  <String Id="AmeBack" Value="&lt; 戻る(&amp;B)" />
+  <String Id="AmeNext" Value="次へ(&amp;N) &gt;" />
+  <String Id="AmeCancel" Value="キャンセル(&amp;C)" />
+  <String Id="AmeRemoveTitle" Value="Ame のアンインストール" />
+  <String Id="AmeRemoveDescription" Value="アンインストール後も、既定ではライブラリと個人設定が保持されます。" />
+  <String Id="AmeRemoveDataChoice" Value="Ame のデータを削除する(&amp;D)" />
+  <String Id="AmeRemoveDataScope"
+          Value="選択すると、このアカウントの既定の保存先にあるライブラリの記録、設定、キャッシュ、ダウンロード済みモデルが削除されます。既定の保存先以外に指定したフォルダーと元の画像は保持されます。MSI 版、ポータブル版、Microsoft Store 版は、このデータを共有します。" />
+  <String Id="AmeStartingService" Value="Ame 読み取りヘルパーを起動しています" />
+  <String Id="AmeRemovingUserData" Value="現在のアカウントの Ame データを削除しています" />
+  <String Id="AmeInstallationFailed" Value="Ame のインストールを続行できません。技術的な詳細：[2]" />
+  <String Id="AmeDataRemovalBlocked"
+          Value="Ame のデータを削除できません。アンインストールはまだ開始されていません。Ame を終了して再試行するか、「Ame のデータを削除する」のチェックを外してください。技術的な詳細：[2]" />
+  <String Id="AmeDataRemovalIncomplete"
+          Value="Ame はアンインストールされましたが、一部の Ame データを削除できませんでした。元の画像は変更されていません。技術的な詳細：[2]" />
+</WixLocalization>

@@ -140,18 +140,29 @@ try {
     # WIX1149 also warns on SID/privilege configuration; its suggested Util replacement only
     # supports failure actions. ADR 0027 limits native rows to types 5/6 and requires SCM readback.
     $arguments = @("-acceptEula", "wix7", "build", "-arch", $Architecture, "-wx", "-sw1149", "-ct", "1",
-        "-ext", $wixUi, "-culture", "zh-CN",
+        "-ext", $wixUi,
         "-d", "ProductVersion=$version", "-d", "ProductCode=$productCode",
         "-d", "UpgradeCode=$upgradeCode", "-d", "Architecture=$platform",
         "-d", "BrokerPath=$(Join-Path $bundle 'cedarflake_ame_journal_broker.exe')",
         "-d", "BrokerIdentity=$identity", "-d", "AdmissionDll=$admission",
-        "-d", "ApplicationIcon=$(Join-Path $repository 'windows/runner/resources/app_icon.ico')",
-        "-intermediatefolder", (Join-Path $output "intermediate"), "-out", $msi)
-    if (-not [string]::IsNullOrWhiteSpace($CabinetCachePath)) {
-        $arguments += @("-cc", $CabinetCachePath)
+        "-d", "ApplicationIcon=$(Join-Path $repository 'windows/runner/resources/app_icon.ico')")
+    if ([string]::IsNullOrWhiteSpace($CabinetCachePath)) {
+        $CabinetCachePath = Join-Path $output 'cabinets'
+        [void][IO.Directory]::CreateDirectory($CabinetCachePath)
     }
-    $arguments += $sources
-    Invoke-AmeChecked $wix $arguments
+    $arguments += @('-cc', $CabinetCachePath)
+    $localizedPackages = [ordered]@{}
+    foreach ($culture in $script:AmeInstallerLanguages.Keys) {
+        $localizedMsi = $msi
+        if ($culture -cne 'en-US') { $localizedMsi = Join-Path $output "localization/$culture.msi" }
+        $catalog = Join-Path $repository "windows/installer/localization/$culture.wxl"
+        $leases.Add([IO.FileStream]::new($catalog, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
+        Invoke-AmeChecked $wix ($arguments + @('-culture', $culture, '-loc', $catalog,
+            '-intermediatefolder', (Join-Path $output "intermediate/$culture"), '-out', $localizedMsi) + $sources)
+        $localizedPackages[$culture] = $localizedMsi
+    }
+    $dtf = Join-Path $WixSdkDirectory 'tools/net472/WixToolset.Dtf.WindowsInstaller.dll'
+    Merge-AmeInstallerLanguages -Packages $localizedPackages -DtfAssemblyPath $dtf
     $receipt = [ordered]@{
         format = "cedarflake-ame-msi-v1"
         status = "built_not_installed"
@@ -169,10 +180,11 @@ try {
         payload = [ordered]@{ machine = "windows-$Architecture"; configuration = 'Release'; fileCount = $installerFiles.Count; files = $installerFiles }
         createdUtc = [DateTime]::UtcNow.ToString("o")
     }
-    $model = Read-AmeInstallerDatabase -PackagePath $msi `
-        -DtfAssemblyPath (Join-Path $WixSdkDirectory "tools/net472/WixToolset.Dtf.WindowsInstaller.dll")
-    Assert-AmeInstallerPolicy $model ([pscustomobject]$receipt)
-    Test-AmeInstallerPolicyRegressions $model ([pscustomobject]$receipt)
+    foreach ($language in $script:AmeInstallerLanguages.Values) {
+        $model = Read-AmeInstallerDatabase -PackagePath $msi -DtfAssemblyPath $dtf -Language $language
+        Assert-AmeInstallerPolicy $model ([pscustomobject]$receipt)
+        Test-AmeInstallerPolicyRegressions $model ([pscustomobject]$receipt)
+    }
     & (Join-Path $PSScriptRoot 'release_test_installer_ui.ps1') -PackagePath $msi `
         -DtfAssemblyPath (Join-Path $WixSdkDirectory 'tools/net472/WixToolset.Dtf.WindowsInstaller.dll')
     $receipt.databasePolicy = "passed"

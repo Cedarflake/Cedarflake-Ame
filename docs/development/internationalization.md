@@ -6,6 +6,8 @@ Update all supported languages in the same change as the feature. This includes 
 accessibility labels, notifications, startup errors and labels Ame supplies to native dialogs.
 Use the existing Material translations for controls whose wording the framework owns.
 
+For the Flutter application:
+
 1. Add or reuse a key in the [ARB catalogs](../../lib/app/presentation/l10n). Name the key for
    its meaning and use. Two actions with the same wording can need different translations.
    Put Simplified Chinese in `app_zh.arb`, English in `app_en.arb` and Japanese in `app_ja.arb`.
@@ -18,6 +20,22 @@ Use the existing Material translations for controls whose wording the framework 
 3. Run `flutter gen-l10n` with the [pinned Flutter SDK](../acceptance/quality/execution-safety.md#local-flutter-toolchain).
    Use the generated getter or method through `context.l10n` in widgets. Edit the ARB sources
    and commit the regenerated Dart files alongside them.
+
+## Windows MSI installer
+
+Installer wording belongs to the [WiX localization catalogs](../../windows/installer/localization):
+`en-US.wxl`, `zh-CN.wxl` and `ja-JP.wxl`. Update matching keys in all three files. Keep complete
+messages, MSI formatting tokens such as `[2]` and `[AME_INSTALLER_ARCHITECTURE]`, and keyboard
+mnemonics intact. Stock dialogs, errors and progress text use the pinned WiX translations.
+
+[ADR 0027](../architecture/0027-windows-installer-lifecycle.md#installer-language) owns language
+selection, neutral package identity and session-local presentation loading. The
+[package builder](../../tool/release_package_installer_windows.ps1) composes the catalogs;
+[native localization](../../windows/installer/localization.cpp) selects the current Windows UI
+language for each invocation. Native user-facing failures use the Error IDs in
+[`ui.wxs`](../../windows/installer/ui.wxs) and record arguments, keeping original diagnostics in
+technical details. Verify changes through the installer checks and native interaction under
+[installer acceptance](../acceptance/unsigned-windows-release.md).
 
 ## Keeping data independent of the display language
 
@@ -65,7 +83,8 @@ text and relative links to the other editions.
 
 ## Verifying a change
 
-Run `./tool/quality_verify_localizations.ps1` for a focused check of keys and placeholders.
+For application ARB changes, run `./tool/quality_verify_localizations.ps1` for a focused check of
+keys and placeholders.
 The [presentation lint gate](../acceptance/quality/commands.md#repository-command-reference)
 also catches stale generated files and hardcoded text in common UI controls. Exercise the affected
 screen in each supported language. Check that longer labels fit in a narrow window and with

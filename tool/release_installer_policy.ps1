@@ -15,8 +15,22 @@ function Assert-AmeInstallerPolicy {
     foreach ($row in $Model.Property) { $properties[$row.Property] = $row.Value }
     Require ($Receipt.payload.machine -cin @('windows-x64', 'windows-arm64')) 'unknown payload architecture'
     $architecture = $Receipt.payload.machine.Substring(8)
-    $template = if ($architecture -eq 'arm64') { 'Arm64;2052' } else { 'x64;2052' }
+    $template = if ($architecture -eq 'arm64') { 'Arm64;0' } else { 'x64;0' }
     Require ($Model.Template -ceq $template) 'package platform or language differs from the verified payload'
+    Require ($properties.ProductLanguage -ceq '0') 'installer must be language neutral'
+    Require ($Model.Tables -ccontains 'AmeInstallerText' -and
+        $Model.Tables -ccontains 'AmeInstallerLocale') 'installer language resources are missing'
+    Require ((@($Model.LanguageMessages.Language | Sort-Object -Unique) -join ',') -ceq '1033,1041,2052') `
+        'installer languages are incomplete'
+    Require (@($Model.LanguageMessages | Where-Object Property -CNotMatch '^AmeMessage[0-9]+$').Count -eq 0) `
+        'translation must not assign installation properties'
+    Require (($properties.SecureCustomProperties -split ';') -ccontains 'AME_INSTALLER_LANGUAGE') `
+        'selected language must survive elevation'
+    foreach ($sequenceName in @('InstallUISequence', 'InstallExecuteSequence')) {
+        $localizer = @($Model.$sequenceName | Where-Object Action -CEQ 'AmeLocalizeInstaller')
+        Require ($localizer.Count -eq 1 -and $localizer[0].Sequence -ceq '1' -and
+            $localizer[0].Condition -ceq '') 'language must initialize before UI and execute actions'
+    }
     $family = $script:AmeInstallerFamilies.$architecture
     Require ($Receipt.productCode -ceq (Get-AmeInstallerGuid "product/$($Receipt.productVersion)" $architecture) -and
         $properties.ProductCode -ceq ('{' + $Receipt.productCode + '}') -and
@@ -51,6 +65,7 @@ function Assert-AmeInstallerPolicy {
     Require ($types['5'] -ceq '3' -and $types['6'] -ceq 'SeManageVolumePrivilege[~]SeImpersonatePrivilege') 'service SID or privileges changed'
 
     $allowedActions = @{
+        AmeLocalizeInstaller = @('1', 'AmeInstallerAdmission', 'AmeLocalizeInstaller')
         SetARPINSTALLLOCATION = @('51', 'ARPINSTALLLOCATION', '[AMEAPPDIR]')
         SetAMEAPPDIR = @('51', 'AMEAPPDIR', '[AME_PREVIOUSAPPDIR]')
         SetREINSTALLMODE = @('51', 'REINSTALLMODE', 'amus')
@@ -118,9 +133,9 @@ function Assert-AmeInstallerPolicy {
     Require ($older.Count -eq 1 -and $newer.Count -eq 1 -and
         $older[0].UpgradeCode -ceq $properties.UpgradeCode -and $newer[0].UpgradeCode -ceq $properties.UpgradeCode -and
         $older[0].VersionMin -ceq '' -and $older[0].VersionMax -ceq $Receipt.productVersion -and
-        $older[0].Attributes -ceq '1' -and $older[0].Remove -ceq '' -and
+        $older[0].Language -ceq '' -and $older[0].Attributes -ceq '1' -and $older[0].Remove -ceq '' -and
         $newer[0].VersionMin -ceq $Receipt.productVersion -and $newer[0].VersionMax -ceq '' -and
-        $newer[0].Attributes -ceq '2') 'version upgrade policy changed'
+        $newer[0].Language -ceq '' -and $newer[0].Attributes -ceq '2') 'version upgrade policy changed'
     Require (@($Model.LaunchCondition | Where-Object { $_.Condition -ceq 'NOT WIX_DOWNGRADE_DETECTED' }).Count -eq 1) 'downgrade rejection missing'
 
     Assert-AmeInstallerLayout $Model $Receipt $architecture

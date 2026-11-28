@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="Cedarflake Ame" Manufacturer="Cedarflake" Language="2052"
+  <Package Name="Cedarflake Ame" Manufacturer="Cedarflake" Language="0"
            Version="$(var.ProductVersion)" ProductCode="$(var.ProductCode)"
            UpgradeCode="$(var.UpgradeCode)"
            Scope="perMachine" InstallerVersion="500" Codepage="65001">
     <SummaryInformation Description="Cedarflake Ame Windows $(var.Architecture) installer" />
-    <MajorUpgrade Schedule="afterInstallExecute" AllowSameVersionUpgrades="no"
-                  DowngradeErrorMessage="已安装更新版本的 Ame，请使用更新的安装包。" />
+    <MajorUpgrade Schedule="afterInstallExecute" AllowSameVersionUpgrades="no" IgnoreLanguage="yes"
+                  DowngradeErrorMessage="!(loc.AmeDowngradeError)" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Launch Condition="VersionNT64 AND MsiNTProductType = 1 AND AME_WINDOWS_BUILD &gt;= 22000"
-            Message="此安装包需要 Windows 11 $(var.Architecture)。" />
+            Message="!(loc.AmeWindowsRequirement)" />
     <Launch Condition="NOT RollbackDisabled AND NOT DISABLEROLLBACK"
-            Message="请启用 Windows Installer 回滚后再安装 Ame。" />
+            Message="!(loc.AmeRollbackRequirement)" />
+    <Property Id="AME_INSTALLER_ARCHITECTURE" Value="$(var.Architecture)" />
+    <Property Id="AME_INSTALLER_LANGUAGE" Secure="yes" />
     <Property Id="AME_WINDOWS_BUILD">
       <RegistrySearch Id="WindowsBuild" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
                       Name="CurrentBuildNumber" Type="raw" Bitness="always64" />
@@ -80,9 +82,11 @@
     </Component>
 
     <Binary Id="AmeInstallerAdmission" SourceFile="$(var.AdmissionDll)" />
+    <CustomAction Id="AmeLocalizeInstaller" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeLocalizeInstaller" Execute="immediate" Return="check" />
     <CustomAction Id="AmeValidateInstallation" BinaryRef="AmeInstallerAdmission"
                   DllEntry="AmeValidateInstallation" Execute="immediate" Return="check" />
-    <CustomAction Id="AmeRequireRollback" Error="Windows Installer 回滚已关闭，无法安全升级 Ame。" />
+    <CustomAction Id="AmeRequireRollback" Error="!(loc.AmeRollbackDisabledError)" />
     <CustomAction Id="AmeRestorePreviousBroker" BinaryRef="AmeInstallerAdmission"
                   DllEntry="AmeRestorePreviousBroker" Execute="rollback" Impersonate="no" Return="check" />
     <SetProperty Id="AmeVerifyInstalledService" Value="$(var.BrokerIdentity)"
@@ -102,6 +106,7 @@
     <CustomAction Id="AmeRemoveUserData" BinaryRef="AmeInstallerAdmission"
                   DllEntry="AmeRemoveUserData" Execute="commit" Impersonate="yes" Return="ignore" />
     <InstallExecuteSequence>
+      <Custom Action="AmeLocalizeInstaller" Sequence="1" />
       <Custom Action="AmeValidateInstallation" Before="InstallValidate" />
       <Custom Action="AmePrepareUserDataRemoval" After="InstallValidate"
               Condition="Installed AND REMOVE = &quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND AME_REMOVE_USER_DATA = &quot;1&quot;" />
@@ -117,7 +122,7 @@
               Condition="Installed AND REMOVE = &quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE AND AME_REMOVE_USER_DATA = &quot;1&quot; AND AmeRemoveUserData" />
     </InstallExecuteSequence>
 
-    <Feature Id="Ame" Title="Ame 主程序与读取助手" Description="安装 Ame，保留图库和个人设置。"
+    <Feature Id="Ame" Title="!(loc.AmeCoreFeatureTitle)" Description="!(loc.AmeCoreFeatureDescription)"
              Level="1" AllowAbsent="no" AllowAdvertise="no" ConfigurableDirectory="AMEAPPDIR" Display="expand">
       <ComponentRef Id="AmeInstallationSettings" />
       <ComponentRef Id="AmeProductDirectory" />
@@ -125,11 +130,13 @@
       <ComponentRef Id="AmeBroker" />
       <ComponentGroupRef Id="AmeBrokerRuntimeFiles" />
       <ComponentGroupRef Id="AmeApplicationFiles" />
-      <Feature Id="AmeStartMenuFeature" Title="开始菜单快捷方式" Description="在开始菜单中添加 Ame。"
+      <Feature Id="AmeStartMenuFeature" Title="!(loc.AmeStartMenuFeatureTitle)"
+               Description="!(loc.AmeStartMenuFeatureDescription)"
                Level="1" AllowAdvertise="no">
         <ComponentGroupRef Id="AmeStartMenuFiles" />
       </Feature>
-      <Feature Id="AmeDesktopFeature" Title="桌面快捷方式" Description="在桌面上添加 Ame。"
+      <Feature Id="AmeDesktopFeature" Title="!(loc.AmeDesktopFeatureTitle)"
+               Description="!(loc.AmeDesktopFeatureDescription)"
                Level="2" AllowAdvertise="no">
         <ComponentGroupRef Id="AmeDesktopFiles" />
       </Feature>

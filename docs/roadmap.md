@@ -66,6 +66,16 @@ Reuse completed acceptance when its inputs are unchanged; new behavior receives 
 
 ## Current execution queue
 
+### MSI localization
+
+The [installer localization plan](plans/msi-localization.md) adds Simplified Chinese, English and
+Japanese to the single MSI, including installation, repair and uninstall. Each invocation follows
+the user's Windows display-language preferences with English fallback; installation and data-removal
+semantics remain unchanged. Implementation, native language-session checks and the isolated
+three-language install/repair/uninstall matrix are complete on `codex/msi-localization`;
+the [verification record](acceptance/unsigned-windows-release.md#msi-localization--2026-11-28)
+owns their scope. Hosted CI and integration remain pending.
+
 ### Smart-album term editing
 
 The approved [term-editing plan](plans/smart-album-terms.md) was integrated through

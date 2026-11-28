@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization xmlns="http://wixtoolset.org/schemas/v4/wxl" Culture="en-US"
+                 Codepage="65001" SummaryInformationCodepage="1252">
+  <String Id="AmeDowngradeError" Value="A newer version of Ame is installed. Use a newer installer." />
+  <String Id="AmeWindowsRequirement" Value="This installer requires Windows 11 [AME_INSTALLER_ARCHITECTURE]." />
+  <String Id="AmeRollbackRequirement" Value="Enable Windows Installer rollback before installing Ame." />
+  <String Id="AmeRollbackDisabledError" Value="Windows Installer rollback is disabled. Ame cannot be upgraded safely." />
+  <String Id="AmeCoreFeatureTitle" Value="Ame and file reading helper" />
+  <String Id="AmeCoreFeatureDescription" Value="Installs Ame and keeps your library and personal settings." />
+  <String Id="AmeStartMenuFeatureTitle" Value="Start menu shortcut" />
+  <String Id="AmeStartMenuFeatureDescription" Value="Adds Ame to the Start menu." />
+  <String Id="AmeDesktopFeatureTitle" Value="Desktop shortcut" />
+  <String Id="AmeDesktopFeatureDescription" Value="Adds Ame to the desktop." />
+  <String Id="AmeInstallTitle" Value="Install Ame" />
+  <String Id="AmeInstallDescription" Value="Choose an installation folder and shortcuts." />
+  <String Id="AmeInstallPathLabel" Value="Installation folder" />
+  <String Id="AmeBrowse" Value="&amp;Browse..." />
+  <String Id="AmeStartMenuChoice" Value="Add to the &amp;Start menu" />
+  <String Id="AmeDesktopChoice" Value="Create a &amp;desktop shortcut" />
+  <String Id="AmeBack" Value="&lt; &amp;Back" />
+  <String Id="AmeNext" Value="&amp;Next &gt;" />
+  <String Id="AmeCancel" Value="&amp;Cancel" />
+  <String Id="AmeRemoveTitle" Value="Uninstall Ame" />
+  <String Id="AmeRemoveDescription" Value="Your library and personal settings are kept by default after uninstalling." />
+  <String Id="AmeRemoveDataChoice" Value="&amp;Delete Ame data" />
+  <String Id="AmeRemoveDataScope"
+          Value="Deletes library records, settings, caches and downloaded models in this account's default location. Custom locations outside it and original photos are kept. MSI, portable and Microsoft Store editions share this data." />
+  <String Id="AmeStartingService" Value="Starting the Ame file reading helper" />
+  <String Id="AmeRemovingUserData" Value="Deleting Ame data for the current account" />
+  <String Id="AmeInstallationFailed" Value="Ame installation cannot continue. Technical details: [2]" />
+  <String Id="AmeDataRemovalBlocked"
+          Value="Ame data could not be deleted. Uninstall has not started. Close Ame and try again, or clear “Delete Ame data”. Technical details: [2]" />
+  <String Id="AmeDataRemovalIncomplete"
+          Value="Ame was uninstalled, but some Ame data could not be deleted. Your original photos are unchanged. Technical details: [2]" />
+</WixLocalization>

@@ -2,9 +2,9 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Fragment>
     <UI Id="AmeInstallerUI">
-      <TextStyle Id="WixUI_Font_Normal" FaceName="Microsoft YaHei UI" Size="9" />
-      <TextStyle Id="WixUI_Font_Bigger" FaceName="Microsoft YaHei UI" Size="12" />
-      <TextStyle Id="WixUI_Font_Title" FaceName="Microsoft YaHei UI" Size="9" Bold="yes" />
+      <TextStyle Id="WixUI_Font_Normal" FaceName="MS Shell Dlg" Size="9" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="MS Shell Dlg" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="MS Shell Dlg" Size="9" Bold="yes" />
       <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
       <Property Id="ARPNOMODIFY" Value="1" />
       <DialogRef Id="BrowseDlg" />
@@ -32,9 +32,16 @@
       <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="AmeRemoveOptionsDlg" />
       <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg" />
       <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999" />
-      <ProgressText Action="AmeStartInstalledService" Message="正在启动 Ame 读取助手" />
-      <ProgressText Action="AmeRemoveUserData" Message="正在删除当前账户的 Ame 数据" />
+      <ProgressText Action="AmeStartInstalledService" Message="!(loc.AmeStartingService)" />
+      <ProgressText Action="AmeRemoveUserData" Message="!(loc.AmeRemovingUserData)" />
+      <Error Id="25001" Message="!(loc.AmeInstallationFailed)" />
+      <Error Id="25002" Message="!(loc.AmeDataRemovalBlocked)" />
+      <Error Id="25003" Message="!(loc.AmeDataRemovalIncomplete)" />
+      <InstallUISequence>
+        <Custom Action="AmeLocalizeInstaller" Sequence="1" />
+      </InstallUISequence>
     </UI>
     <UIRef Id="WixUI_Common" />
+    <UIRef Id="WixUI_ErrorProgressText" />
   </Fragment>
 </Wix>

@@ -58,7 +58,9 @@ The MSI upgrade number follows [ADR 0027](../../architecture/0027-windows-instal
 It also runs the rejecting database-policy cases against modified in-memory models.
 `./tool/release_test_installer_ui.ps1 -PackagePath <msi> -DtfAssemblyPath <pinned-dtf-assembly>`
 uses isolated MSI sessions for costing, exact property initialization and native condition evaluation
-across all four incoming shortcut states and four checkbox combinations. It never executes the
+across all four incoming shortcut states and four checkbox combinations. It also loads each of the
+three language catalogs through the native action, checks repeat initialization and localized errors,
+and preserves the unchecked data-removal default. Sessions suppress UI and never execute the
 installation sequence; native dialog interaction and installed shortcuts retain separate checks.
 
 The parallel Store package is built by `./tool/release_package_msix_windows.ps1 -Tag <tag>

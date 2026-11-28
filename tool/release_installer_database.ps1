@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'release_installer_localization.ps1')
 
 function Read-AmeInstallerRows {
     param(
@@ -34,7 +35,8 @@ function Read-AmeInstallerRows {
 function Read-AmeInstallerDatabase {
     param(
         [Parameter(Mandatory = $true)][string]$PackagePath,
-        [Parameter(Mandatory = $true)][string]$DtfAssemblyPath
+        [Parameter(Mandatory = $true)][string]$DtfAssemblyPath,
+        [ValidateSet(1033, 1041, 2052)][int]$Language = 1033
     )
 
     Add-Type -Path $DtfAssemblyPath
@@ -57,7 +59,7 @@ function Read-AmeInstallerDatabase {
             InstallExecuteSequence = 'Action,Condition,Sequence'
             InstallUISequence = 'Action,Condition,Sequence'
             LaunchCondition = 'Condition,Description'
-            Upgrade = 'UpgradeCode,VersionMin,VersionMax,Attributes,Remove,ActionProperty'
+            Upgrade = 'UpgradeCode,VersionMin,VersionMax,Language,Attributes,Remove,ActionProperty'
             Media = 'DiskId,LastSequence,Cabinet'
             RemoveFile = 'FileKey,Component_,FileName,DirProperty,InstallMode'
             Shortcut = 'Shortcut,Directory_,Name,Component_,Target,Arguments,WkDir'
@@ -68,10 +70,22 @@ function Read-AmeInstallerDatabase {
             ControlEvent = 'Dialog_,Control_,Event,Argument,Condition,Ordering'
         }
         $model = [ordered]@{ Tables = $tables; Template = $database.SummaryInfo.Template }
+        $model.Language = $Language
+        $model.LanguageMessages = @()
+        if ($tables -ccontains 'AmeInstallerMessage') {
+            $model.LanguageMessages = @(Read-AmeInstallerRows $database 'AmeInstallerMessage' @('Language', 'Property', 'Value'))
+        }
         foreach ($name in $definitions.Keys) {
             $model[$name] = @()
             if ($tables -ccontains $name) {
-                $model[$name] = @(Read-AmeInstallerRows $database $name $definitions[$name].Split(','))
+                if ($tables -ccontains 'AmeInstallerText' -and $script:AmeInstallerPresentation.Contains($name)) {
+                    if (@(Read-AmeInstallerRows $database $name $definitions[$name].Split(',')).Count -ne 0) {
+                        throw 'Installer presentation rows must be loaded for the current session'
+                    }
+                    $model[$name] = @(Read-AmeInstallerLocalizedRows $database $Language $name)
+                } else {
+                    $model[$name] = @(Read-AmeInstallerRows $database $name $definitions[$name].Split(','))
+                }
             }
         }
         $view = $database.OpenView("SELECT ``Data`` FROM ``Binary`` WHERE ``Name`` = 'AmeInstallerAdmission'", [object[]]@())
