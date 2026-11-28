@@ -11,7 +11,7 @@ owned by the accepted [ADRs](../architecture/README.md), and engineering rules b
 
 Cedarflake Ame is a local-first Windows photo library for everyday use. It supports image browsing,
 intelligent search, automatic classification, duplicate and similar-image cleanup, albums, and
-file management across existing image folders. It is free and open source under Apache-2.0.
+file management across existing image folders.
 
 Large-library performance supports everyday use as collections grow. The interface follows
 Material 3, with Flutter for presentation, Rust for library and file workflows, and SQLite

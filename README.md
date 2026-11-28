@@ -3,8 +3,8 @@
 <p align="center">English | <a href="./README.zh-Hans.md">简体中文</a> | <a href="./README.ja.md">日本語</a></p>
 
 Ame is a local-first Windows photo library for everyday use, with image browsing, intelligent
-search, automatic classification, and duplicate cleanup. Manage the image folders already on your
-computer, browse by date, and organize your collection with favorites, albums, and file operations.
+search, automatic classification, and duplicate cleanup. It works with existing image folders and
+supports timeline browsing, favorites, albums, and file management.
 It is free and open source under [Apache-2.0](LICENSE).
 
 ![Ame gallery, image viewer, search, albums, duplicate groups, and file organization](docs/images/ame-showcase.webp)
@@ -17,53 +17,30 @@ two packages for **Windows 11 x64**:
 
 - **MSI installer**: includes the image-analysis models, runtime, and background library-update
   service. Installation requires administrator permissions.
-- **Portable ZIP**: extract the complete archive and run `Cedarflake-Ame/Cedarflake Ame.exe`
-  (`cedarflake_ame.exe` in older packages).
-  Models download separately when first needed; no Windows service is installed.
+- **Portable ZIP**: runs without installation. Image-analysis models download when first needed;
+  no Windows service is installed.
 
 The [Windows 11 previews](https://github.com/Cedarflake/Cedarflake-Ame/actions/workflows/quality_windows_arm64.yml)
-include MSI packages for x64 and ARM64 and a portable ZIP for ARM64. If you installed the x64 MSI
-on an Arm PC, uninstall it before switching to the ARM64 MSI.
+include MSI packages for x64 and ARM64 and a portable ZIP for ARM64. Switching from an installed
+x64 MSI to ARM64 requires uninstalling the x64 version first.
 
-Use **Settings → About** to check for and download updates, then restart to apply them. Update
-preferences control automatic checking and downloading. Builds without this entry require a manual
-upgrade after closing Ame; extract their portable replacements into separate directories.
+Ame supports in-app updates, with automatic checking and downloading options. Older builds without
+the updater require a manual upgrade.
 Release and preview packages are unsigned. See the [release notes](docs/releases/README.md)
 for changes and known limits.
 
-## Browse your collection
+## Features
 
-Scroll through a photo wall or a square grid and jump to a date with the timeline.
-Open an image for a closer look, compare two images, or rotate the viewing direction.
-An expandable thumbnail strip lets you browse nearby images over the main preview.
-Return from the viewer to the same place in the gallery.
-Folders from different drives appear in one library, and you can narrow the view to a single source.
-
-Ame watches for file changes and updates the library in the background. You can keep browsing
-while it catches up after being closed.
-
-## Find and compare images
-
-Search by filename or path, describe an image in natural language, or find images related to the
-one you are viewing. Combine filters for file format, date, dimensions, file size, and camera details.
-Smart albums classify images locally with SigLIP 2. GPU acceleration is enabled by default on
-supported devices and can be switched off in settings.
-
-Exact duplicate detection finds files with identical contents. Fold their copies into one gallery
-item, inspect the individual locations, or open the duplicate view to compare them. You can choose
-which copy represents a group and ignore groups you want to keep. Similar-image groups use a
-separate visual comparison with an adjustable similarity level.
-
-## Organize your collection
-
-Choose album icons, collect favorites, add images to albums, and resume reviewing images from
-your saved place.
-
-Ame supports copying, moving, renaming, and deletion through Windows.
-Deletion defaults to the Recycle Bin; permanent deletion requires an explicit choice. Duplicate and
-similar-group cleanup retain your keep choices, or the automatic representative when none was chosen,
-and confirm the number of files before deletion. Operation records show results and support
-recovery of interrupted work where applicable.
+- **Library browsing**: photo wall, square grid, timeline, and multiple folders in one library.
+- **Automatic synchronization**: file-change monitoring and background library updates.
+- **Image search**: filename, path, natural-language and image-based search, with combined filters.
+- **Smart albums**: local classification using SigLIP 2, with GPU acceleration on supported devices.
+- **Favorites and albums**: favorites, virtual albums, custom album icons, and saved organization progress.
+- **Duplicate cleanup**: exact and visually similar groups, comparison, adjustable similarity,
+  and group cleanup.
+- **File management**: copying, moving, renaming, deletion, operation history, and recovery of
+  supported interrupted operations.
+- **Image viewing**: zoom, rotation, side-by-side comparison, and thumbnail navigation.
 
 ## Run from source
 
