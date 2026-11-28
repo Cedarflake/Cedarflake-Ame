@@ -1639,7 +1639,7 @@ or erases the separately recorded intermittent native-accessibility failure.
 
 ## Same-folder count discrepancy follow-up
 
-The dedicated [count reconciliation record](library-count-reconciliation.md) now owns the complete
+The dedicated [count reconciliation record](https://github.com/Cedarflake/Cedarflake-Ame/blob/f245ca674a603aee18af79fc8ca521bd38b954b3/docs/acceptance/library-count-reconciliation.md) now owns the complete
 metadata census, generated first-read probes and separately requested desktop comparison. The
 original observations were transferred there, with subsequent results and their scope boundaries;
 they were not dropped. Current same-directory totals are 48663 Photos pictures and 48624 Ame

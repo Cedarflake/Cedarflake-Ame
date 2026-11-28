@@ -16,7 +16,7 @@ ports. Those controlled reproductions do not access retained source roots, live 
 cloud placeholders, installed services or original media. A later same-folder diagnostic reads
 catalog and directory metadata; a separately requested desktop comparison also opens the existing
 Release client and permits its normal derived-state work. The
-[count record](library-count-reconciliation.md) preserves these distinct scopes, artifact identities,
+[count record](https://github.com/Cedarflake/Cedarflake-Ame/blob/f245ca674a603aee18af79fc8ca521bd38b954b3/docs/acceptance/library-count-reconciliation.md) preserves these distinct scopes, artifact identities,
 private-path boundary and source-verification limitations. Neither is final retained-library or
 signed/installed-service acceptance.
 The active delivery order remains in [the canonical roadmap](../roadmap.md).
@@ -389,7 +389,7 @@ otherwise waits for item 2's controlled and hosted exit; the supplement permits 
 file-lifecycle blocker repair concurrently. Later local success cannot close unexplained hosted
 failures, and a failed diagnostic hypothesis cannot create another implicit investigation round.
 
-The additional UX-02A/UX-03A [count investigation](library-count-reconciliation.md) now reproduces
+The additional UX-02A/UX-03A [count investigation](https://github.com/Cedarflake/Cedarflake-Ame/blob/f245ca674a603aee18af79fc8ca521bd38b954b3/docs/acceptance/library-count-reconciliation.md) now reproduces
 48663 Photos pictures versus 48624 Ame entries in the same directory, with videos counted separately.
 Its census finds 42 absent image-format candidates and no missing currently supported-extension
 path. The retained successful-scan count is another 110 lower, matching exact terminal-failure paths

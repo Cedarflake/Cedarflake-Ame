@@ -55,7 +55,6 @@ recorded local checkpoint does not establish that the current product source pas
 | [Browsing admission](r2c-browsing-admission.md) | Published-catalog reads during import, connected Retry verification and the separate unresolved date-revision boundary |
 | [Isolated Release client](r2c-release-native.md) | Actual optimized-client pixels, navigation, source/catalog checks and retained Sandbox admission/retirement failures |
 | [Evidence publication](r2c-evidence-publication.md) | C02 native file-replacement attribution, controlled holder/mapping cases and unresolved local gate failure |
-| [Library count reconciliation](library-count-reconciliation.md) | Same-directory Photos/Ame totals, metadata path census, admission differences and unresolved historical revision evidence |
 | [Runtime lifecycle audit](r2c-runtime-lifecycle-audit.md) | Cross-workflow findings and ownership/physical-size evidence |
 | [Media and publication audit](r2c-media-and-publication-audit.md) | Real media encodings, publication boundaries, and related audit evidence |
 | [Gallery foundation](gallery-foundation.md) | Historical R0/R1/R2a/R2b acceptance, frozen interaction comparison, and retained preview/geometry requirements |

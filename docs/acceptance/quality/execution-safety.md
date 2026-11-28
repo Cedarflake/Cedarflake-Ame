@@ -58,12 +58,10 @@ The scratch lifecycle and a dependency-free Cargo probe run in the hosted Static
 
 ### Local Flutter toolchain
 
-- The installed Flutter SDK root on this workstation is resolved from
-  `$env:USERPROFILE\develop\flutter`; do not commit the expanded user-specific path.
-- PowerShell does not currently expose `flutter` or `dart` through `PATH`. Invoke the verified
-  executables explicitly instead of searching for, downloading, or installing another SDK:
-  - Flutter: `& "$env:USERPROFILE\develop\flutter\bin\flutter.bat"`
-  - Dart: `& "$env:USERPROFILE\develop\flutter\bin\cache\dart-sdk\bin\dart.exe"`
+- Use the installed SDK matching the repository's pinned Flutter version. Repository commands
+  resolve executable locations through `Get-AmeToolchain` in `tool/quality_common.ps1`.
+  Verify the resolved version before use; do not install a second SDK to work around path discovery.
+  Machine-specific installation paths and `PATH` settings belong in local configuration.
 - Select local Flutter work under [verification ownership](verification-workflow.md#verification-ownership); these toolchain
   rules do not add a local CI stage.
   Run selected formatting, diagnostic commands, and client-verification builds serially on this
