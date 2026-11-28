@@ -2,7 +2,7 @@
 
 Status: current Daily and unsigned Release pass; import-time root selection observed, deletion/date native proof remains open after source-cost and input-admission failures
 
-The [Release continuation](r2c-release-native.md#release-live-continuation-result) observes two root
+The [Release continuation](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/acceptance/r2c-release-native.md#release-live-continuation-result) observes two root
 clicks ignored during background import and an unsuccessful historical jump during deletion.
 These are independent boundaries in UX-03A and UX-08A, under the
 [historical execution method](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md#browsing-admission-during-import-and-publication).

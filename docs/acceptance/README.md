@@ -20,7 +20,6 @@ recorded local checkpoint does not establish that the current product source pas
 | [Smart-album terms](smart-album-terms.md) | Per-term concurrency, manual protection, shared tray behavior and real-model rematching |
 | [Prerelease compatibility](prerelease-compatibility.md) | Current schema baseline, retired Alpha upgrades and preserved operational recovery |
 | [Project organization](project-organization.md) | Refactor baseline, boundary regressions and migrated-slice evidence |
-| [Completed maintenance](completed-maintenance.md) | Delivered outcomes, accepted limitations and post-R2c roadmap provenance |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
 | [R5 integrated delivery](r5-closeout.md) | Ordered slice coverage, current desktop boundaries, retained limits and submitted CI provenance |
 | [R6 engine evaluation](r6-engine-evaluation.md) | Candidate integration, transformation quality, index growth and remaining admission evidence |
@@ -43,17 +42,13 @@ recorded local checkpoint does not establish that the current product source pas
 | [Maintainability refactor](maintainability-refactor.md) | Scoped behavior-preservation checks and physical ownership measurements for the maintenance branch |
 | [R3 exact-content verification](r3-exact-duplicates.md) | Exact analysis, gallery modes, review decisions, client/resource checks and final closeout evidence |
 | [Library continuity contract](library-continuity.md) | R2c safety, ownership, queue, reconciliation, failure, lifecycle, and acceptance requirements |
-| [Interleaving remediation](r2c-interleaving-remediation.md) | Current accumulated runtime findings, bounded retirement, mixed-load failures, native evidence, and source-specific results |
 | [Browsing recovery](synchronization-browsing-recovery.md) | The 2026-09-09 source-version, query-snapshot, and folder recovery correction and its verification limits |
 | [LiveOnly subtree recovery](r2c-live-gap-recovery.md) | C04 causal repair, retained/fresh bulk client evidence, source/resource limits and unresolved C05 browsing observations |
 | [Browsing diagnosis](r2c-browsing-diagnosis.md) | C05 recovered-date publication correction, mixed-image/bulk native functional checks, retained replay failures and remaining presentation/final-gate limits |
-| [Retained-library runtime](r2c-retained-runtime.md) | Completed but slow retained recovery, C05 middle-window paging follow-up, read-only preview-failure observations and current verification limits |
 | [Maintenance deliveries](r2c-maintainability.md) | Required state, queue, scan and viewport responsibility changes and their behavior-preservation evidence |
 | [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, actual paused-checkpoint restoration and explicit continuation, retained failures and remaining input limits |
 | [Picker and task controls](r2c-input-controls.md) | C06 pending-pause Cancel correction, focused regressions and retained unsuccessful native input attempt |
-| [Native query interactions](r2c-query-interactions.md) | Generated publication/query/page evidence, preserved diagnostic failures and remaining combined native interactions |
 | [Browsing admission](r2c-browsing-admission.md) | Published-catalog reads during import, connected Retry verification and the separate unresolved date-revision boundary |
-| [Isolated Release client](r2c-release-native.md) | Actual optimized-client pixels, navigation, source/catalog checks and retained Sandbox admission/retirement failures |
 | [Evidence publication](r2c-evidence-publication.md) | C02 native file-replacement attribution, controlled holder/mapping cases and unresolved local gate failure |
 | [Runtime lifecycle audit](r2c-runtime-lifecycle-audit.md) | Cross-workflow findings and ownership/physical-size evidence |
 | [Media and publication audit](r2c-media-and-publication-audit.md) | Real media encodings, publication boundaries, and related audit evidence |
@@ -80,9 +75,8 @@ Keep private catalogs/media, machine-specific roots, account labels, and raw use
 
 ## Historical roadmap provenance
 
-The 2026-11-03 routing change moves completed maintenance out of the active queue. The
-[maintenance index](completed-maintenance.md) links each owning record and preserves the exact
-pre-change roadmap at `364fc2cf:docs/roadmap.md`; it does not maintain a parallel active plan.
+The roadmap before the 2026-11-03 routing change remains in
+[Git history](https://github.com/Cedarflake/Cedarflake-Ame/blob/364fc2cf/docs/roadmap.md).
 
 The 2026-09-09 organization removed duplicated implementation chronologies and drifting status
 snapshots from the active roadmap. The exact original remains in Git at
@@ -103,7 +97,7 @@ git show 643f7b8f71971ce33416cc87aa94bb84f41d4e05:docs/roadmap.md
 | R3–R10 detailed scope and product value checkpoints | [Organization workflow requirements](../product/organization-workflows.md) |
 | Pre-freeze R2c queue and acceptance wording | [Roadmap at the frozen product commit](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md); the current roadmap owns stage order and closure |
 | Section 7: large-library ladder | The evidence ladder below, with unchanged authorization boundaries |
-| Fixed queue, current blockers, required physical splits | [Current roadmap](../roadmap.md#current-execution-queue); detailed historical attribution in the interleaving ledger |
+| Fixed queue, current blockers, required physical splits | [Current roadmap](../roadmap.md#current-execution-queue); historical attribution in the [interleaving report](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/acceptance/r2c-interleaving-remediation.md) |
 | Bounded investigation, eight scenarios, budgets, cautions, exit rules | [R2c closeout execution](https://github.com/Cedarflake/Cedarflake-Ame/blob/d33e453e66a3f89531ca4b02df5909cade193126/docs/plans/r2c-closeout.md), transferred as one complete procedure |
 | Existing checkpoints, dated closeout narratives and section 10.1 snapshots | Named audit/stage records above plus the immutable Git source; never current-status authority |
 | Section 10.2 foundation acceptance checkpoints | [Gallery foundation](gallery-foundation.md#historical-acceptance-checkpoints) |

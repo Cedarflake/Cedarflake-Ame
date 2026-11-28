@@ -22,17 +22,16 @@ only the contracts, execution details, and evidence that own the task.
 | How will R9 move album files by year, and where does ExifTool fit? | [R9 execution plan](plans/r9-album-files-by-year.md) and [roadmap disposition](roadmap.md#r9--album-files-by-year) |
 | What remains before the first Beta? | [R10 execution plan](plans/r10-beta-readiness.md) and [roadmap disposition](roadmap.md#r10--beta-readiness) |
 | How does desktop language support work? | [Internationalization standard](development/internationalization.md) and [application language behavior](product/gallery-ui.md#scope-and-authority) |
-| How are installed and portable application updates coordinated and verified? | [Update decision](architecture/0043-application-update-coordination.md), [implementation plan](plans/application-updates.md) and [verification](acceptance/application-updates.md) |
+| How are installed and portable application updates coordinated and verified? | [Update decision](architecture/0043-application-update-coordination.md) and [verification](acceptance/application-updates.md) |
 | How do I change user-facing text or add a language? | [Internationalization standard](development/internationalization.md) |
-| Where will official Material spring motion be adopted? | [Material motion plan](plans/material-motion.md) and [roadmap disposition](roadmap.md#material-motion-adoption) |
+| Which shared owners implement motion and loading feedback? | [Motion decision](architecture/0001-flutter-rust-desktop-stack.md#state-motion) and [loading feedback contract](product/gallery/feedback.md#loading-visibility-and-geometry) |
 | How is the Material wide-screen workbench implemented? | [Workbench contract](product/gallery/workbench-and-navigation.md) and [navigation decision](architecture/0029-functional-workbench-navigation.md) |
-| How will transition costs be reduced without changing accepted effects? | [Motion performance plan](plans/motion-performance.md) and [roadmap disposition](roadmap.md#transition-performance) |
+| Where are transition performance measurements and remaining limits? | [Motion evidence](acceptance/material-motion.md#transition-performance--2026-11-13) |
 | Where are organization changes and their verification recorded? | [Initial, catalog, scan and preview evidence](acceptance/project-organization.md); [incremental and synchronization evidence](acceptance/project-organization-continuity.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
 | Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality/ui-verification.md#ui-workflow-verification) |
 | Where does current maintenance resume? | [Current queue](roadmap.md#current-execution-queue) and its linked active plan |
 | How is GPU smart-album analysis selected and verified? | [GPU execution decision](architecture/0039-gpu-classification-execution.md), [settings contract](product/gallery/settings.md) and [GPU evidence](acceptance/gpu-analysis-acceleration.md) |
-| Where are completed maintenance outcomes and deferred observations? | [Completed maintenance index](acceptance/completed-maintenance.md), linking the owning evidence |
 | Where is the completed R3 delivery recorded? | [R3 exact duplicate implementation](plans/r3-exact-duplicates.md) and its linked verification; the roadmap selects subsequent work |
 | Where is the frozen R2c outcome recorded? | [R2c freeze](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16) |
 | Why was a technical boundary chosen? | [Architecture decisions](architecture/README.md) |

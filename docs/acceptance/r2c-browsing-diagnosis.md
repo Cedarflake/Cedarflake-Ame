@@ -4,7 +4,7 @@ Status: preview-demand, capture-time publication, presentation and transient Ret
 focused and complete generated-native evidence. Prior failed lifetimes remain failed; other frozen
 client variants, final-source gates and external acceptance remain open.
 
-The later [retained-library runtime follow-up](r2c-retained-runtime.md) separately owns the
+The later [retained-library runtime follow-up](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/acceptance/r2c-retained-runtime.md) records the
 2026-09-25 report of Retry feedback and a middle-window jump after synchronization finished.
 The earlier generated workload does not close that report or establish its cause.
 
@@ -756,9 +756,9 @@ the product assertions.
 Physical sizes are 476 to 415 production lines for the photo tile and 194 for the new feedback owner,
 with zero inline tests; dedicated photo-tile tests are 690 lines and feedback tests 135 lines.
 This establishes focused layout and interaction evidence. The shared
-[current correction gate record](r2c-query-interactions.md#c09-retained-folder-windows-during-revision-replacement)
+[current correction gate record](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/acceptance/r2c-query-interactions.md#c09-retained-folder-windows-during-revision-replacement)
 also records passing complete lint, the full Flutter Daily component and all ten native accessibility
-phases. The subsequent [native correction interaction record](r2c-query-interactions.md#native-correction-interactions-and-retained-lifetime-gap)
+phases. The subsequent [native correction interaction record](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/acceptance/r2c-query-interactions.md#native-correction-interactions-and-retained-lifetime-gap)
 proves a real exclusive-source failure, visible 48-pixel Retry, actual pointer activation, immediate
 progress and current decoded pixels with unchanged geometry. It preserves two earlier method
 failures and a later parent-script exit-time error. C10's native functional assertions pass; that

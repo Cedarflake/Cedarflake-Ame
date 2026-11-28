@@ -1,7 +1,6 @@
 # Prerelease compatibility cleanup
 
-The [roadmap](../roadmap.md#prerelease-compatibility-cleanup) owns delivery status. The
-[plan](../plans/prerelease-compatibility.md) scopes retirement;
+The [roadmap](../roadmap.md#prerelease-compatibility-cleanup) owns delivery status.
 [ADR 0002](../architecture/0002-rust-owned-catalog-and-media-boundaries.md#supported-prerelease-baseline)
 owns the supported baseline.
 

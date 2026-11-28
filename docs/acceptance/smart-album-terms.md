@@ -1,7 +1,7 @@
 # Smart-album term editing evidence
 
 The [roadmap](../roadmap.md) owns delivery status; the
-[term-editing plan](../plans/smart-album-terms.md) owns this scope.
+[smart-album contract](../product/gallery/smart-albums.md) owns term-editing behavior.
 
 ## Focused verification — 2026-11-27
 

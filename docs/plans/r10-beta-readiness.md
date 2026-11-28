@@ -100,7 +100,7 @@ their version from the same build identity. The Flutter build number must increa
 Beta so the existing MSI version mapping remains monotonic.
 
 The first Beta retains documented MSI upgrades and portable-package replacement. The subsequently
-accepted [application updater](application-updates.md) supplies in-app download and explicit restart;
+accepted [application updater](../architecture/0043-application-update-coordination.md) supplies in-app download and explicit restart;
 manual upgrade remains the recovery route.
 
 Exit evidence: preserved representative records, working installed/portable clients, recovery results
@@ -133,7 +133,7 @@ after an unrelated notes/publisher repair.
 Prepare `docs/releases/v0.1.0-beta.1.md` with changes since Alpha 3, including R9 and viewer copying,
 upgrade instructions and remaining accepted limits. Publish an unsigned GitHub prerelease with both
 MSI and portable ZIP from one verified candidate. Retain the current model payload differences,
-checksums, immutable tag/package checks and [artifact reuse](release-artifact-reuse.md) workflow.
+checksums, immutable tag/package checks and [artifact reuse](../architecture/0015-windows-release-distribution.md) workflow.
 Verify downloaded packages and the release body before recording publication.
 
 ## Working order and exit decision

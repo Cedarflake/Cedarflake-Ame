@@ -1,7 +1,7 @@
 # Official Material motion adoption
 
 The [roadmap](../roadmap.md#material-motion-adoption) owns disposition and the
-[execution plan](../plans/material-motion.md) owns scope and order.
+[motion decision](../architecture/0001-flutter-rust-desktop-stack.md#state-motion) owns the shared transition boundary.
 
 ## Transition performance integration — 2026-11-14
 
@@ -16,7 +16,8 @@ the reviewed head; both local and remote `codex/motion-performance` branches wer
 
 ## Transition performance — 2026-11-13
 
-The [performance plan](../plans/motion-performance.md) preserves the delivered motion. Baseline
+The comparison follows the original
+[measurement procedure](https://github.com/Cedarflake/Cedarflake-Ame/blob/c1d3cda4fa43ac141141d982b9111a5c5169bed2/docs/plans/motion-performance.md#measurement-and-optimization-method). Baseline
 `532fbc21`, intermediate render changes through `2e0aab44`, and follow-ups through `1da9d4c7`
 with the aligned-buffer change accompanying this record were measured with Flutter 3.47.8 Profile,
 Skia, a 165-Hz
@@ -498,7 +499,7 @@ multi-second desktop holding remains unverified as recorded under
 
 ## Expressive loading — 2026-11-11
 
-The [loading plan](../plans/loading-indicator.md) adds the shared temporary Material renderer,
+The [loading feedback contract](../product/gallery/feedback.md#loading-visibility-and-geometry) covers the shared temporary Material renderer,
 icon-only preparation feedback in dialogs/trays, and coordinated gallery/review loading. The
 timeline retains its circular indicator and geometry without the left divider. Review lists retain
 their virtual extent and demand while omitting blank-card decoration. No native, catalog or source

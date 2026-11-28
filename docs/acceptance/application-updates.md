@@ -2,7 +2,7 @@
 
 Dates: 2026-11-25–26
 
-Scope: the [application updates plan](../plans/application-updates.md), under
+Scope: installed and portable application updates under
 [ADR 0043](../architecture/0043-application-update-coordination.md). The
 [roadmap](../roadmap.md#application-updates) owns delivery status.
 
